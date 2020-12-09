@@ -1,10 +1,13 @@
+#!/usr/bin/env python3
+
 import logging
 import sys
 import os
 import argparse
 import time
 import awkward1 as ak
-
+import numpy as np
+import pandas as pd
 import epix
 
 def isNumber(x):
@@ -68,7 +71,7 @@ def main(args):
     path = os.path.join(*p[:-1])
     file_name = p[-1]
     print(f'Reading in root file {file_name}')
-    inter = loader(path, file_name, kwargs_uproot_ararys={'entry_stop': args.EntryStop})
+    inter = epix.loader(path, file_name, kwargs_uproot_ararys={'entry_stop': args.EntryStop})
     if args.Timing:
         t = time.time()
         print(f'It took {round(t - tnow, 5)} sec to load the data.')
@@ -76,13 +79,13 @@ def main(args):
 
     print((f'Finding clusters of interactions with a dr = {args.MicroSeparation} mm'
            f' and dt = {args.MicroSeparationTime} ns'))
-    inter = find_cluster(inter, args.MicroSeparation/10, args.MicroSeparationTime)
+    inter = epix.find_cluster(inter, args.MicroSeparation/10, args.MicroSeparationTime)
     if args.Timing:
         t = time.time()
         print(f'It took {round(t - tnow, 5)} sec to find clusters.')
         tnow = t
         
-    result = cluster(inter, args.TagClusterBy=='energy')
+    result = epix.cluster(inter, args.TagClusterBy=='energy')
     if args.Timing:
         t = time.time()
         print(f'It took {round(t - tnow, 5)} sec to cluster events.')
@@ -92,10 +95,10 @@ def main(args):
     result['evtid'] = ak.broadcast_arrays(inter['evtid'][:, 0], result['ed'])[0]
     
     # Sort detector volumes and keep interactions in selected ones:
-    sensitive_volumes = [tpc, below_cathode] #TODO: add options
+    sensitive_volumes = [epix.tpc, epix.below_cathode] #TODO: add options
     print('Removing clusters not in volumes:', *[x.name for x in sensitive_volumes])
     print(f'Number of clusters before: {np.sum(ak.num(result["x"]))}')
-    result['ids'] = in_sensitive_volume(result, sensitive_volumes)
+    result['ids'] = epix.in_sensitive_volume(result, sensitive_volumes)
     m = (result['ids'] == sensitive_volumes[0].volume_id) | (result['ids'] == sensitive_volumes[1].volume_id)
     # TODO: The idea is to code this properly and depending on len(sensitive_volumes)
     result = result[m]
@@ -108,13 +111,13 @@ def main(args):
     if isNumber(args.Efield):
         efields = np.ones(np.sum(ak.num(result)), np.float32)*args.Efield
     else:
-        E_field_handler = MyElectricFieldHandler(args.Efield)
+        E_field_handler = epix.MyElectricFieldHandler(args.Efield)
         efields = E_field_handler.get_field(awkward_to_flat_numpy(result.x),
                                             awkward_to_flat_numpy(result.y),
                                             awkward_to_flat_numpy(result.z))
         # TODO: Move this into GetField:
         efields[efields == np.nan] = 200
-    result['e_field'] = reshape_awkward(efields, ak.num(result))
+    result['e_field'] = epix.reshape_awkward(efields, ak.num(result))
 
     # Sort in time and set first cluster to t=0, then chop all delayed
     # events which are too far away from the rest.
@@ -132,14 +135,14 @@ def main(args):
     # Generate quanta:
     # TODO: May crash for to large energy deposits?
     # TODO: Support different volumes...
-    photons, electrons = quanta_from_NEST(awkward_to_flat_numpy(result['ed']),
-                                          awkward_to_flat_numpy(result['nestid']),
-                                          awkward_to_flat_numpy(result['e_field']),
-                                          awkward_to_flat_numpy(result['A']),
-                                          awkward_to_flat_numpy(result['Z']),
-                                          awkward_to_flat_numpy(result['ids']))
-    result['photons'] = reshape_awkward(photons, ak.num(result['ed']))
-    result['electrons'] = reshape_awkward(electrons, ak.num(result['ed']))
+    photons, electrons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
+                                               epix.awkward_to_flat_numpy(result['nestid']),
+                                               epix.awkward_to_flat_numpy(result['e_field']),
+                                               epix.awkward_to_flat_numpy(result['A']),
+                                               epix.awkward_to_flat_numpy(result['Z']),
+                                               epix.awkward_to_flat_numpy(result['ids']))
+    result['photons'] = epix.reshape_awkward(photons, ak.num(result['ed']))
+    result['electrons'] = epix.reshape_awkward(electrons, ak.num(result['ed']))
     if args.Timing:
         t = time.time()
         print(f'It took {round(t - tnow, 5)} sec to get quanta.')
@@ -147,7 +150,7 @@ def main(args):
 
     # Reshape instructions:
     #TODO: Change me....
-    instructions = awkward_to_really_awkward(result)
+    instructions = epix.awkward_to_really_awkward(result)
     # Remove entries with no quanta
     instructions = instructions[instructions['amp']>0]
     ins_df = pd.DataFrame(instructions)
