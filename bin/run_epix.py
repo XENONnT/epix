@@ -112,9 +112,9 @@ def main(args):
         efields = np.ones(np.sum(ak.num(result)), np.float32)*args.Efield
     else:
         E_field_handler = epix.MyElectricFieldHandler(args.Efield)
-        efields = E_field_handler.get_field(awkward_to_flat_numpy(result.x),
-                                            awkward_to_flat_numpy(result.y),
-                                            awkward_to_flat_numpy(result.z))
+        efields = E_field_handler.get_field(epix.awkward_to_flat_numpy(result.x),
+                                            epix.awkward_to_flat_numpy(result.y),
+                                            epix.awkward_to_flat_numpy(result.z))
         # TODO: Move this into GetField:
         efields[efields == np.nan] = 200
     result['e_field'] = epix.reshape_awkward(efields, ak.num(result))
