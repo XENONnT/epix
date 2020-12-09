@@ -1,14 +1,12 @@
 # epix
 
-or **E**lectron and **P**hoton **I**nstructions generator for **X**ENON
+**E**lectron and **P**hoton **I**nstructions generator for **X**ENON
 
 The job of epix is to load XENONnT Geant4 MC data and produce inputs for wfsim in csv format, using nestpy for the quanta generation and DBSCAN for the clustering of the individual steps.
 
 ## Instructions
 
-Usable on top of the MC environment, i.e., before running it do something like
-
-    module load singularity && singularity shell --bind /cvmfs/ --bind /project2/ --bind /dali /project2/lgrandi/xenonnt/singularity-images/xenonnt-montecarlo-development.simg.
+Usable on top of the MC environment.
 
 The keyword arguments (see mc/epix/bin/run_epix.py) are:
 
