@@ -1,19 +1,11 @@
 import logging
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join('..', 'epix')))
 import argparse
 import time
-
 import awkward1 as ak
 
-#TODO: change the importing...
-from epix.ElectricFieldHandler import MyElectricFieldHandler  #TODO call me in SensetiveVolume
-from epix.clustering import *
-from epix.common import *
-from epix.detector_volumes import *
-from epix.io import *
-from epix.quanta_generation import *
+import epix
 
 def isNumber(x):
     try:
