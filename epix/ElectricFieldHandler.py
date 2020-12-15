@@ -44,6 +44,22 @@ class MyElectricFieldHandler:
                                 bounds_error=False,
                                 fill_value=None)
     
-    def get_field(self, x, y, z):
+    def get_field(self, x, y, z, outside_map=np.nan):
+        """
+        Function which returns the electric field at a certain position
+        according to an efield map.
+
+        Args:
+            x (np.array): x coordinate of the interaction in cm
+            y (np.array): x coordinate of the interaction in cm
+            z (np.array): x coordinate of the interaction in cm
+
+        Kwargs:
+            outsie_map (float): Default value to be used if interaction
+                was not within in the range of the map. Default np.nan
+        :return:
+        """
         r = np.sqrt(x**2+y**2)
-        return self.interpolator((z, r))
+        efield = self.interpolator((z, r))
+        efield[np.isnan(efield)] = outside_map
+        return efield

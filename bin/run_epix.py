@@ -1,21 +1,19 @@
-#!/usr/bin/env python3
+import logging  #TODO: Logging is missing
 
-import logging
-import sys
 import os
 import argparse
 import time
+
 import awkward1 as ak
 import numpy as np
 import pandas as pd
-import epix
 
-def isNumber(x):
-    try:
-        float(x)
-        return True
-    except ValueError:
-        return False
+# TODO: Fix epix import, making system epix aware
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import epix
+from .my_volumes import my_volumes
+
 
 parser = argparse.ArgumentParser(description="Electron and Photon Instructions generator for XENON wfsim")
 parser.add_argument('--InputFile', dest='InputFile',
@@ -50,20 +48,25 @@ parser.add_argument('--Timing', dest='Timing', type=bool,
 parser.add_argument('--OutputPath', dest='OutputPath',
                    action='store', default="",
                    help=('Optional output path. If not specified the result will be saved'
-                        'in the same dir as the input file.'))
+                         'in the same dir as the input file.'))
 
 args = parser.parse_args(sys.argv[1:])
 
-if isNumber(args.Efield):
-    args.Efield = float(args.Efield)
-
-print("epix configuration: ", args)
 
 def main(args):
+    if is_number(args.Efield):
+        args.Efield = float(args.Efield)
+
+    print("epix configuration: ", args)
+    tnow = 0
+    starttime = 0
     if args.Timing:
+        # TODO: also add memory information see starxer and change this to debug
+        # Getting time information:
         starttime = time.time()
         tnow = starttime
-    # Loading the data:
+
+    # Getting file path and split it into directory and file name:
     p = args.InputFile
     p = p.split('/')
     if p[0] == "":
@@ -71,52 +74,58 @@ def main(args):
     path = os.path.join(*p[:-1])
     file_name = p[-1]
     print(f'Reading in root file {file_name}')
+
+    # Loading data:
     inter = epix.loader(path, file_name, kwargs_uproot_ararys={'entry_stop': args.EntryStop})
     if args.Timing:
-        t = time.time()
-        print(f'It took {round(t - tnow, 5)} sec to load the data.')
-        tnow = t
+        tnow = monitor_time(tnow, 'load data.')
 
-    print((f'Finding clusters of interactions with a dr = {args.MicroSeparation} mm'
+    # Cluster finding and clustering:
+    print((f'Finding clusters of interactions with a dr = {args.MicroSeparation} cm'
            f' and dt = {args.MicroSeparationTime} ns'))
-    inter = epix.find_cluster(inter, args.MicroSeparation/10, args.MicroSeparationTime)
+    inter = epix.find_cluster(inter, args.MicroSeparation, args.MicroSeparationTime)
+
     if args.Timing:
-        t = time.time()
-        print(f'It took {round(t - tnow, 5)} sec to find clusters.')
-        tnow = t
-        
-    result = epix.cluster(inter, args.TagClusterBy=='energy')
+        tnow = monitor_time(tnow, 'cluster finding.')
+
+    result = epix.cluster(inter, args.TagClusterBy == 'energy')
     if args.Timing:
-        t = time.time()
-        print(f'It took {round(t - tnow, 5)} sec to cluster events.')
-        tnow = t
+        tnow = monitor_time(tnow, 'cluster merging.')
 
     # Add eventid again:
     result['evtid'] = ak.broadcast_arrays(inter['evtid'][:, 0], result['ed'])[0]
     
     # Sort detector volumes and keep interactions in selected ones:
-    sensitive_volumes = [epix.tpc, epix.below_cathode] #TODO: add options
-    print('Removing clusters not in volumes:', *[x.name for x in sensitive_volumes])
-    print(f'Number of clusters before: {np.sum(ak.num(result["x"]))}')
-    result['ids'] = epix.in_sensitive_volume(result, sensitive_volumes)
-    m = (result['ids'] == sensitive_volumes[0].volume_id) | (result['ids'] == sensitive_volumes[1].volume_id)
-    # TODO: The idea is to code this properly and depending on len(sensitive_volumes)
+    print('Removing clusters not in volumes:', *[x.name for x in my_volumes])
+    print(f'Number of clusters before: {np.sum(ak.num(result["ed"]))}')
+
+    res_det = epix.in_sensitive_volume(result, my_volumes)
+    # Adding new fields to result:
+    for field in res_det.fields:
+        result[field] = res_det[field]
+    m = result['ids'] > 0  # All volumes have an idea larger zero
     result = result[m]
+
     # Removing now empty events as a result of the selection above:
     m = ak.num(result['ed']) > 0
     result = result[m]
-    print(f'Number of clusters after: {np.sum(ak.num(result["x"]))}')
 
+    print(f'Number of clusters after: {np.sum(ak.num(result["ed"]))}')
     print('Assigning electric field to clusters')
-    if isNumber(args.Efield):
+
+    if is_number(args.Efield):
+        # TODO: Efield handling is super odd, we should move this to detector volumes
+        #  We can make this argeument optional and keep definition of my_volumes in case
+        #  no new field is specified.
         efields = np.ones(np.sum(ak.num(result)), np.float32)*args.Efield
     else:
-        E_field_handler = epix.MyElectricFieldHandler(args.Efield)
-        efields = E_field_handler.get_field(epix.awkward_to_flat_numpy(result.x),
+        e_field_handler = epix.MyElectricFieldHandler(args.Efield)
+        efields = e_field_handler.get_field(epix.awkward_to_flat_numpy(result.x),
                                             epix.awkward_to_flat_numpy(result.y),
-                                            epix.awkward_to_flat_numpy(result.z))
-        # TODO: Move this into GetField:
-        efields[efields == np.nan] = 200
+                                            epix.awkward_to_flat_numpy(result.z),
+                                            outside_map=200  # V/cm
+                                            )
+
     result['e_field'] = epix.reshape_awkward(efields, ak.num(result))
 
     # Sort in time and set first cluster to t=0, then chop all delayed
@@ -133,42 +142,55 @@ def main(args):
 
     print('Generating photons and electrons for events')
     # Generate quanta:
-    # TODO: May crash for to large energy deposits?
-    # TODO: Support different volumes...
     photons, electrons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
                                                epix.awkward_to_flat_numpy(result['nestid']),
                                                epix.awkward_to_flat_numpy(result['e_field']),
                                                epix.awkward_to_flat_numpy(result['A']),
                                                epix.awkward_to_flat_numpy(result['Z']),
-                                               epix.awkward_to_flat_numpy(result['ids']))
+                                               epix.awkward_to_flat_numpy(result['ids']),
+                                               density=epix.awkward_to_flat_numpy(result['xe_density']))
     result['photons'] = epix.reshape_awkward(photons, ak.num(result['ed']))
     result['electrons'] = epix.reshape_awkward(electrons, ak.num(result['ed']))
     if args.Timing:
-        t = time.time()
-        print(f'It took {round(t - tnow, 5)} sec to get quanta.')
-        tnow = t
+        _ = monitor_time(tnow, 'get quanta.')
 
     # Reshape instructions:
-    #TODO: Change me....
     instructions = epix.awkward_to_really_awkward(result)
-    # Remove entries with no quanta
-    instructions = instructions[instructions['amp']>0]
+
+    # Remove entries with no quanta, or
+    # which were outside of the energy range supported by NEST
+    instructions = instructions[instructions['amp'] > 0]
     ins_df = pd.DataFrame(instructions)
     
     if args.OutputPath:
-        os.makedirs(args.OutputPath, exist_ok=True)
+        if not os.path.isdir(args.OutputPath):
+            os.makedirs(args.OutputPath)
         if not args.OutputPath.endswith("/"):
-            args.OutputPath+="/"
-        output_path_and_name=args.OutputPath + file_name[:-5] + "_wfsim_instructions.csv"
+            args.OutputPath += "/"
+        output_path_and_name = args.OutputPath + file_name[:-5] + "_wfim_instructions.csv"
     else:
-        output_path_and_name=args.InputFile[:-5] + "_wfsim_instructions.csv"
+        output_path_and_name = args.InputFile[:-5] + "_wfim_instructions.csv"
     ins_df.to_csv(output_path_and_name, index=False)
     
     print('Done')
     print('Instructions saved to ', output_path_and_name)
     if args.Timing:
-        t = time.time()
-        print(f'It took {round(t - starttime, 5)} sec to process file.')
+        _ = monitor_time(starttime, 'run epix.')
+
+
+def is_number(x):
+    try:
+        float(x)
+        return True
+    except ValueError:
+        return False
+
+
+def monitor_time(prev_time, task):
+    t = time.time()
+    print(f'It took {(t - prev_time):.4f} sec to {task}')
+    return t
+
 
 if __name__ == "__main__":
     main(args)
