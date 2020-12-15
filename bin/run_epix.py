@@ -133,16 +133,16 @@ def main(args):
 
     #Separate event in time 
     number_of_events = len(result["t"])
-    if isNumber(args.EvtRate):
-        if args.EvtRate == -1:
-            dt = clean_separation(number_of_events, args.MaxDelay)
+    if isNumber(args.EventRate):
+        if args.EventRate == -1:
+            dt = epix.clean_separation(number_of_events, args.MaxDelay)
             print("Clean Event Separation")
         else:
-            dt = times_from_fixed_rate(args.EvtRate, number_of_events)
+            dt = epix.times_from_fixed_rate(args.EventRate, number_of_events)
             print("Fixed Event Rate")
     else:
         Rate_df = pd.read_csv(args.EventRate)
-        dt = times_from_variable_rate(Rate_df.Rate.values, Rate_df.Time.values, number_of_events)
+        dt = epix.times_from_variable_rate(Rate_df.Rate.values, Rate_df.Time.values, number_of_events)
         print("Variable Event Rate")
     result['t'] = result['t'][:, :] + dt
 

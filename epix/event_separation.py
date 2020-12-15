@@ -10,7 +10,7 @@ def clean_separation(n_events, MaxDelay):
 
 def times_from_fixed_rate(rate, n_events):
     
-    simulation_time = n_events/rate #seconds
+    simulation_time = n_events/np.float(rate) #seconds
     simulation_time_nanoseconds = simulation_time*1e9
     
     event_times = np.sort(np.random.uniform(low = 0, high = simulation_time_nanoseconds, size = n_events))
