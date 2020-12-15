@@ -7,3 +7,4 @@ from .quanta_generation import *
 from .detector_volumes import *
 from .clustering import *
 from .ElectricFieldHandler import *
+from .event_separation import *

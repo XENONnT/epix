@@ -44,6 +44,11 @@ parser.add_argument('--Efield', dest='Efield',
 parser.add_argument('--MaxDelay', dest='MaxDelay', type=float,
                     action='store', default=1e7, #ns
                     help='Maximal time delay to first interaction which will be stored [ns]')
+parser.add_argument('--EventRate', dest='EventRate',
+                    action='store', default=-1, 
+                    help='Event rate for event separation. Use -1 for clean simulations'
+                         'or give a rate >0 to space events randomly.'
+                         'or give a csv file containing time[s] and rate[Hz]')
 parser.add_argument('--Timing', dest='Timing', type=bool,
                     action='store', default=False,
                     help='If true will print out the time needed.')
@@ -125,11 +130,22 @@ def main(args):
     result = result[ak.argsort(result['t'])]
     result['t'] = result['t'] - result['t'][:, 0]
     result = result[result['t'] <= args.MaxDelay]
-    # Secondly truly separate events by time (1.1 times the max time),
-    # with first event starting at max time (needed for wfsim)
-    dt = np.arange(1, len(result['t'])+1) + np.arange(1, len(result['t'])+1) / 10
-    dt *= args.MaxDelay
-    result['t'] = (result['t'][:, :] + result['t'][:, 0] + dt)
+
+    #Separate event in time 
+    number_of_events = len(result["t"])
+    if isNumber(args.EvtRate):
+        if args.EvtRate == -1:
+            dt = clean_separation(number_of_events, args.MaxDelay)
+            print("Clean Event Separation")
+        else:
+            dt = times_from_fixed_rate(args.EvtRate, number_of_events)
+            print("Fixed Event Rate")
+    else:
+        Rate_df = pd.read_csv(args.EventRate)
+        dt = times_from_variable_rate(Rate_df.Rate.values, Rate_df.Time.values, number_of_events)
+        print("Variable Event Rate")
+    result['t'] = result['t'][:, :] + dt
+
 
     print('Generating photons and electrons for events')
     # Generate quanta:
