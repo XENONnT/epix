@@ -56,7 +56,6 @@ def simple_1d_clustering(data, scale):
         data : one dimensional array to be clusterd
         scale (float): Max distance between two points to
             be inside a cluster.
-
     """
     
     idx_sort = np.argsort(data)
