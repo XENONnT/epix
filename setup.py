@@ -28,7 +28,7 @@ setuptools.setup(
             'nbsphinx',
             'recommonmark',
             'graphviz']},
-    scripts=['bin/run_epix],
+    scripts=['bin/run_epix'],
     packages=setuptools.find_packages(),
     classifiers=[
         'Natural Language :: English',
