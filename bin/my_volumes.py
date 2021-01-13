@@ -1,9 +1,4 @@
 import numba
-
-import os
-import sys
-# TODO: Move epix into stand alone repo
-sys.path.append(os.path.abspath(os.path.join('..', 'epix')))
 import epix
 
 # ------------
