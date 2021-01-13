@@ -12,45 +12,46 @@ import pandas as pd
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import epix
-from .my_volumes import my_volumes
+from my_volumes import my_volumes
 
+def pars_args():
+    parser = argparse.ArgumentParser(description="Electron and Photon Instructions generator for XENON wfsim")
+    parser.add_argument('--InputFile', dest='InputFile',
+                        action='store', required=True,
+                        help='Input Geant4 ROOT file')
+    parser.add_argument('--EntryStop', dest='EntryStop', type=int,
+                        action='store',
+                        help='Number of entries to read from first. Defaulted to all')
+    parser.add_argument('--MicroSeparation', dest='MicroSeparation', type=float,
+                        action='store', default=0.05,
+                        help='Spatial resolution for DBSCAN micro-clustering [mm]')
+    parser.add_argument('--MicroSeparationTime', dest='MicroSeparationTime', type=float,
+                        action='store', default=10,
+                        help='Time resolution for DBSCAN micro-clustering [ns]')
+    parser.add_argument('--TagClusterBy', dest='TagClusterBy', type=str,
+                        action='store', default='time',
+                        help=('Classification of the type of particle of a cluster, '
+                              'based on most energetic contributor ("energy") or first '
+                              'depositing particle ("time")'),
+                        choices={'time', 'energy'})
+    parser.add_argument('--Efield', dest='Efield',
+                        action='store', default=200,
+                        help=('Drift field map as text file ("r z E", with '
+                              'length in cm and field in V/cm) or as a constant (in V/cm; '
+                              'recommended only for testing)'))
+    parser.add_argument('--MaxDelay', dest='MaxDelay', type=float,
+                        action='store', default=1e7, #ns
+                        help='Maximal time delay to first interaction which will be stored [ns]')
+    parser.add_argument('--Timing', dest='Timing', type=bool,
+                        action='store', default=False,
+                        help='If true will print out the time needed.')
+    parser.add_argument('--OutputPath', dest='OutputPath',
+                       action='store', default="",
+                       help=('Optional output path. If not specified the result will be saved'
+                             'in the same dir as the input file.'))
 
-parser = argparse.ArgumentParser(description="Electron and Photon Instructions generator for XENON wfsim")
-parser.add_argument('--InputFile', dest='InputFile',
-                    action='store', required=True,
-                    help='Input Geant4 ROOT file')
-parser.add_argument('--EntryStop', dest='EntryStop', type=int,
-                    action='store',
-                    help='Number of entries to read from first. Defaulted to all')
-parser.add_argument('--MicroSeparation', dest='MicroSeparation', type=float,
-                    action='store', default=0.05,
-                    help='Spatial resolution for DBSCAN micro-clustering [mm]')
-parser.add_argument('--MicroSeparationTime', dest='MicroSeparationTime', type=float,
-                    action='store', default=10,
-                    help='Time resolution for DBSCAN micro-clustering [ns]')
-parser.add_argument('--TagClusterBy', dest='TagClusterBy', type=str,
-                    action='store', default='time',
-                    help=('Classification of the type of particle of a cluster, '
-                          'based on most energetic contributor ("energy") or first '
-                          'depositing particle ("time")'),
-                    choices={'time', 'energy'})
-parser.add_argument('--Efield', dest='Efield',
-                    action='store', default=200,
-                    help=('Drift field map as text file ("r z E", with '
-                          'length in cm and field in V/cm) or as a constant (in V/cm; '
-                          'recommended only for testing)'))
-parser.add_argument('--MaxDelay', dest='MaxDelay', type=float,
-                    action='store', default=1e7, #ns
-                    help='Maximal time delay to first interaction which will be stored [ns]')
-parser.add_argument('--Timing', dest='Timing', type=bool,
-                    action='store', default=False,
-                    help='If true will print out the time needed.')
-parser.add_argument('--OutputPath', dest='OutputPath',
-                   action='store', default="",
-                   help=('Optional output path. If not specified the result will be saved'
-                         'in the same dir as the input file.'))
-
-args = parser.parse_args(sys.argv[1:])
+    args = parser.parse_args(sys.argv[1:])
+    return args
 
 
 def main(args):
@@ -193,4 +194,5 @@ def monitor_time(prev_time, task):
 
 
 if __name__ == "__main__":
+    args = pars_args()
     main(args)
