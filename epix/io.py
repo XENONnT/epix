@@ -4,6 +4,7 @@ import awkward1 as ak
 
 import os
 import warnings
+import wfsim
 
 from .common import awkward_to_flat_numpy, sensitive_volume_radius, z_top_pmts, z_bottom_pmts, offset_range
 
@@ -84,17 +85,7 @@ def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
 # ----------------------
 # Outputing wfsim instructions:
 # ----------------------
-int_dtype = [(('Waveform simulator event number.', 'event_number'), np.int32),
-             (('Quanta type (S1 photons or S2 electrons)', 'type'), np.int8),
-             (('Time of the interaction [ns]', 'time'), np.int64),
-             (('X position of the cluster[cm]', 'x'), np.float32),
-             (('Y position of the cluster[cm]', 'y'), np.float32),
-             (('Z position of the cluster[cm]', 'z'), np.float32),
-             (('Number of quanta', 'amp'), np.int32),
-             (('Recoil type of interaction.', 'recoil'), '<U5'),
-             (('Energy deposit of interaction', 'e_dep'), np.float32),
-             (('Eventid like in geant4 output rootfile', 'g4id'), np.int32)
-             ]
+int_dtype = wfsim.instruction_dtype
 
 
 def awkward_to_really_awkward(interactions):
