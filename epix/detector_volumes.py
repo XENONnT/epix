@@ -73,6 +73,12 @@ def in_cylinder(x, y, z, min_z, max_z, max_r):
     """
     Function which checks if a given set of coordinates is within the
     boundaries of the specified cylinder. 
+    
+    Args:
+        x,y,z: Coordinates of the interaction
+        min_z: Inclusive lower z boundary
+        max_z: Exclusive upper z boundary
+        max_r: Exclusive radial boundary
     """
     r = np.sqrt(x**2 + y**2) 
     m = r < max_r
