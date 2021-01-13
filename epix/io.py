@@ -36,7 +36,7 @@ def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
         are split off since they suck. All arrays are finally merged.
     """
     root_dir = uproot4.open(os.path.join(directory, file_name))
-    ttree = root_dir['events']
+    ttree = root_dir['events/events']
 
     # Columns to be read from the root_file:
     column_names = ["x", "y", "z", "t", "ed",
