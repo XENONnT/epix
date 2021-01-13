@@ -12,9 +12,10 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
     Args:
         x (pandas.DataFrame): Subentries of event must contain the
             fields, x,y,z,time
-        cluster_size_space (float): Max distance between two points to
+        cluster_size_space (float): Max spatial distance between two points to
             be inside a cluster [cm].
-        cluster_size_time (float): Same as space bt for time in [ns].
+        cluster_size_time (float): Max time distance between two points to be 
+            inside a cluster [ns].
     
     Returns:
         awkward.array: Adds to interaction a cluster_ids record.
