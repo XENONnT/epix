@@ -7,16 +7,13 @@ def clean_separation(n_events, MaxDelay):
 
     Parameters
     ----------
-    n_events : [int]
-        Number of events 
-    MaxDelay : [float]
-        Time difference between events. Should be large enought to 
+    n_events (int): Number of events 
+    MaxDelay (float): Time difference between events. Should be large enought to 
         prevent event pile-up.
 
     Returns
     -------
-    np.array
-        Array containing the start times of the events.
+    dt (numpy.array): Array containing the start times of the events.
     """
     
     dt = np.arange(0, n_events)+np.arange(0, n_events)/10
@@ -36,15 +33,12 @@ def times_from_fixed_rate(rate, n_events):
 
     Parameters
     ----------
-    rate : [int or float]
-        Mean event rate in Hz. 
-    n_events : [int]
-        Number of events
+    rate (int or float): Mean event rate in Hz. 
+    n_events (int): Number of events
 
     Returns
     -------
-    np.array
-        Array containing the start times of the events.
+    event_times (numpy.array): Array containing the start times of the events.
     """
     
     simulation_time = n_events/np.float(rate) #seconds
@@ -68,17 +62,13 @@ def times_from_variable_rate(variable_event_rate, times, n_events):
 
     Parameters
     ----------
-    variable_event_rate : [np.array]
-        Array containing the event rates in Hz over time.
-    times : [np.array]
-        Corresponding times to the given rates in [s].
-    n_events : [int]
-        Number of events
+    variable_event_rate (np.array): Array containing the event rates in Hz over time.
+    times (np.array): Corresponding times to the given rates in [s].
+    n_events (int): Number of events
 
     Returns
     -------
-    np.array
-        Array containing the start times of the events.
+    event_times (np.array): Array containing the start times of the events.
     """
     
     times_nanoseconds = times*1e9
@@ -100,23 +90,17 @@ def _sample_random_numbers_from_distribution(start_time, stop_time, n_events, in
 
     Parameters
     ----------
-    start_time : [float]
-        lower limit to the sampled numbers
-    stop_time : [float]
-        uper limit to the sampled numbers
-    n_events : [int]
-        Number of events
-    interp : [function] 
-        Function that takes a time as argument and returns a rate.
+    start_time (float): lower limit to the sampled numbers
+    stop_time (float): uper limit to the sampled numbers
+    n_events (int): Number of events
+    interp (function): Function that takes a time as argument and returns a rate.
         Here: scipy interpolate of the given distribution
-    max_rate : [float or int]
-        upper limit for the dummy random number. Must be larger
+    max_rate (float or int): upper limit for the dummy random number. Must be larger
         than the highest output value of interp
 
     Returns
     -------
-    np.array
-        Array containing the start times of the events.
+    sampled_rndm_times (np.array): Array containing the start times of the events.
     """
     
     n_work = 100*n_events
