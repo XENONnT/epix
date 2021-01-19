@@ -2,12 +2,88 @@ import inspect
 import numba
 import numpy as np
 import awkward1 as ak
+import warnings
 
 from epix.common import *
+import epix.detectors
+import configparser
+
+SUPPORTED_OPTION = ['to_be_stored',
+                    'electric_field',
+                    'create_S2',
+                    'xe_density',
+                    'electirc_field_outside_map'
+                    ]
+
+
+def init_detector(detector_name, config_file):
+    """
+    Function which initializes the detector.
+
+    :param detector_name:
+    :param config_file: File to be used to customize the default
+        settings e.g. electric field.
+
+    :returns: A list of volumes which represent the detector.
+    """
+    if not hasattr(epix.detectors, detector_name):
+        raise ValueError('The specified "detector_name" must be defined in "epix.detectors". '
+                         f'Was not able to find {detector_name}.')
+
+    volumes = getattr(epix.detectors, detector_name)
+
+    if not config_file:
+        # No config file so just return volumes as they are
+        return volumes
+
+    # Load config:
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    sections = config.sections()
+
+
+    detector = []
+    # Loop over different volumes and make final detector
+    for name, default_options in volumes.items():
+        if name in sections:
+            #  Loop over user settings and overwrite defaults:
+            for key, user_option in config[name]:
+                if key not in SUPPORTED_OPTION:
+                    warnings.warn(f'Option "{key}" of section {name} is not supported'
+                                  ' and will be ignored.')
+                    continue
+
+                if key == 'to_be_stored' and not user_option:
+                    # This volume should not be stored/used.
+                    continue
+
+                if key == 'electirc_field_outside_map':
+                    # Only needed for the electrical field maps
+                    continue
+
+                if key == 'electric_field' and isinstance(user_option, str):
+                    # This points to an electric field map hence we have to
+                    # get the map first.
+                    # First get field outside of the map:
+                    if 'electirc_field_outside_map' in config[name].keys():
+                        efield_outside_map = user_option['electirc_field_outside_map']
+                    else:
+                        efield_outside_map = 200  # V/cm
+
+                    efield = epix.MyElectricFieldHandler(user_option)
+                    user_option = lambda x, y, z: efield.get_field(x, y, z,
+                                                                   outside_map=efield_outside_map
+                                                                   )
+                # Overwrite default options and make volumes:
+                default_options[key] = user_option
+
+        detector.append(SensitiveVolume(name, **default_options))
+
+    return detector
 
 
 class SensitiveVolume:
-    def __init__(self, name, vol_id, roi, e_field, create_S2, xe_density=2.862):
+    def __init__(self, name, vol_id, roi, electric_field, create_S2, xe_density=2.862):
         """
         Sensitive detector volume for which S1 and/or S2 signals should be
         generated.
@@ -29,36 +105,35 @@ class SensitiveVolume:
                 properties which should be forwarded to nest.
         """
         self.name = name
-        self.volume_id = vol_id   
+        self.volume_id = vol_id
         self.roi = roi
 
-        self.e_field = e_field
+        self.e_field = electric_field
         self.xe_density = xe_density
         self.create_S2 = create_S2
         self._is_valid()
-        
+
     def _is_valid(self):
         """
         Function which tests if the inputs are valid.
         """
         # Test vol_id:
-        assert isinstance(self.volume_id, int), ('The volume id vol_id must be an ' 
+        assert isinstance(self.volume_id, int), ('The volume id vol_id must be an '
                                                  f'integer, but {self.volume_id} was '
-                                                  'given.')
+                                                 'given.')
         assert self.volume_id > 0, ('The volume id vol_id must be greater zero, '
                                     f'but {self.volume_id} was given.')
-        
-        
+
         # Test if ROI function is defined properly:
         assert callable(self.roi), ('roi must be a callable function '
                                     'which depends on x,y,z.')
-        
+
         # Testing the electric field:
         if not (callable(self.e_field) or
                 isinstance(self.e_field, (int, float))):
             raise ValueError('e_field must be either a function or '
                              'a constant!')
-        
+
         if callable(self.e_field):
             args = inspect.getfullargspec(self.e_field).args
             m = np.all(np.isin(['x', 'y', 'z'], args))
@@ -67,6 +142,7 @@ class SensitiveVolume:
                        f'"x", "y" and "z" but {args} were given.')
         # Cannot add a specific if **kwargs are valid properties. Cannot
         # inspect nestpy functions.
+
 
 @numba.njit
 def in_cylinder(x, y, z, min_z, max_z, max_r):
@@ -80,7 +156,7 @@ def in_cylinder(x, y, z, min_z, max_z, max_r):
         max_z: Exclusive upper z boundary
         max_r: Exclusive radial boundary
     """
-    r = np.sqrt(x**2 + y**2) 
+    r = np.sqrt(x**2 + y**2)
     m = r < max_r
     m = m & (z < max_z)
     m = m & (z >= min_z)
@@ -91,7 +167,8 @@ def in_sensitive_volume(events, sensitive_volumes):
     """
     Function which identifies which events are inside sensitive volumes.
 
-    Stores volume ids and xenon densities.
+    Further, tests if sensitive volumes overlap. Assigns volume id, and
+    xenon density to interactions.
 
     Args:
         events (ak.records): Awkward record of the interactions.
@@ -100,15 +177,13 @@ def in_sensitive_volume(events, sensitive_volumes):
 
     Returns:
         ak.array: Awkward array containing the event ids.
-
-    #TODO: Also add efields here
     """
     for ind, vol in enumerate(sensitive_volumes.values()):
         res = ak.ArrayBuilder()
-        res = _inside_sens_vol(events['x'], 
-                               events['y'], 
-                               events['z'], 
-                               vol.roi, 
+        res = _inside_sens_vol(events['x'],
+                               events['y'],
+                               events['z'],
+                               vol.roi,
                                vol.volume_id,
                                vol.xe_density,
                                res)
@@ -130,13 +205,14 @@ def in_sensitive_volume(events, sensitive_volumes):
             result = res.snapshot()
     return result
 
+
 @numba.njit()
 def _inside_sens_vol(xp, yp, zp, roi, vol_id, vol_density, res):
     nevents = len(xp)
     for i in range(nevents):
         # Loop over all events
         res.begin_list()
-        nint = len(xp[i]) 
+        nint = len(xp[i])
         if nint:
             for j in range(nint):
                 # Loop over all interactions within an event.
@@ -154,11 +230,3 @@ def _inside_sens_vol(xp, yp, zp, roi, vol_id, vol_density, res):
                 res.end_record()
         res.end_list()
     return res
-
-def get_volume_properties():
-    """
-    Function which adds properties
-
-    :return:
-    """
-    raise NotImplementedError
