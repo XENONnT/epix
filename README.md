@@ -15,9 +15,7 @@ python3 setup.py develop --user
 
 ## Usage
 
-Usable on top of the MC environment.
-
-The keyword arguments (see mc/epix/bin/run_epix.py) are:
+The keyword arguments (see bin/run_epix) are:
 
 - `--InputFile` (only one needed for the code to run): path + filename
 - `--EntryStop`: how many entries from the ROOT file you want to process; defaulted to all
