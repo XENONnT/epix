@@ -2,9 +2,18 @@
 
 **E**lectron and **P**hoton **I**nstructions generator for **X**ENON
 
-The job of epix is to load XENONnT Geant4 MC data and produce inputs for wfsim in csv format, using nestpy for the quanta generation and DBSCAN for the clustering of the individual steps.
+The job of epix is to load XENONnT Geant4 MC data and produce inputs for wfsim, using nestpy for the quanta generation and DBSCAN for the clustering of the individual steps.
 
-## Instructions
+## Installation
+
+Assuming you are working on top of our montecarlo_environment (`/project2/lgrandi/xenonnt/singularity-images/xenonnt-montecarlo-development.simg`):
+```
+git clone https://github.com/XENONnT/epix
+cd epix
+python3 setup.py develop --user
+```
+
+## Usage
 
 Usable on top of the MC environment.
 
@@ -19,4 +28,4 @@ The keyword arguments (see mc/epix/bin/run_epix.py) are:
 - `--MaxDelay`: time after which we cut the rest of the event in ns; defaulted to 1e7
 - `--EventRate`: event rate for event separation, -1 for clean simulations, a rate > 0 [Hz] for random spacing or a csv file containing time [s] and rate [Hz] for a not fixed rate; defaulted to -1.
 - `--Timing`: boolean to tell epix if you want timing outputs (defaulted to false)
-- `--OutputPath`: in case
+- `--OutputPath`: in case you don't want to have the output file in the same directory as the input file (default).
