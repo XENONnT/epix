@@ -54,9 +54,12 @@ def simple_1d_clustering(data, scale):
     Function to cluster one dimensional data.
 
     Args:
-        data : one dimensional array to be clusterd
+        data (numpy.array): one dimensional array to be clusterd
         scale (float): Max distance between two points to
             be inside a cluster.
+    
+    Returns:
+        clusters_undo_sort (np.array): Cluster Labels
     """
     
     idx_sort = np.argsort(data)
