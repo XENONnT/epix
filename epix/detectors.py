@@ -22,6 +22,9 @@ def xenonnt_detector():
     :return: A list of volumes for the default nT detector.
     """
     # TODO: Can we do this differently? Ideas are welcome....
+    # Outer edges of the volume of interest. This is needed for a
+    # preselection of interactions inside the desired volumes before
+    # clustering.
     outer_cylinder = {'max_z': xenonnt_z_top_pmts,
                       'min_z': xenonnt_z_bottom_pmts,
                       'max_r': xenonnt_sensitive_volume_radius
