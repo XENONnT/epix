@@ -24,6 +24,9 @@ class MyElectricFieldHandler:
             self._load_field()
             self._get_coordinates()
             self._build_interpolator()
+        else:
+            raise ValueError(f'Cannot open "{self.map}". It is not a valid file'
+                             ' for the electirc field map.')
 
     def _load_field(self):
         self.field = pd.read_csv(self.map,
