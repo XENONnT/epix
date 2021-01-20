@@ -31,6 +31,7 @@ def init_detector(detector_name, config_file):
                          f'Was not able to find {detector_name}.')
 
     volumes = getattr(epix.detectors, detector_name)
+    volumes, _ = volumes()
 
     if not config_file:
         # No config file so just return volumes as they are

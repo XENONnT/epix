@@ -21,6 +21,12 @@ def xenonnt_detector():
 
     :return: A list of volumes for the default nT detector.
     """
+    # TODO: Can we do this differently? Ideas are welcome....
+    outer_cylinder = {'max_z': xenonnt_z_top_pmts,
+                      'min_z': xenonnt_z_bottom_pmts,
+                      'max_r': xenonnt_sensitive_volume_radius
+                      }
+
     volumes = {'TPC': {'vol_id': 1,
                        'roi': _make_roi_cylinder(xenonnt_z_cathode,
                                                  xenonnt_z_gate_mesh,
@@ -45,7 +51,7 @@ def xenonnt_detector():
                             'create_S2': False,
                             'xe_density': 0.0177},
                }
-    return volumes
+    return volumes, outer_cylinder
 
 
 def _make_roi_cylinder(z_min, z_max, r_max):
