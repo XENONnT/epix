@@ -9,7 +9,7 @@ import configparser
 from .common import awkward_to_flat_numpy, offset_range
 
 SUPPORTED_OPTION = {'to_be_stored': 'getboolean',
-                    'electric_field': 'get',
+                    'electric_field': ('getfloat', 'get'),
                     'create_S2': 'getboolean',
                     'xe_density': 'getfloat',
                     'electirc_field_outside_map': 'getfloat',
