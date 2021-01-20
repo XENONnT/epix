@@ -54,7 +54,7 @@ def pars_args():
     return args
 
 
-def main(args):
+def main(args, terminal=True):
     if is_number(args.Efield):
         args.Efield = float(args.Efield)
 
@@ -162,21 +162,22 @@ def main(args):
     # which were outside of the energy range supported by NEST
     instructions = instructions[instructions['amp'] > 0]
     ins_df = pd.DataFrame(instructions)
-    
-    if args.OutputPath:
-        if not os.path.isdir(args.OutputPath):
-            os.makedirs(args.OutputPath)
-        if not args.OutputPath.endswith("/"):
-            args.OutputPath += "/"
-        output_path_and_name = args.OutputPath + file_name[:-5] + "_wfim_instructions.csv"
-    else:
-        output_path_and_name = args.InputFile[:-5] + "_wfim_instructions.csv"
-    ins_df.to_csv(output_path_and_name, index=False)
-    
-    print('Done')
-    print('Instructions saved to ', output_path_and_name)
-    if args.Timing:
-        _ = monitor_time(starttime, 'run epix.')
+
+    if terminal:
+        if args.OutputPath:
+            if not os.path.isdir(args.OutputPath):
+                os.makedirs(args.OutputPath)
+            if not args.OutputPath.endswith("/"):
+                args.OutputPath += "/"
+            output_path_and_name = args.OutputPath + file_name[:-5] + "_wfim_instructions.csv"
+        else:
+            output_path_and_name = args.InputFile[:-5] + "_wfim_instructions.csv"
+        ins_df.to_csv(output_path_and_name, index=False)
+
+        print('Done')
+        print('Instructions saved to ', output_path_and_name)
+        if args.Timing:
+            _ = monitor_time(starttime, 'run epix.')
 
 
 def is_number(x):
