@@ -109,7 +109,7 @@ class SensitiveVolume:
         self.volume_id = vol_id
         self.roi = roi
 
-        self.e_field = electric_field
+        self.electric_field = electric_field
         self.xe_density = xe_density
         self.create_S2 = create_S2
         self._is_valid()
@@ -130,13 +130,13 @@ class SensitiveVolume:
                                     'which depends on x,y,z.')
 
         # Testing the electric field:
-        if not (callable(self.e_field) or
-                isinstance(self.e_field, (int, float))):
+        if not (callable(self.electric_field) or
+                isinstance(self.electric_field, (int, float))):
             raise ValueError('e_field must be either a function or '
                              'a constant!')
 
-        if callable(self.e_field):
-            args = inspect.getfullargspec(self.e_field).args
+        if callable(self.electric_field):
+            args = inspect.getfullargspec(self.electric_field).args
             m = np.all(np.isin(['x', 'y', 'z'], args))
             m = m & (len(args) == 3)
             assert m, ('Wrong arguments for e_field. Expected arguments: '
