@@ -47,15 +47,19 @@ def init_detector(detector_name, config_file):
     # Loop over different volumes and make final detector
     for name, default_options in volumes.items():
         if name in sections:
-            #  Loop over user settings and overwrite defaults:
-            for key, user_option in config[name]:
+            # Loop over user settings and overwrite defaults:
+            if not config[name]['to_be_stored']:
+                # Skip this volume
+                continue
+            
+            for key, user_option in config[name].items():
                 if key not in SUPPORTED_OPTION:
                     warnings.warn(f'Option "{key}" of section {name} is not supported'
                                   ' and will be ignored.')
                     continue
 
-                if key == 'to_be_stored' and not user_option:
-                    # This volume should not be stored/used.
+                if key == 'to_be_stored':
+                    # Setting not needed
                     continue
 
                 if key == 'electirc_field_outside_map':
@@ -77,7 +81,7 @@ def init_detector(detector_name, config_file):
                                                                    )
                 # Overwrite default options and make volumes:
                 default_options[key] = user_option
-
+        print(default_options)
         detector.append(SensitiveVolume(name, **default_options))
 
     return detector
