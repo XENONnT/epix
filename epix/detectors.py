@@ -36,7 +36,9 @@ def xenonnt_detector():
                                                  xenonnt_sensitive_volume_radius),
                        'electric_field': 200,
                        'create_S2': True,
-                       'xe_density': 2.862
+                       'xe_density': 2.862,
+                       'efield_outside_map': 200,
+                       'to_be_stored': True,
                        },
                'BelowCathode': {'vol_id': 1,
                                 'roi': _make_roi_cylinder(xenonnt_z_cathode,
@@ -44,7 +46,9 @@ def xenonnt_detector():
                                                           xenonnt_sensitive_volume_radius),
                                 'electric_field': 200,
                                 'create_S2': False,
-                                'xe_density': 2.862
+                                'xe_density': 2.862,
+                                'efield_outside_map': 200,
+                                'to_be_stored': True,
                                 },
                'GasPhase': {'vol_id': 3,
                             'roi': _make_roi_cylinder(xenonnt_z_cathode,
@@ -52,7 +56,10 @@ def xenonnt_detector():
                                                       xenonnt_sensitive_volume_radius),
                             'electric_field': 200,
                             'create_S2': False,
-                            'xe_density': 0.0177},
+                            'xe_density': 0.0177,
+                            'efield_outside_map': 200,
+                            'to_be_stored': True,
+                            },
                }
     return volumes, outer_cylinder
 
