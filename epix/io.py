@@ -5,10 +5,10 @@ import awkward1 as ak
 import os
 import warnings
 
-from .common import awkward_to_flat_numpy, sensitive_volume_radius, z_top_pmts, z_bottom_pmts, offset_range
+from .common import awkward_to_flat_numpy, offset_range
 
 
-def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
+def loader(directory, file_name, outer_cylinder, cut_outside_tpc=True, kwargs_uproot_ararys={}):
     """
     Function which loads geant4 interactions from a root file via
     uproot4.
@@ -53,8 +53,8 @@ def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
              }
 
     if cut_outside_tpc:
-        cut_string = (f'(r < {sensitive_volume_radius})'
-                      f' & ((zp >= {z_bottom_pmts * 10}) & (zp < {z_top_pmts * 10}))')
+        cut_string = (f'(r < {outer_cylinder["max_r"]})'
+                      f' & ((zp >= {outer_cylinder["min_z"] * 10}) & (zp < {outer_cylinder["max_z"] * 10}))')
     else:
         cut_string = None
 
