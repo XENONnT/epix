@@ -57,7 +57,7 @@ def load_config(config_file_path):
     return settings
 
 
-def loader(directory, file_name, outer_cylinder, cut_outside_tpc=True, kwargs_uproot_ararys={}):
+def loader(directory, file_name, outer_cylinder=None, kwargs_uproot_ararys={}):
     """
     Function which loads geant4 interactions from a root file via
     uproot4.
@@ -70,9 +70,8 @@ def loader(directory, file_name, outer_cylinder, cut_outside_tpc=True, kwargs_up
         file (str): File name
 
     Kwargs:
-        cut_outside_tpc (bool): If true only interactions inside the TPC
-            are loaded. False all interactions in any sensetive volume
-            are loaded.
+        outer_cylinder: If specified will cut all events outside of the
+            given cylinder.
         kwargs_uproot_ararys: Keyword arguments passed to .arrays of
             uproot4.
 
@@ -101,7 +100,7 @@ def loader(directory, file_name, outer_cylinder, cut_outside_tpc=True, kwargs_up
              't': 'time*10**9'
              }
 
-    if cut_outside_tpc:
+    if outer_cylinder:
         cut_string = (f'(r < {outer_cylinder["max_r"]})'
                       f' & ((zp >= {outer_cylinder["min_z"] * 10}) & (zp < {outer_cylinder["max_z"] * 10}))')
     else:
