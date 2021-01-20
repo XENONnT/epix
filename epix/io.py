@@ -4,8 +4,57 @@ import awkward1 as ak
 
 import os
 import warnings
+import configparser
 
 from .common import awkward_to_flat_numpy, offset_range
+
+SUPPORTED_OPTION = {'to_be_stored': 'getboolean',
+                    'electric_field': 'get',
+                    'create_S2': 'getboolean',
+                    'xe_density': 'getfloat',
+                    'electirc_field_outside_map': 'getfloat',
+                    }
+
+
+def load_config(config_file_path):
+    """
+    Loads config file and returns dictionary.
+
+    :param config_file_path:
+    :return: dict
+    """
+    config = configparser.ConfigParser()
+    config.read(config_file_path)
+    sections = config.sections()
+
+    settings = {}
+    for s in sections:
+        options = {}
+        c = config[s]
+        for key in c.keys():
+            if key not in SUPPORTED_OPTION:
+                warnings.warn(f'Option "{key}" of section {name} is not supported'
+                              ' and will be ignored.')
+                continue
+            # Get correct get method to convert string input:
+            if key == 'electric_field':
+                # Electric field is a bit more complicated can be
+                # either a float or string:
+                try:
+                    getter = getattr(c, SUPPORTED_OPTION[key][0])
+                    options[key] = getter(key)
+                except ValueError:
+                    getter = getattr(c, SUPPORTED_OPTION[key][1])
+                    options[key] = getter(key)
+            else:
+                try:
+                    getter = getattr(c, SUPPORTED_OPTION[key])
+                    options[key] = getter(key)
+                except Exception as e:
+                    raise ValueError(f'Cannot load "{key}" from section "{s}" in config file.') from e
+
+        settings[s] = options
+    return settings
 
 
 def loader(directory, file_name, outer_cylinder, cut_outside_tpc=True, kwargs_uproot_ararys={}):
