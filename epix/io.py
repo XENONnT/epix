@@ -33,7 +33,7 @@ def load_config(config_file_path):
         c = config[s]
         for key in c.keys():
             if key not in SUPPORTED_OPTION:
-                warnings.warn(f'Option "{key}" of section {name} is not supported'
+                warnings.warn(f'Option "{key}" of section {s} is not supported'
                               ' and will be ignored.')
                 continue
             # Get correct get method to convert string input:
