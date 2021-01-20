@@ -2,25 +2,15 @@ import inspect
 import numba
 import numpy as np
 import awkward1 as ak
-import warnings
-
-from epix.common import *
-import epix.detectors
-import configparser
-
-SUPPORTED_OPTION = ['to_be_stored',
-                    'electric_field',
-                    'create_S2',
-                    'xe_density',
-                    'electirc_field_outside_map'
-                    ]
+import epix
 
 
 def init_detector(detector_name, config_file):
     """
-    Function which initializes the detector.
+    Function which initializes the detector. Reads in config and
+    overwrites default settings.
 
-    :param detector_name:
+    :param detector_name: Detector as defined in detector.py.
     :param config_file: File to be used to customize the default
         settings e.g. electric field.
 
@@ -38,47 +28,41 @@ def init_detector(detector_name, config_file):
         return volumes
 
     # Load config:
-    config = configparser.ConfigParser()
-    config.read(config_file)
-    sections = config.sections()
+    config = epix.io.load_config(config_file)
 
+    # Update default setting with new settings:
+    for name, options in config.items():
+        if name in volumes:
+            default_options = volumes[name]
+        else:
+            raise ValueError(f'Cannot find "{name}" among the volumes to be initialized.'
+                             f' Valid volumes are: {[k for k in volumes.keys()]}')
+        for key, values in options.items():
+            default_options[key] = values
 
+    # Now loop over default options and init volumes:
     detector = []
-    # Loop over different volumes and make final detector
+    args_volumes = inspect.signature(epix.SensitiveVolume).parameters.keys()
     for name, default_options in volumes.items():
-        if name in sections:
-            #  Loop over user settings and overwrite defaults:
-            for key, user_option in config[name]:
-                if key not in SUPPORTED_OPTION:
-                    warnings.warn(f'Option "{key}" of section {name} is not supported'
-                                  ' and will be ignored.')
-                    continue
+        if not default_options['to_be_stored']:
+            # This volume should be skipped
+            continue
 
-                if key == 'to_be_stored' and not user_option:
-                    # This volume should not be stored/used.
-                    continue
+        kwargs = {}
+        for option_key, option_value in default_options.items():
+            if option_key not in args_volumes:
+                # This option is not needed to init the volume
+                continue
 
-                if key == 'electirc_field_outside_map':
-                    # Only needed for the electrical field maps
-                    continue
+            if option_key == 'electric_field' and isinstance(option_value, str):
+                # Special case we have to init the efield first:
+                efield = epix.MyElectricFieldHandler(option_value)
+                option_value = lambda x, y, z: efield.get_field(x, y, z,
+                                                                outside_map=default_options['efield_outside_map']
+                                                                )
+            kwargs[option_key] = option_value
 
-                if key == 'electric_field' and isinstance(user_option, str):
-                    # This points to an electric field map hence we have to
-                    # get the map first.
-                    # First get field outside of the map:
-                    if 'electirc_field_outside_map' in config[name].keys():
-                        efield_outside_map = user_option['electirc_field_outside_map']
-                    else:
-                        efield_outside_map = 200  # V/cm
-
-                    efield = epix.MyElectricFieldHandler(user_option)
-                    user_option = lambda x, y, z: efield.get_field(x, y, z,
-                                                                   outside_map=efield_outside_map
-                                                                   )
-                # Overwrite default options and make volumes:
-                default_options[key] = user_option
-
-        detector.append(SensitiveVolume(name, **default_options))
+        detector.append(epix.SensitiveVolume(name=name, **kwargs))
 
     return detector
 
