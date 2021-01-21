@@ -1,4 +1,4 @@
-import logging  #TODO: Logging is missing
+#!/usr/bin/env python3
 
 import os
 import argparse
@@ -8,10 +8,8 @@ import awkward1 as ak
 import numpy as np
 import pandas as pd
 
-# TODO: Fix epix import, making system epix aware
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import epix
+
 
 def pars_args():
     parser = argparse.ArgumentParser(description="Electron and Photon Instructions generator for XENON wfsim")
@@ -55,9 +53,9 @@ def pars_args():
     return args
 
 
-def main(return_df=False):
+def main(args, return_df=False):
     # TODO: remove setup from main for strax
-    args, path, file, detector, outer_cylinder = setup()
+    path, file, detector, outer_cylinder = setup(args)
 
     if args.debug:
         print("epix configuration: ", args)
@@ -197,13 +195,12 @@ def monitor_time(prev_time, task):
     return t
 
 
-def setup():
+def setup(args):
     """
     Function which sets-up configurations. (for strax conversion)
 
     :return:
     """
-    args = pars_args()
     # Getting file path and split it into directory and file name:
     p = args.InputFile
     p = p.split('/')
@@ -220,8 +217,10 @@ def setup():
     detector = epix.init_detector(args.detector, args.config)
     outer_cylinder = getattr(epix.detectors, args.detector)
     _, outer_cylinder = outer_cylinder()
-    return args, path, file_name, detector, outer_cylinder
+    return path, file_name, detector, outer_cylinder
+
 
 if __name__ == "__main__":
-    main()
+    args = pars_args()
+    main(args)
 
