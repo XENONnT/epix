@@ -53,11 +53,11 @@ def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
     if model == 8 and en > 3e3:
         return -1, -1
 
-    y = nc.GetYields(nestpy.INTERACTION_TYPE(model),
-                     en,
-                     e_field,
-                     A,
-                     Z,
+    y = nc.GetYields(interaction=nestpy.INTERACTION_TYPE(model),
+                     energy=en,
+                     drift_field=e_field,
+                     A=A,
+                     Z=Z,
                      **kwargs
                      )
 
