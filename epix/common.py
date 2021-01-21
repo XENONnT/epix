@@ -1,11 +1,6 @@
 import numba
 import numpy as np
 import awkward1 as ak
-sensitive_volume_radius = 66.4  # cm
-z_gate_mesh = 0.  # the ground mesh, the top liquid level is at 2.7 mm
-z_top_pmts = 7.3346  # cm
-z_cathode = -148.162  # cm ... cathode
-z_bottom_pmts = -151.21281  # cm ... top surface of the bottom PMT window
 
 
 def reshape_awkward(array, offset):
