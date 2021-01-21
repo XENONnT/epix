@@ -84,7 +84,19 @@ def loader(directory, file_name, outer_cylinder=None, kwargs_uproot_ararys={}):
         are split off since they suck. All arrays are finally merged.
     """
     root_dir = uproot4.open(os.path.join(directory, file_name))
-    ttree = root_dir['events/events']
+    
+    if root_dir.classname_of('events') == 'TTree':
+        ttree = root_dir['events']
+    elif root_dir.classname_of('events/events') == 'TTree':
+        ttree = root_dir['events/events']
+    else:
+        ttrees = []
+        for k, v in root_dir.classnames().items():
+            if v == 'TTree':
+                ttrees.append(k)
+        raise ValueError(f'Cannot find ttree object of "{file_name}".' 
+                         'I tried to search in events and events/events.' 
+                         f'Found a ttree in {ttrees}?')
 
     # Columns to be read from the root_file:
     column_names = ["x", "y", "z", "t", "ed",
