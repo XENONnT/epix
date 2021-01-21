@@ -54,8 +54,8 @@ class MyElectricFieldHandler:
 
         Args:
             x (np.array): x coordinate of the interaction in cm
-            y (np.array): x coordinate of the interaction in cm
-            z (np.array): x coordinate of the interaction in cm
+            y (np.array): y coordinate of the interaction in cm
+            z (np.array): z coordinate of the interaction in cm
 
         Kwargs:
             outsie_map (float): Default value to be used if interaction

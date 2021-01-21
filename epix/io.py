@@ -4,11 +4,60 @@ import awkward1 as ak
 
 import os
 import warnings
+import configparser
 
-from .common import awkward_to_flat_numpy, sensitive_volume_radius, z_top_pmts, z_bottom_pmts, offset_range
+from .common import awkward_to_flat_numpy, offset_range
+
+SUPPORTED_OPTION = {'to_be_stored': 'getboolean',
+                    'electric_field': ('getfloat', 'get'),
+                    'create_S2': 'getboolean',
+                    'xe_density': 'getfloat',
+                    'electirc_field_outside_map': 'getfloat',
+                    }
 
 
-def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
+def load_config(config_file_path):
+    """
+    Loads config file and returns dictionary.
+
+    :param config_file_path:
+    :return: dict
+    """
+    config = configparser.ConfigParser()
+    config.read(config_file_path)
+    sections = config.sections()
+
+    settings = {}
+    for s in sections:
+        options = {}
+        c = config[s]
+        for key in c.keys():
+            if key not in SUPPORTED_OPTION:
+                warnings.warn(f'Option "{key}" of section {s} is not supported'
+                              ' and will be ignored.')
+                continue
+            # Get correct get method to convert string input:
+            if key == 'electric_field':
+                # Electric field is a bit more complicated can be
+                # either a float or string:
+                try:
+                    getter = getattr(c, SUPPORTED_OPTION[key][0])
+                    options[key] = getter(key)
+                except ValueError:
+                    getter = getattr(c, SUPPORTED_OPTION[key][1])
+                    options[key] = getter(key)
+            else:
+                try:
+                    getter = getattr(c, SUPPORTED_OPTION[key])
+                    options[key] = getter(key)
+                except Exception as e:
+                    raise ValueError(f'Cannot load "{key}" from section "{s}" in config file.') from e
+
+        settings[s] = options
+    return settings
+
+
+def loader(directory, file_name, outer_cylinder=None, kwargs_uproot_ararys={}):
     """
     Function which loads geant4 interactions from a root file via
     uproot4.
@@ -21,9 +70,8 @@ def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
         file (str): File name
 
     Kwargs:
-        cut_outside_tpc (bool): If true only interactions inside the TPC
-            are loaded. False all interactions in any sensetive volume
-            are loaded.
+        outer_cylinder: If specified will cut all events outside of the
+            given cylinder.
         kwargs_uproot_ararys: Keyword arguments passed to .arrays of
             uproot4.
 
@@ -36,7 +84,19 @@ def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
         are split off since they suck. All arrays are finally merged.
     """
     root_dir = uproot4.open(os.path.join(directory, file_name))
-    ttree = root_dir['events']
+    
+    if root_dir.classname_of('events') == 'TTree':
+        ttree = root_dir['events']
+    elif root_dir.classname_of('events/events') == 'TTree':
+        ttree = root_dir['events/events']
+    else:
+        ttrees = []
+        for k, v in root_dir.classnames().items():
+            if v == 'TTree':
+                ttrees.append(k)
+        raise ValueError(f'Cannot find ttree object of "{file_name}".' 
+                         'I tried to search in events and events/events.' 
+                         f'Found a ttree in {ttrees}?')
 
     # Columns to be read from the root_file:
     column_names = ["x", "y", "z", "t", "ed",
@@ -52,9 +112,9 @@ def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
              't': 'time*10**9'
              }
 
-    if cut_outside_tpc:
-        cut_string = (f'(r < {sensitive_volume_radius})'
-                      f' & ((zp >= {z_bottom_pmts * 10}) & (zp < {z_top_pmts * 10}))')
+    if outer_cylinder:
+        cut_string = (f'(r < {outer_cylinder["max_r"]})'
+                      f' & ((zp >= {outer_cylinder["min_z"] * 10}) & (zp < {outer_cylinder["max_z"] * 10}))')
     else:
         cut_string = None
 
