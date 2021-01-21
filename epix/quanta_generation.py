@@ -6,27 +6,27 @@ print(f'Using nestpy version {nestpy.__version__}')
 @np.vectorize
 def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
     """
-    Function which returns photons and electrons produced by an
-    interaction.
+    Function which uses NEST to yield photons and electrons
+    for a given set of parameters.
 
     Note:
         In case the energy deposit is outside of the range of NEST a -1
         is returned.
 
     Args:
-        en (float): Energy of the deposit.
-        model (int): NestId to identify the interaction type.
-        e_field (float): Electric field at the interaction position.
-        A (int): Atomic mass number of energy deposit causing particle.
-        Z (int): Atomic number "
+        en (numpy.array): Energy deposit of the interaction [keV]
+        model (numpy.array): Nest Id for qunata generation (integers)
+        e_field (numpy.array): Field value in the interaction site [V/cm]
+        A (numpy.array): Atomic mass number
+        Z (numpy.array): Atomic number
         create_s2 (bool): Specifies if S2 can be produced by interaction,
             in this case electrons are generated.
         kwargs: Additional keyword arguments which can be taken by
             GetYields e.g. density.
 
     Returns:
-        np.array: Number of photons
-        np.array: Number of electrons
+        photons (numpy.array): Number of generated photons
+        electrons (numpy.array): Number of generated electrons
     """
     nc = nestpy.NESTcalc(nestpy.VDetector())
     density = 2.862  # g/cm^3
