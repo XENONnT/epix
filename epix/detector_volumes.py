@@ -163,7 +163,7 @@ def in_sensitive_volume(events, sensitive_volumes):
     Returns:
         ak.array: Awkward array containing the event ids.
     """
-    for ind, vol in enumerate(sensitive_volumes.values()):
+    for ind, vol in enumerate(sensitive_volumes):
         res = ak.ArrayBuilder()
         res = _inside_sens_vol(events['x'],
                                events['y'],
@@ -171,14 +171,15 @@ def in_sensitive_volume(events, sensitive_volumes):
                                vol.roi,
                                vol.volume_id,
                                vol.xe_density,
+                               vol.create_S2,
                                res)
         if ind:
             # Now we add the other results, but first test if 
             # volumes overlap. Only possible if we explicitly loop
             # over everything. This reduces performance but adds layer of
             # safety.
-            m = ak.any((result > 0) & (res == vol.volume_id))
-            if np.any(m):
+            m = (result['vol_id'] > 0) & (res['vol_id'] == vol.volume_id)
+            if ak.any(m):
                 overlapping_id = result[m][0]
                 # Get volume name:
                 name = [vol.name for vol in sensitive_volumes if vol.volume_id == overlapping_id][0]
@@ -192,7 +193,7 @@ def in_sensitive_volume(events, sensitive_volumes):
 
 
 @numba.njit()
-def _inside_sens_vol(xp, yp, zp, roi, vol_id, vol_density, res):
+def _inside_sens_vol(xp, yp, zp, roi, vol_id, vol_density, create_S2, res):
     nevents = len(xp)
     for i in range(nevents):
         # Loop over all events
@@ -207,11 +208,15 @@ def _inside_sens_vol(xp, yp, zp, roi, vol_id, vol_density, res):
                     res.real(vol_density)
                     res.field('vol_id')
                     res.integer(vol_id)
+                    res.field('create_S2')
+                    res.boolean(create_S2)
                 else:
                     res.field('vol_id')
                     res.integer(0)
                     res.field('xe_density')
                     res.real(0)
+                    res.field('create_S2')
+                    res.boolean(False)
                 res.end_record()
         res.end_list()
     return res
