@@ -55,8 +55,8 @@ def pars_args():
     return args
 
 
-def main(return_df=True):
-    #TODO: remove setup from main for strax
+def main(return_df=False):
+    # TODO: remove setup from main for strax
     args, path, file, detector, outer_cylinder = setup()
 
     if args.debug:
@@ -90,7 +90,7 @@ def main(return_df=True):
 
     # Add eventid again:
     result['evtid'] = ak.broadcast_arrays(inter['evtid'][:, 0], result['ed'])[0]
-    
+
     # Sort detector volumes and keep interactions in selected ones:
     if args.debug:
         print('Removing clusters not in volumes:', *[v.name for v in detector])
@@ -101,10 +101,11 @@ def main(return_df=True):
     # interactions. EField comes later since interpolated maps cannot be
     # called inside numba functions.
     res_det = epix.in_sensitive_volume(result, detector)
+
     # Adding new fields to result:
     for field in res_det.fields:
         result[field] = res_det[field]
-    m = result['vol_ids'] > 0  # All volumes have an id larger zero
+    m = result['vol_id'] > 0  # All volumes have an id larger zero
     result = result[m]
 
     # Removing now empty events as a result of the selection above:
@@ -116,23 +117,20 @@ def main(return_df=True):
         print('Assigning electric field to clusters')
 
     # Add electric field to array:
-    efields = np.ones(np.sum(ak.num(result)), np.float32)
-    result['e_field'] = epix.reshape_awkward(efields, ak.num(result))
-
+    efields = np.zeros(np.sum(ak.num(result)), np.float32)
     # Loop over volume and assign values:
     for volume in detector:
         if isinstance(volume.electric_field, float):
-            m = result['vol_ids'] == volume.volume_id
-            result['e_field'][m] = volume.electric_field
-        #else:
-        #    e_field_handler = epix.MyElectricFieldHandler(args.Efield)
-        #    efields = e_field_handler.get_field(epix.awkward_to_flat_numpy(result.x),
-        #                                        epix.awkward_to_flat_numpy(result.y),
-        #                                        epix.awkward_to_flat_numpy(result.z),
-        #                                        outside_map=200  # V/cm
-        #                                        )
+            ids = epix.awkward_to_flat_numpy(result['vol_id'])
+            m = ids == volume.volume_id
+            efields[m] = volume.electric_field
+        else:
+            efields = volume.electric_field(epix.awkward_to_flat_numpy(result.x),
+                                            epix.awkward_to_flat_numpy(result.y),
+                                            epix.awkward_to_flat_numpy(result.z)
+                                            )
 
-
+    result['e_field'] = epix.reshape_awkward(efields, ak.num(result))
 
     # Sort in time and set first cluster to t=0, then chop all delayed
     # events which are too far away from the rest.
@@ -142,7 +140,7 @@ def main(return_df=True):
     result = result[result['t'] <= args.MaxDelay]
     # Secondly truly separate events by time (1.1 times the max time),
     # with first event starting at max time (needed for wfsim)
-    dt = np.arange(1, len(result['t'])+1) + np.arange(1, len(result['t'])+1) / 10
+    dt = np.arange(1, len(result['t']) + 1) + np.arange(1, len(result['t']) + 1) / 10
     dt *= args.MaxDelay
     result['t'] = (result['t'][:, :] + result['t'][:, 0] + dt)
 
@@ -154,7 +152,7 @@ def main(return_df=True):
                                                epix.awkward_to_flat_numpy(result['e_field']),
                                                epix.awkward_to_flat_numpy(result['A']),
                                                epix.awkward_to_flat_numpy(result['Z']),
-                                               epix.awkward_to_flat_numpy(result['ids']),
+                                               epix.awkward_to_flat_numpy(result['create_S2']),
                                                density=epix.awkward_to_flat_numpy(result['xe_density']))
     result['photons'] = epix.reshape_awkward(photons, ak.num(result['ed']))
     result['electrons'] = epix.reshape_awkward(electrons, ak.num(result['ed']))
