@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import numba
-import awkward1 as ak
+import awkward as ak
 from .common import reshape_awkward
 from sklearn.cluster import DBSCAN
 

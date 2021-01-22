@@ -1,6 +1,6 @@
 import numba
 import numpy as np
-import awkward1 as ak
+import awkward as ak
 
 
 def reshape_awkward(array, offset):

@@ -1,7 +1,7 @@
 import inspect
 import numba
 import numpy as np
-import awkward1 as ak
+import awkward as ak
 import epix
 
 

@@ -1,6 +1,6 @@
 import numpy as np
-import uproot4
-import awkward1 as ak
+import uproot
+import awkward as ak
 
 import os
 import warnings
@@ -83,7 +83,7 @@ def loader(directory, file_name, outer_cylinder=None, kwargs_uproot_ararys={}):
         arrays due to different array structures. Also the type strings
         are split off since they suck. All arrays are finally merged.
     """
-    root_dir = uproot4.open(os.path.join(directory, file_name))
+    root_dir = uproot.open(os.path.join(directory, file_name))
     
     if root_dir.classname_of('events') == 'TTree':
         ttree = root_dir['events']

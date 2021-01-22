@@ -4,7 +4,7 @@ import os
 import argparse
 import time
 import sys
-import awkward1 as ak
+import awkward as ak
 import numpy as np
 import pandas as pd
 
