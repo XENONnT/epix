@@ -91,6 +91,7 @@ def main(args, return_df=False):
 
     # Sort detector volumes and keep interactions in selected ones:
     if args.debug:
+        print(detector)
         print('Removing clusters not in volumes:', *[v.name for v in detector])
         print(f'Number of clusters before: {np.sum(ak.num(result["ed"]))}')
 
@@ -118,7 +119,7 @@ def main(args, return_df=False):
     efields = np.zeros(np.sum(ak.num(result)), np.float32)
     # Loop over volume and assign values:
     for volume in detector:
-        if isinstance(volume.electric_field, float):
+        if isinstance(volume.electric_field, (float, int)):
             ids = epix.awkward_to_flat_numpy(result['vol_id'])
             m = ids == volume.volume_id
             efields[m] = volume.electric_field
@@ -177,7 +178,7 @@ def main(args, return_df=False):
 
         print('Done')
         print('Instructions saved to ', output_path_and_name)
-        if args.Timing:
+        if args.debug:
             _ = monitor_time(starttime, 'run epix.')
 
 
