@@ -222,5 +222,5 @@ def setup(args):
 
 if __name__ == "__main__":
     args = pars_args()
-    main(args)
+    main(args, return_df=True)
 
