@@ -12,7 +12,7 @@ import epix
 
 
 def pars_args():
-    parser = argparse.ArgumentParser(description="Electron and Photon Instructions generator for XENON wfsim")
+    parser = argparse.ArgumentParser(description="Electron and Photon Instructions generator for XENON (wfsim)")
     parser.add_argument('--InputFile', dest='InputFile',
                         action='store', required=True,
                         help='Input Geant4 ROOT file')
@@ -96,7 +96,7 @@ def main(args, return_df=False):
         print(f'Number of clusters before: {np.sum(ak.num(result["ed"]))}')
 
     # Returns all interactions which are inside in one of the volumes,
-    # Checks for volume overlap, assigns xe density and create S2 to
+    # Checks for volume overlap, assigns Xe density and create S2 to
     # interactions. EField comes later since interpolated maps cannot be
     # called inside numba functions.
     res_det = epix.in_sensitive_volume(result, detector)

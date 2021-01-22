@@ -123,7 +123,7 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
     else:
         cut_string = None
 
-    # Radin in data convert mm to cm and perform a first cut if specified:
+    # Read in data, convert mm to cm and perform a first cut if specified:
     interactions = ttree.arrays(column_names,
                                 cut_string,
                                 aliases=alias,
@@ -135,7 +135,7 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
     if np.any(interactions['ed'] < 0):
         warnings.warn('At least one of the energy deposits is negative!')
 
-    # Removing all zero energy depsoits
+    # Removing all events with zero energy deposit
     m = interactions['ed'] > 0
     interactions = interactions[m]
 
