@@ -182,7 +182,10 @@ def in_sensitive_volume(events, sensitive_volumes):
                 name = [vol.name for vol in sensitive_volumes if vol.volume_id == overlapping_id][0]
                 raise ValueError(f'The volume {vol.name} is overlapping with'
                                  f' volume {name}!')
-            result = result + res.snapshot()  # Only works since events should be in two different volumes
+            new_results = res.snapshot()
+            for field in result.fields():
+                # Workaround since we cannot sum up records-arrays anymore
+                result[field] = result[field] + new_results[field]
         else:
             # First result initiates the array
             result = res.snapshot()
