@@ -76,7 +76,7 @@ def main(args, return_df=False):
                f' and dt = {args.MicroSeparationTime} ns'))
 
     # Cluster finding and clustering:
-    inter = epix.find_cluster(inter, args.MicroSeparation, args.MicroSeparationTime)
+    inter = epix.find_cluster(inter, args.MicroSeparation/10, args.MicroSeparationTime)
 
     if args.debug:
         tnow = monitor_time(tnow, 'cluster finding.')
@@ -118,7 +118,7 @@ def main(args, return_df=False):
     efields = np.zeros(np.sum(ak.num(result)), np.float32)
     # Loop over volume and assign values:
     for volume in detector:
-        if isinstance(volume.electric_field, float):
+        if isinstance(volume.electric_field, (float, int)):
             ids = epix.awkward_to_flat_numpy(result['vol_id'])
             m = ids == volume.volume_id
             efields[m] = volume.electric_field
