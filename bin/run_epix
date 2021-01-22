@@ -3,7 +3,7 @@
 import os
 import argparse
 import time
-
+import sys
 import awkward1 as ak
 import numpy as np
 import pandas as pd
@@ -55,7 +55,7 @@ def pars_args():
 
 def main(args, return_df=False):
     # TODO: remove setup from main for strax
-    path, file, detector, outer_cylinder = setup(args)
+    path, file_name, detector, outer_cylinder = setup(args)
 
     if args.debug:
         print("epix configuration: ", args)
@@ -65,7 +65,7 @@ def main(args, return_df=False):
         tnow = starttime
 
     # Loading data:
-    inter = epix.loader(path, file,
+    inter = epix.loader(path, file_name,
                         outer_cylinder=outer_cylinder,
                         kwargs_uproot_ararys={'entry_stop': args.EntryStop}
                         )
@@ -158,7 +158,7 @@ def main(args, return_df=False):
         _ = monitor_time(tnow, 'get quanta.')
 
     # Reshape instructions:
-    instructions = epix.awkward_to_really_awkward(result)
+    instructions = epix.awkward_to_wfsim_row_style(result)
 
     # Remove entries with no quanta
     instructions = instructions[instructions['amp'] > 0]
