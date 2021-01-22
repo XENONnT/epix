@@ -23,22 +23,19 @@ def init_detector(detector_name, config_file):
     volumes = getattr(epix.detectors, detector_name)
     volumes, _ = volumes()
 
-    if not config_file:
-        # No config file so just return volumes as they are
-        return volumes
+    if config_file:
+        # Load config and overwrite default settings for volumes.
+        config = epix.io.load_config(config_file)
 
-    # Load config:
-    config = epix.io.load_config(config_file)
-
-    # Update default setting with new settings:
-    for name, options in config.items():
-        if name in volumes:
-            default_options = volumes[name]
-        else:
-            raise ValueError(f'Cannot find "{name}" among the volumes to be initialized.'
-                             f' Valid volumes are: {[k for k in volumes.keys()]}')
-        for key, values in options.items():
-            default_options[key] = values
+        # Update default setting with new settings:
+        for name, options in config.items():
+            if name in volumes:
+                default_options = volumes[name]
+            else:
+                raise ValueError(f'Cannot find "{name}" among the volumes to be initialized.'
+                                 f' Valid volumes are: {[k for k in volumes.keys()]}')
+            for key, values in options.items():
+                default_options[key] = values
 
     # Now loop over default options and init volumes:
     detector = []
