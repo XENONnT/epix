@@ -44,8 +44,8 @@ parser.add_argument('--Efield', dest='Efield',
 parser.add_argument('--MaxDelay', dest='MaxDelay', type=float,
                     action='store', default=1e7, #ns
                     help='Maximal time delay to first interaction which will be stored [ns]')
-parser.add_argument('--EventRate', dest='EventRate',
-                    action='store', default=-1, 
+parser.add_argument('--EventRate', dest='EventRate', type=float,
+                    action='store', default=-1,
                     help='Event rate for event separation. Use -1 for clean simulations'
                          'or give a rate >0 to space events randomly.')
 parser.add_argument('--Timing', dest='Timing', type=bool,
