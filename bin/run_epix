@@ -65,9 +65,9 @@ def main(args, return_df=False):
         tnow = starttime
 
     # Loading data:
-    inter = epix.loader(path, file_name,
+    inter = epix.loader(path, file_name, args.debug,
                         outer_cylinder=outer_cylinder,
-                        kwargs_uproot_ararys={'entry_stop': args.EntryStop}
+                        kwargs_uproot_arrays={'entry_stop': args.EntryStop}
                         )
 
     if args.debug:
@@ -209,9 +209,6 @@ def setup(args):
         p[0] = "/"
     path = os.path.join(*p[:-1])
     file_name = p[-1]
-
-    if args.debug:
-        print(f'Reading in root file {file_name}')
 
     # Init detector volume according to settings and get outer_cylinder
     # for data reduction of non-relevant interactions.

@@ -57,7 +57,7 @@ def load_config(config_file_path):
     return settings
 
 
-def loader(directory, file_name, outer_cylinder=None, kwargs_uproot_ararys={}):
+def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_uproot_arrays={}):
     """
     Function which loads geant4 interactions from a root file via
     uproot4.
@@ -70,9 +70,10 @@ def loader(directory, file_name, outer_cylinder=None, kwargs_uproot_ararys={}):
         file (str): File name
 
     Kwargs:
+        arg_debug: If true, print out loading information.
         outer_cylinder: If specified will cut all events outside of the
             given cylinder.
-        kwargs_uproot_ararys: Keyword arguments passed to .arrays of
+        kwargs_uproot_arrays: Keyword arguments passed to .arrays of
             uproot4.
 
     Returns:
@@ -97,6 +98,10 @@ def loader(directory, file_name, outer_cylinder=None, kwargs_uproot_ararys={}):
         raise ValueError(f'Cannot find ttree object of "{file_name}".' 
                          'I tried to search in events and events/events.' 
                          f'Found a ttree in {ttrees}?')
+    if arg_debug:
+        print(f'Total entries in input file = {ttree.num_entries}')
+        if kwargs_uproot_arrays['entry_stop']!=None:
+            print(f'... from which {kwargs_uproot_arrays["entry_stop"]} are read')
 
     # Columns to be read from the root_file:
     column_names = ["x", "y", "z", "t", "ed",
@@ -122,8 +127,8 @@ def loader(directory, file_name, outer_cylinder=None, kwargs_uproot_ararys={}):
     interactions = ttree.arrays(column_names,
                                 cut_string,
                                 aliases=alias,
-                                **kwargs_uproot_ararys)
-    eventids = ttree.arrays('eventid', **kwargs_uproot_ararys)
+                                **kwargs_uproot_arrays)
+    eventids = ttree.arrays('eventid', **kwargs_uproot_arrays)
     eventids = ak.broadcast_arrays(eventids['eventid'], interactions['x'])[0]
     interactions['evtid'] = eventids
 
