@@ -28,6 +28,6 @@ The other keyword arguments are:
 | `--TagClusterBy`  | decide if you tag the cluster (particle type, energy depositing process) according to first interaction in it (`time`) or most energetic (`energy`) | `time` |
 | `--Efield`  | It can be a string, pointing to an electric field map in the format specified, or a float, which will assume this uniform field (V/cm) | `200` |
 | `--MaxDelay`  | Time after which we cut the rest of the event (ns) | `1e7` |
-| `--EventRate`  | Event rate for event separation, `-1` for clean simulations; a rate > 0 (Hz) for random spacing; or a csv file containing time (s) and rate (Hz) for a not fixed rate | `-1` |
+| `--EventRate`  | Event rate for event separation, `-1` for clean simulations or a rate > 0 (Hz) for random spacing | `-1` |
 | `--Timing`  | Boolean to tell epix if you want timing outputs | `false` |
 | `--OutputPath`  | Output file path | Same directory as input file |

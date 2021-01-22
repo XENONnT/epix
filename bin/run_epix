@@ -47,8 +47,7 @@ parser.add_argument('--MaxDelay', dest='MaxDelay', type=float,
 parser.add_argument('--EventRate', dest='EventRate',
                     action='store', default=-1, 
                     help='Event rate for event separation. Use -1 for clean simulations'
-                         'or give a rate >0 to space events randomly.'
-                         'or give a csv file containing time[s] and rate[Hz]')
+                         'or give a rate >0 to space events randomly.')
 parser.add_argument('--Timing', dest='Timing', type=bool,
                     action='store', default=False,
                     help='If true will print out the time needed.')
@@ -133,19 +132,13 @@ def main(args):
 
     #Separate event in time 
     number_of_events = len(result["t"])
-    if isNumber(args.EventRate):
-        if args.EventRate == -1:
-            dt = epix.clean_separation(number_of_events, args.MaxDelay)
-            print("Clean Event Separation")
-        else:
-            dt = epix.times_from_fixed_rate(args.EventRate, number_of_events)
-            print("Fixed Event Rate")
+    if args.EventRate == -1:
+        dt = epix.times_for_clean_separation(number_of_events, args.MaxDelay)
+        print("Clean Event Separation")
     else:
-        Rate_df = pd.read_csv(args.EventRate)
-        dt = epix.times_from_variable_rate(Rate_df.Rate.values, Rate_df.Time.values, number_of_events)
-        print("Variable Event Rate")
+        dt = epix.times_from_fixed_rate(args.EventRate, number_of_events, args.MaxDelay)
+        print("Fixed Event Rate")
     result['t'] = result['t'][:, :] + dt
-
 
     print('Generating photons and electrons for events')
     # Generate quanta:
