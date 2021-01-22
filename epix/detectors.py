@@ -9,6 +9,7 @@ xenonnt_z_gate_mesh = 0.  # bottom of the gate electrode
 xenonnt_z_top_pmts = 7.3936  # cm
 xenonnt_z_cathode = -148.6515  # cm ... top of the cathode electrode
 xenonnt_z_bottom_pmts = -154.6555  # cm ... top surface of the bottom PMT window
+xenonnt_z_lxe = 0.416 # cm ... liquid-gas interface
 
 
 def xenonnt_detector():
@@ -51,7 +52,7 @@ def xenonnt_detector():
                                 'to_be_stored': True,
                                 },
                'GasPhase': {'vol_id': 3,
-                            'roi': _make_roi_cylinder(xenonnt_z_gate_mesh,
+                            'roi': _make_roi_cylinder(xenonnt_z_lxe,
                                                       xenonnt_z_top_pmts,
                                                       xenonnt_sensitive_volume_radius),
                             'electric_field': 200,

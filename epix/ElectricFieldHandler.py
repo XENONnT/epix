@@ -58,8 +58,8 @@ class MyElectricFieldHandler:
             z (np.array): z coordinate of the interaction in cm
 
         Kwargs:
-            outsie_map (float): Default value to be used if interaction
-                was not within in the range of the map. Default np.nan
+            outside_map (float): Default value to be used if interaction
+                was not within the range of the map. Default np.nan
         :return:
         """
         r = np.sqrt(x**2+y**2)
