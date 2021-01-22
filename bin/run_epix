@@ -72,7 +72,7 @@ def main(args, return_df=False):
 
     if args.debug:
         tnow = monitor_time(tnow, 'load data.')
-        print((f'Finding clusters of interactions with a dr = {args.MicroSeparation} cm'
+        print((f'Finding clusters of interactions with a dr = {args.MicroSeparation} mm'
                f' and dt = {args.MicroSeparationTime} ns'))
 
     # Cluster finding and clustering:
@@ -91,6 +91,7 @@ def main(args, return_df=False):
 
     # Sort detector volumes and keep interactions in selected ones:
     if args.debug:
+        print(detector)
         print('Removing clusters not in volumes:', *[v.name for v in detector])
         print(f'Number of clusters before: {np.sum(ak.num(result["ed"]))}')
 
@@ -170,14 +171,14 @@ def main(args, return_df=False):
                 os.makedirs(args.OutputPath)
             if not args.OutputPath.endswith("/"):
                 args.OutputPath += "/"
-            output_path_and_name = args.OutputPath + file_name[:-5] + "_wfim_instructions.csv"
+            output_path_and_name = args.OutputPath + file_name[:-5] + "_wfsim_instructions.csv"
         else:
-            output_path_and_name = args.InputFile[:-5] + "_wfim_instructions.csv"
+            output_path_and_name = args.InputFile[:-5] + "_wfsim_instructions.csv"
         ins_df.to_csv(output_path_and_name, index=False)
 
         print('Done')
         print('Instructions saved to ', output_path_and_name)
-        if args.Timing:
+        if args.debug:
             _ = monitor_time(starttime, 'run epix.')
 
 
@@ -222,5 +223,5 @@ def setup(args):
 
 if __name__ == "__main__":
     args = pars_args()
-    main(args)
+    main(args, return_df=True)
 
