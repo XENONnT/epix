@@ -157,7 +157,7 @@ int_dtype = [(('Waveform simulator event number.', 'event_number'), np.int32),
              ]
 
 
-def awkward_to_really_awkward(interactions):
+def awkward_to_wfsim_row_style(interactions):
     ninteractions = np.sum(ak.num(interactions['ed']))
     res = np.zeros(2 * ninteractions, dtype=int_dtype)
     res['recoil'] = 'er' #default
