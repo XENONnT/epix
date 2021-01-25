@@ -64,7 +64,7 @@ def init_detector(detector_name, config_file):
 
     # Test if volume name and id are unique:
     names = [volume.name for volume in detector]
-    ids = [volume.vol_id for volume in detector]
+    ids = [volume.volume_id for volume in detector]
     if len(np.unique(names)) != len(names) or len(np.unique(ids)) != len(ids):
         raise ValueError(f'Detector volumes must have unique names and ids! Found {names} and {ids}.')
 
@@ -72,7 +72,7 @@ def init_detector(detector_name, config_file):
 
 
 class SensitiveVolume:
-    def __init__(self, name, vol_id, roi, electric_field, create_S2, xe_density=2.862):
+    def __init__(self, name, volume_id, roi, electric_field, create_S2, xe_density=2.862):
         """
         Sensitive detector volume for which S1 and/or S2 signals should be
         generated.
@@ -94,7 +94,7 @@ class SensitiveVolume:
                 properties which should be forwarded to nest.
         """
         self.name = name
-        self.volume_id = vol_id
+        self.volume_id = volume_id
         self.roi = roi
 
         self.electric_field = electric_field
