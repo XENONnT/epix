@@ -91,7 +91,6 @@ def main(args, return_df=False):
 
     # Sort detector volumes and keep interactions in selected ones:
     if args.debug:
-        print(detector)
         print('Removing clusters not in volumes:', *[v.name for v in detector])
         print(f'Number of clusters before: {np.sum(ak.num(result["ed"]))}')
 
