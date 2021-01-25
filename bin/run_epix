@@ -7,6 +7,7 @@ import sys
 import awkward as ak
 import numpy as np
 import pandas as pd
+import warnings
 
 import epix
 
@@ -113,6 +114,17 @@ def main(args, return_df=False):
     if args.debug:
         print(f'Number of clusters after: {np.sum(ak.num(result["ed"]))}')
         print('Assigning electric field to clusters')
+
+    if not np.any(m):
+        # There are not any events left so return empty array:
+        warnings.warn('No interactions left, return empty DataFrame.')
+        if return_df:
+            if args.output_path and not os.path.isdir(args.output_path):
+                os.makedirs(args.output_path)
+
+            output_path_and_name = os.path.join(args.output_path, file_name[:-5] + "_wfsim_instructions.csv")
+            df = pd.DataFrame()
+            df.to_csv(output_path_and_name, index=False)
 
     # Add electric field to array:
     efields = np.zeros(np.sum(ak.num(result)), np.float32)
