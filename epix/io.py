@@ -26,7 +26,9 @@ def load_config(config_file_path):
     config = configparser.ConfigParser()
     config.read(config_file_path)
     sections = config.sections()
-
+    if not len(sections):
+        raise ValueError(f'Cannot load sections from config file "{config_file_path}".' 
+                         'Have you specified a wrong file?')
     settings = {}
     for s in sections:
         options = {}
