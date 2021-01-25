@@ -67,7 +67,7 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
 
     Args:
         directory (str): Directory in which the data is stored.
-        file (str): File name
+        file_name (str): File name
 
     Kwargs:
         arg_debug: If true, print out loading information.
