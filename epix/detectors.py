@@ -39,7 +39,7 @@ def xenonnt_detector():
                       'max_r': xenonnt_sensitive_volume_radius
                       }
 
-    volumes = {'TPC': {'volume_ids': 1,
+    volumes = {'TPC': {'volume_id': 1,
                        'roi': _make_roi_cylinder(xenonnt_z_cathode,
                                                  xenonnt_z_gate_mesh,
                                                  xenonnt_sensitive_volume_radius),
