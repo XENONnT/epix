@@ -20,6 +20,7 @@ def init_detector(detector_name, config_file):
         raise ValueError('The specified "detector_name" must be defined in "epix.detectors". '
                          f'Was not able to find {detector_name}.')
 
+    # Getting default volume object by name:
     volumes = getattr(epix.detectors, detector_name)
     volumes, _ = volumes()
 
@@ -28,11 +29,11 @@ def init_detector(detector_name, config_file):
         config = epix.io.load_config(config_file)
 
         # Update default setting with new settings:
-        for name, options in config.items():
-            if name in volumes:
-                default_options = volumes[name]
+        for volume_name, options in config.items():
+            if volume_name in volumes:
+                default_options = volumes[volume_name]
             else:
-                raise ValueError(f'Cannot find "{name}" among the volumes to be initialized.'
+                raise ValueError(f'Cannot find "{volume_name}" among the volumes to be initialized.'
                                  f' Valid volumes are: {[k for k in volumes.keys()]}')
             for key, values in options.items():
                 default_options[key] = values
@@ -40,7 +41,7 @@ def init_detector(detector_name, config_file):
     # Now loop over default options and init volumes:
     detector = []
     args_volumes = inspect.signature(epix.SensitiveVolume).parameters.keys()
-    for name, default_options in volumes.items():
+    for volume_name, default_options in volumes.items():
         if not default_options['to_be_stored']:
             # This volume should be skipped
             continue
@@ -59,7 +60,13 @@ def init_detector(detector_name, config_file):
                                                                 )
             kwargs[option_key] = option_value
 
-        detector.append(epix.SensitiveVolume(name=name, **kwargs))
+        detector.append(epix.SensitiveVolume(name=volume_name, **kwargs))
+
+    # Test if volume name and id are unique:
+    names = [volume.name for volume in detector]
+    ids = [volume.ids for volume in detector]
+    if len(np.unique(names)) != len(names) or len(np.unique(ids)) != len(ids):
+        raise ValueError(f'Detector volumes must have unique names and ids! Found {names} and {ids}.')
 
     return detector
 
