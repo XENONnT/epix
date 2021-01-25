@@ -13,7 +13,7 @@ import epix
 
 def pars_args():
     parser = argparse.ArgumentParser(description="Electron and Photon Instructions generator for XENON (wfsim)")
-    parser.add_argument('--InputFile', dest='InputFile',
+    parser.add_argument('--InputFile', dest='input_file',
                         action='store', required=True,
                         help='Input Geant4 ROOT file')
     parser.add_argument('--Detector', dest='detector', type=str,
@@ -22,25 +22,25 @@ def pars_args():
     parser.add_argument('--Config', dest='config', type=str,
                         action='store', default='',
                         help='Config file to overwrite default detector settings.')
-    parser.add_argument('--EntryStop', dest='EntryStop', type=int,
+    parser.add_argument('--EntryStop', dest='entry_stop', type=int,
                         action='store',
                         help='Number of entries to read from first. Defaulted to all')
-    parser.add_argument('--MicroSeparation', dest='MicroSeparation', type=float,
+    parser.add_argument('--MicroSeparation', dest='micro_separation', type=float,
                         action='store', default=0.05,
                         help='Spatial resolution for DBSCAN micro-clustering [mm]')
-    parser.add_argument('--MicroSeparationTime', dest='MicroSeparationTime', type=float,
+    parser.add_argument('--MicroSeparationTime', dest='micro_separation_time', type=float,
                         action='store', default=10,
                         help='Time resolution for DBSCAN micro-clustering [ns]')
-    parser.add_argument('--TagClusterBy', dest='TagClusterBy', type=str,
+    parser.add_argument('--TagClusterBy', dest='tag_cluster_by', type=str,
                         action='store', default='time',
                         help=('Classification of the type of particle of a cluster, '
                               'based on most energetic contributor ("energy") or first '
                               'depositing particle ("time")'),
                         choices={'time', 'energy'})
-    parser.add_argument('--MaxDelay', dest='MaxDelay', type=float,
+    parser.add_argument('--MaxDelay', dest='max_delay', type=float,
                         action='store', default=1e7, #ns
                         help='Maximal time delay to first interaction which will be stored [ns]')
-    parser.add_argument('--OutputPath', dest='OutputPath',
+    parser.add_argument('--OutputPath', dest='output_path',
                        action='store', default="",
                        help=('Optional output path. If not specified the result will be saved'
                              'in the same dir as the input file.'))
@@ -67,21 +67,21 @@ def main(args, return_df=False):
     # Loading data:
     inter = epix.loader(path, file_name, args.debug,
                         outer_cylinder=outer_cylinder,
-                        kwargs_uproot_arrays={'entry_stop': args.EntryStop}
+                        kwargs_uproot_arrays={'entry_stop': args.entry_stop}
                         )
 
     if args.debug:
         tnow = monitor_time(tnow, 'load data.')
-        print((f'Finding clusters of interactions with a dr = {args.MicroSeparation} mm'
-               f' and dt = {args.MicroSeparationTime} ns'))
+        print((f'Finding clusters of interactions with a dr = {args.micro_separation} mm'
+               f' and dt = {args.micro_separation_time} ns'))
 
     # Cluster finding and clustering:
-    inter = epix.find_cluster(inter, args.MicroSeparation/10, args.MicroSeparationTime)
+    inter = epix.find_cluster(inter, args.micro_separation/10, args.micro_separation_time)
 
     if args.debug:
         tnow = monitor_time(tnow, 'cluster finding.')
 
-    result = epix.cluster(inter, args.TagClusterBy == 'energy')
+    result = epix.cluster(inter, args.tag_cluster_by == 'energy')
 
     if args.debug:
         tnow = monitor_time(tnow, 'cluster merging.')
@@ -135,11 +135,11 @@ def main(args, return_df=False):
     # (This is a requirement of WFSim)
     result = result[ak.argsort(result['t'])]
     result['t'] = result['t'] - result['t'][:, 0]
-    result = result[result['t'] <= args.MaxDelay]
+    result = result[result['t'] <= args.max_delay]
     # Secondly truly separate events by time (1.1 times the max time),
     # with first event starting at max time (needed for wfsim)
     dt = np.arange(1, len(result['t']) + 1) + np.arange(1, len(result['t']) + 1) / 10
-    dt *= args.MaxDelay
+    dt *= args.max_delay
     result['t'] = (result['t'][:, :] + result['t'][:, 0] + dt)
 
     if args.debug:
@@ -165,28 +165,16 @@ def main(args, return_df=False):
     ins_df = pd.DataFrame(instructions)
 
     if return_df:
-        if args.OutputPath:
-            if not os.path.isdir(args.OutputPath):
-                os.makedirs(args.OutputPath)
-            if not args.OutputPath.endswith("/"):
-                args.OutputPath += "/"
-            output_path_and_name = args.OutputPath + file_name[:-5] + "_wfsim_instructions.csv"
-        else:
-            output_path_and_name = args.InputFile[:-5] + "_wfsim_instructions.csv"
+        if args.output_path and not os.path.isdir(args.output_path):
+            os.makedirs(args.output_path)
+
+        output_path_and_name = os.path.join(args.output_path, file_name[:-5] + "_wfsim_instructions.csv")
         ins_df.to_csv(output_path_and_name, index=False)
 
         print('Done')
         print('Instructions saved to ', output_path_and_name)
         if args.debug:
             _ = monitor_time(starttime, 'run epix.')
-
-
-def is_number(x):
-    try:
-        float(x)
-        return True
-    except ValueError:
-        return False
 
 
 def monitor_time(prev_time, task):
@@ -202,7 +190,7 @@ def setup(args):
     :return:
     """
     # Getting file path and split it into directory and file name:
-    p = args.InputFile
+    p = args.input_file
     p = p.split('/')
     if p[0] == "":
         p[0] = "/"
