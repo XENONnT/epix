@@ -12,7 +12,7 @@ SUPPORTED_OPTION = {'to_be_stored': 'getboolean',
                     'electric_field': ('getfloat', 'get'),
                     'create_S2': 'getboolean',
                     'xe_density': 'getfloat',
-                    'electirc_field_outside_map': 'getfloat',
+                    'efield_outside_map': 'getfloat',
                     }
 
 
