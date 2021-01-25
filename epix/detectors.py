@@ -3,13 +3,21 @@ import epix
 
 # Fixed detector dimensions of XENONnT:
 # See also: https://xe1t-wiki.lngs.infn.it/doku.php?id=xenon:xenonnt:analysis:coordinate_system
-# #coordinate_system_of_xenonnt
 xenonnt_sensitive_volume_radius = 66.4  # cm
 xenonnt_z_gate_mesh = 0.  # bottom of the gate electrode
 xenonnt_z_top_pmts = 7.3936  # cm
 xenonnt_z_cathode = -148.6515  # cm ... top of the cathode electrode
 xenonnt_z_bottom_pmts = -154.6555  # cm ... top surface of the bottom PMT window
 xenonnt_z_lxe = 0.416 # cm ... liquid-gas interface
+
+# Fixed detector dimensions of XENON1T:
+# See also: https://xe1t-wiki.lngs.infn.it/doku.php?id=xenon:xenon1t:analysis:coordinate_system
+xenon1t_sensitive_volume_radius = 47.925  # cm
+xenon1t_z_gate_mesh = 0.  # bottom of the gate electrode
+xenon1t_z_top_pmts = 7.38  # cm
+xenon1t_z_cathode = -96.87  # cm ... top of the cathode electrode
+xenon1t_z_bottom_pmts = -103.09  # cm ... top surface of the bottom PMT window
+xenon1t_z_lxe = 0.27 # cm ... liquid-gas interface
 
 
 def xenonnt_detector():
@@ -41,7 +49,7 @@ def xenonnt_detector():
                        'efield_outside_map': 200,
                        'to_be_stored': True,
                        },
-               'BelowCathode': {'vol_id': 1,
+               'BelowCathode': {'vol_id': 2,
                                 'roi': _make_roi_cylinder(xenonnt_z_bottom_pmts,
                                                           xenonnt_z_cathode,
                                                           xenonnt_sensitive_volume_radius),
@@ -59,6 +67,59 @@ def xenonnt_detector():
                             'create_S2': False,
                             'xe_density': 0.0177,
                             'efield_outside_map': 200,
+                            'to_be_stored': True,
+                            },
+               }
+    return volumes, outer_cylinder
+
+
+def xenon1t_detector():
+    """
+    Default XENON1T TPC with different sensitive volumes.
+
+    The structure for each volume is as follows:
+        key: VolumeName
+        items: keyword arguments for the Sensitive Volume class
+
+    :return: A list of volumes for the default 1T detector.
+    """
+    # TODO: Can we do this differently? Ideas are welcome....
+    # Outer edges of the volume of interest. This is needed for a
+    # preselection of interactions inside the desired volumes before
+    # clustering.
+    outer_cylinder = {'max_z': xenon1t_z_top_pmts,
+                      'min_z': xenon1t_z_bottom_pmts,
+                      'max_r': xenon1t_sensitive_volume_radius
+                      }
+
+    volumes = {'TPC': {'vol_id': 1,
+                       'roi': _make_roi_cylinder(xenon1t_z_cathode,
+                                                 xenon1t_z_gate_mesh,
+                                                 xenon1t_sensitive_volume_radius),
+                       'electric_field': 82,
+                       'create_S2': True,
+                       'xe_density': 2.862,
+                       'efield_outside_map': 82,
+                       'to_be_stored': True,
+                       },
+               'BelowCathode': {'vol_id': 2,
+                                'roi': _make_roi_cylinder(xenon1t_z_bottom_pmts,
+                                                          xenon1t_z_cathode,
+                                                          xenon1t_sensitive_volume_radius),
+                                'electric_field': 82,
+                                'create_S2': False,
+                                'xe_density': 2.862,
+                                'efield_outside_map': 82,
+                                'to_be_stored': True,
+                                },
+               'GasPhase': {'vol_id': 3,
+                            'roi': _make_roi_cylinder(xenon1t_z_lxe,
+                                                      xenon1t_z_top_pmts,
+                                                      xenon1t_sensitive_volume_radius),
+                            'electric_field': 82,
+                            'create_S2': False,
+                            'xe_density': 0.0177,
+                            'efield_outside_map': 82,
                             'to_be_stored': True,
                             },
                }

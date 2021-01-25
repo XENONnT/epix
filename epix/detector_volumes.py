@@ -183,7 +183,7 @@ def in_sensitive_volume(events, sensitive_volumes):
                 raise ValueError(f'The volume {vol.name} is overlapping with'
                                  f' volume {name}!')
             new_results = res.snapshot()
-            for field in result.fields():
+            for field in result.fields:
                 # Workaround since we cannot sum up records-arrays anymore
                 result[field] = result[field] + new_results[field]
         else:
