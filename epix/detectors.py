@@ -39,7 +39,7 @@ def xenonnt_detector():
                       'max_r': xenonnt_sensitive_volume_radius
                       }
 
-    volumes = {'TPC': {'vol_id': 1,
+    volumes = {'TPC': {'volume_ids': 1,
                        'roi': _make_roi_cylinder(xenonnt_z_cathode,
                                                  xenonnt_z_gate_mesh,
                                                  xenonnt_sensitive_volume_radius),
@@ -49,7 +49,7 @@ def xenonnt_detector():
                        'efield_outside_map': 200,
                        'to_be_stored': True,
                        },
-               'BelowCathode': {'vol_id': 2,
+               'BelowCathode': {'volume_id': 2,
                                 'roi': _make_roi_cylinder(xenonnt_z_bottom_pmts,
                                                           xenonnt_z_cathode,
                                                           xenonnt_sensitive_volume_radius),
@@ -59,7 +59,7 @@ def xenonnt_detector():
                                 'efield_outside_map': 200,
                                 'to_be_stored': True,
                                 },
-               'GasPhase': {'vol_id': 3,
+               'GasPhase': {'volume_id': 3,
                             'roi': _make_roi_cylinder(xenonnt_z_lxe,
                                                       xenonnt_z_top_pmts,
                                                       xenonnt_sensitive_volume_radius),
@@ -92,7 +92,7 @@ def xenon1t_detector():
                       'max_r': xenon1t_sensitive_volume_radius
                       }
 
-    volumes = {'TPC': {'vol_id': 1,
+    volumes = {'TPC': {'volume_id': 1,
                        'roi': _make_roi_cylinder(xenon1t_z_cathode,
                                                  xenon1t_z_gate_mesh,
                                                  xenon1t_sensitive_volume_radius),
@@ -102,7 +102,7 @@ def xenon1t_detector():
                        'efield_outside_map': 82,
                        'to_be_stored': True,
                        },
-               'BelowCathode': {'vol_id': 2,
+               'BelowCathode': {'volume_id': 2,
                                 'roi': _make_roi_cylinder(xenon1t_z_bottom_pmts,
                                                           xenon1t_z_cathode,
                                                           xenon1t_sensitive_volume_radius),
@@ -112,7 +112,7 @@ def xenon1t_detector():
                                 'efield_outside_map': 82,
                                 'to_be_stored': True,
                                 },
-               'GasPhase': {'vol_id': 3,
+               'GasPhase': {'volume_id': 3,
                             'roi': _make_roi_cylinder(xenon1t_z_lxe,
                                                       xenon1t_z_top_pmts,
                                                       xenon1t_sensitive_volume_radius),
