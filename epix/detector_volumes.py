@@ -64,7 +64,7 @@ def init_detector(detector_name, config_file):
 
     # Test if volume name and id are unique:
     names = [volume.name for volume in detector]
-    ids = [volume.ids for volume in detector]
+    ids = [volume.vol_id for volume in detector]
     if len(np.unique(names)) != len(names) or len(np.unique(ids)) != len(ids):
         raise ValueError(f'Detector volumes must have unique names and ids! Found {names} and {ids}.')
 
