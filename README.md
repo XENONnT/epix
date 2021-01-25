@@ -22,12 +22,13 @@ bin/run_epix --InputFile <path_and_filename>
 The other keyword arguments are:
 | Argument | Description | Default |
 |--------------|------------------------|---|
+| `--Detector`  | Detector to be used. Has to be defined in epix.detectors | `xenonnt_detector` |
+| `--Config`  | Config file to overwrite default detector settings | in epix.detectors |
 | `--EntryStop`  | How many entries from the ROOT file you want to process | all |
 | `--MicroSeparation`  | DBSCAN clustering distance (mm) | `0.05` |
 | `--MicroSeparationTime`  | Clustering time (ns) | `10` |
 | `--TagClusterBy`  | decide if you tag the cluster (particle type, energy depositing process) according to first interaction in it (`time`) or most energetic (`energy`) | `time` |
-| `--Efield`  | It can be a string, pointing to an electric field map in the format specified, or a float, which will assume this uniform field (V/cm) | `200` |
 | `--MaxDelay`  | Time after which we cut the rest of the event (ns) | `1e7` |
 | `--EventRate`  | Event rate for event separation, `-1` for clean simulations or a rate > 0 (Hz) for random spacing | `-1` |
-| `--Timing`  | Boolean to tell epix if you want timing outputs | `false` |
+| `--Debug`  | Tell epix if you want timing outputs | `false` |
 | `--OutputPath`  | Output file path | Same directory as input file |

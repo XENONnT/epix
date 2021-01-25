@@ -1,14 +1,65 @@
 import numpy as np
-import uproot4
-import awkward1 as ak
+import uproot
+import awkward as ak
 
 import os
 import warnings
+import configparser
 
-from .common import awkward_to_flat_numpy, sensitive_volume_radius, z_top_pmts, z_bottom_pmts, offset_range
+from .common import awkward_to_flat_numpy, offset_range
+
+SUPPORTED_OPTION = {'to_be_stored': 'getboolean',
+                    'electric_field': ('getfloat', 'get'),
+                    'create_S2': 'getboolean',
+                    'xe_density': 'getfloat',
+                    'efield_outside_map': 'getfloat',
+                    }
 
 
-def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
+def load_config(config_file_path):
+    """
+    Loads config file and returns dictionary.
+
+    :param config_file_path:
+    :return: dict
+    """
+    config = configparser.ConfigParser()
+    config.read(config_file_path)
+    sections = config.sections()
+    if not len(sections):
+        raise ValueError(f'Cannot load sections from config file "{config_file_path}".' 
+                         'Have you specified a wrong file?')
+    settings = {}
+    for s in sections:
+        options = {}
+        c = config[s]
+        for key in c.keys():
+            if key not in SUPPORTED_OPTION:
+                warnings.warn(f'Option "{key}" of section {s} is not supported'
+                              ' and will be ignored.')
+                continue
+            # Get correct get method to convert string input:
+            if key == 'electric_field':
+                # Electric field is a bit more complicated can be
+                # either a float or string:
+                try:
+                    getter = getattr(c, SUPPORTED_OPTION[key][0])
+                    options[key] = getter(key)
+                except ValueError:
+                    getter = getattr(c, SUPPORTED_OPTION[key][1])
+                    options[key] = getter(key)
+            else:
+                try:
+                    getter = getattr(c, SUPPORTED_OPTION[key])
+                    options[key] = getter(key)
+                except Exception as e:
+                    raise ValueError(f'Cannot load "{key}" from section "{s}" in config file.') from e
+
+        settings[s] = options
+    return settings
+
+
+def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_uproot_arrays={}):
     """
     Function which loads geant4 interactions from a root file via
     uproot4.
@@ -18,13 +69,13 @@ def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
 
     Args:
         directory (str): Directory in which the data is stored.
-        file (str): File name
+        file_name (str): File name
 
     Kwargs:
-        cut_outside_tpc (bool): If true only interactions inside the TPC
-            are loaded. False all interactions in any sensetive volume
-            are loaded.
-        kwargs_uproot_ararys: Keyword arguments passed to .arrays of
+        arg_debug: If true, print out loading information.
+        outer_cylinder: If specified will cut all events outside of the
+            given cylinder.
+        kwargs_uproot_arrays: Keyword arguments passed to .arrays of
             uproot4.
 
     Returns:
@@ -35,8 +86,24 @@ def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
         arrays due to different array structures. Also the type strings
         are split off since they suck. All arrays are finally merged.
     """
-    root_dir = uproot4.open(os.path.join(directory, file_name))
-    ttree = root_dir['events']
+    root_dir = uproot.open(os.path.join(directory, file_name))
+    
+    if root_dir.classname_of('events') == 'TTree':
+        ttree = root_dir['events']
+    elif root_dir.classname_of('events/events') == 'TTree':
+        ttree = root_dir['events/events']
+    else:
+        ttrees = []
+        for k, v in root_dir.classnames().items():
+            if v == 'TTree':
+                ttrees.append(k)
+        raise ValueError(f'Cannot find ttree object of "{file_name}".' 
+                         'I tried to search in events and events/events.' 
+                         f'Found a ttree in {ttrees}?')
+    if arg_debug:
+        print(f'Total entries in input file = {ttree.num_entries}')
+        if kwargs_uproot_arrays['entry_stop']!=None:
+            print(f'... from which {kwargs_uproot_arrays["entry_stop"]} are read')
 
     # Columns to be read from the root_file:
     column_names = ["x", "y", "z", "t", "ed",
@@ -52,25 +119,25 @@ def loader(directory, file_name, cut_outside_tpc=True, kwargs_uproot_ararys={}):
              't': 'time*10**9'
              }
 
-    if cut_outside_tpc:
-        cut_string = (f'(r < {sensitive_volume_radius})'
-                      f' & ((zp >= {z_bottom_pmts * 10}) & (zp < {z_top_pmts * 10}))')
+    if outer_cylinder:
+        cut_string = (f'(r < {outer_cylinder["max_r"]})'
+                      f' & ((zp >= {outer_cylinder["min_z"] * 10}) & (zp < {outer_cylinder["max_z"] * 10}))')
     else:
         cut_string = None
 
-    # Radin in data convert mm to cm and perform a first cut if specified:
+    # Read in data, convert mm to cm and perform a first cut if specified:
     interactions = ttree.arrays(column_names,
                                 cut_string,
                                 aliases=alias,
-                                **kwargs_uproot_ararys)
-    eventids = ttree.arrays('eventid', **kwargs_uproot_ararys)
+                                **kwargs_uproot_arrays)
+    eventids = ttree.arrays('eventid', **kwargs_uproot_arrays)
     eventids = ak.broadcast_arrays(eventids['eventid'], interactions['x'])[0]
     interactions['evtid'] = eventids
 
     if np.any(interactions['ed'] < 0):
         warnings.warn('At least one of the energy deposits is negative!')
 
-    # Removing all zero energy depsoits
+    # Removing all events with zero energy deposit
     m = interactions['ed'] > 0
     interactions = interactions[m]
 
@@ -93,11 +160,12 @@ int_dtype = [(('Waveform simulator event number.', 'event_number'), np.int32),
              (('Number of quanta', 'amp'), np.int32),
              (('Recoil type of interaction.', 'recoil'), '<U5'),
              (('Energy deposit of interaction', 'e_dep'), np.float32),
-             (('Eventid like in geant4 output rootfile', 'g4id'), np.int32)
+             (('Eventid like in geant4 output rootfile', 'g4id'), np.int32),
+             (('Volume id giving the detector subvolume', 'vol_id'), np.int32)
              ]
 
 
-def awkward_to_really_awkward(interactions):
+def awkward_to_wfsim_row_style(interactions):
     ninteractions = np.sum(ak.num(interactions['ed']))
     res = np.zeros(2 * ninteractions, dtype=int_dtype)
     res['recoil'] = 'er' #default
@@ -112,6 +180,7 @@ def awkward_to_really_awkward(interactions):
         res['z'][i::2] = awkward_to_flat_numpy(interactions['z'])
         res['time'][i::2] = awkward_to_flat_numpy(interactions['t'])
         res['g4id'][i::2] = awkward_to_flat_numpy(interactions['evtid'])
+        res['vol_id'][i::2] = awkward_to_flat_numpy(interactions['vol_id'])
         res['e_dep'][i::2] = awkward_to_flat_numpy(interactions['ed'])
         if i:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['electrons'])

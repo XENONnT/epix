@@ -1,4 +1,4 @@
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 from .common import *
 from .io import *
@@ -8,3 +8,4 @@ from .detector_volumes import *
 from .clustering import *
 from .ElectricFieldHandler import *
 from .event_separation import *
+from .detectors import *

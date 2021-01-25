@@ -24,6 +24,9 @@ class MyElectricFieldHandler:
             self._load_field()
             self._get_coordinates()
             self._build_interpolator()
+        else:
+            raise ValueError(f'Cannot open "{self.map}". It is not a valid file'
+                             ' for the electirc field map.')
 
     def _load_field(self):
         self.field = pd.read_csv(self.map,
@@ -44,6 +47,22 @@ class MyElectricFieldHandler:
                                 bounds_error=False,
                                 fill_value=None)
     
-    def get_field(self, x, y, z):
+    def get_field(self, x, y, z, outside_map=np.nan):
+        """
+        Function which returns the electric field at a certain position
+        according to an efield map.
+
+        Args:
+            x (np.array): x coordinate of the interaction in cm
+            y (np.array): y coordinate of the interaction in cm
+            z (np.array): z coordinate of the interaction in cm
+
+        Kwargs:
+            outside_map (float): Default value to be used if interaction
+                was not within the range of the map. Default np.nan
+        :return:
+        """
         r = np.sqrt(x**2+y**2)
-        return self.interpolator((z, r))
+        efield = self.interpolator((z, r))
+        efield[np.isnan(efield)] = outside_map
+        return efield
