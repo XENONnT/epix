@@ -41,7 +41,7 @@ def xenonnt_detector():
                        'efield_outside_map': 200,
                        'to_be_stored': True,
                        },
-               'BelowCathode': {'vol_id': 1,
+               'BelowCathode': {'vol_id': 2,
                                 'roi': _make_roi_cylinder(xenonnt_z_bottom_pmts,
                                                           xenonnt_z_cathode,
                                                           xenonnt_sensitive_volume_radius),
