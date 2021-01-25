@@ -29,6 +29,5 @@ The other keyword arguments are:
 | `--MicroSeparationTime`  | Clustering time (ns) | `10` |
 | `--TagClusterBy`  | decide if you tag the cluster (particle type, energy depositing process) according to first interaction in it (`time`) or most energetic (`energy`) | `time` |
 | `--MaxDelay`  | Time after which we cut the rest of the event (ns) | `1e7` |
-| `--EventRate`  | Event rate for event separation, `-1` for clean simulations or a rate > 0 (Hz) for random spacing | `-1` |
 | `--Debug`  | Tell epix if you want timing outputs | `false` |
 | `--OutputPath`  | Output file path | Same directory as input file |
