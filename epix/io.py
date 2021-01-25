@@ -158,7 +158,8 @@ int_dtype = [(('Waveform simulator event number.', 'event_number'), np.int32),
              (('Number of quanta', 'amp'), np.int32),
              (('Recoil type of interaction.', 'recoil'), '<U5'),
              (('Energy deposit of interaction', 'e_dep'), np.float32),
-             (('Eventid like in geant4 output rootfile', 'g4id'), np.int32)
+             (('Eventid like in geant4 output rootfile', 'g4id'), np.int32),
+             (('Volume id giving the detector subvolume', 'vol_id'), np.int32)
              ]
 
 
@@ -177,6 +178,7 @@ def awkward_to_wfsim_row_style(interactions):
         res['z'][i::2] = awkward_to_flat_numpy(interactions['z'])
         res['time'][i::2] = awkward_to_flat_numpy(interactions['t'])
         res['g4id'][i::2] = awkward_to_flat_numpy(interactions['evtid'])
+        res['vol_id'][i::2] = awkward_to_flat_numpy(interactions['vol_id'])
         res['e_dep'][i::2] = awkward_to_flat_numpy(interactions['ed'])
         if i:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['electrons'])
