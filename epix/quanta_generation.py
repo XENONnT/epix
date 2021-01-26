@@ -48,13 +48,13 @@ def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
     # Some addition taken from
     # https://github.com/NESTCollaboration/nestpy/blob/e82c71f864d7362fee87989ed642cd875845ae3e/src/nestpy/helpers.py#L94-L100
     if model == 0 and en > 2e2:
-        warnings.warn("Energy deposition of {en} keV beyond NEST validity for NR model of 200 keV - Remove Interaction")
+        warnings.warn(f"Energy deposition of {en} keV beyond NEST validity for NR model of 200 keV - Remove Interaction")
         return -1, -1
     if model == 7 and en > 3e3:
-        warnings.warn("Energy deposition of {en} keV beyond NEST validity for gamma model of 3 MeV - Remove Interaction")
+        warnings.warn(f"Energy deposition of {en} keV beyond NEST validity for gamma model of 3 MeV - Remove Interaction")
         return -1, -1
     if model == 8 and en > 3e3:
-        warnings.warn("Energy deposition of {en} keV beyond NEST validity for beta model of 3 MeV - Remove Interaction")
+        warnings.warn(f"Energy deposition of {en} keV beyond NEST validity for beta model of 3 MeV - Remove Interaction")
         return -1, -1
 
     y = nc.GetYields(interaction=nestpy.INTERACTION_TYPE(model),
