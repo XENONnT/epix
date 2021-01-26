@@ -157,10 +157,12 @@ def main(args, return_df=False):
     number_of_events = len(result["t"])
     if args.event_rate == -1:
         dt = epix.times_for_clean_separation(number_of_events, args.max_delay)
-        print("Clean Event Separation")
+        if args.debug:
+            print('Clean event separation')
     else:
         dt = epix.times_from_fixed_rate(args.event_rate, number_of_events, args.max_delay)
-        print("Fixed Event Rate")
+        if args.debug:
+            print(f'Fixed event rate of {args.event_rate} Hz')
     result['t'] = result['t'][:, :] + dt
 
     if args.debug:
