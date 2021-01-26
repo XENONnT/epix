@@ -11,7 +11,6 @@ import warnings
 
 import epix
 
-
 def pars_args():
     parser = argparse.ArgumentParser(description="Electron and Photon Instructions generator for XENON (wfsim)")
     parser.add_argument('--InputFile', dest='input_file',
@@ -41,6 +40,10 @@ def pars_args():
     parser.add_argument('--MaxDelay', dest='max_delay', type=float,
                         action='store', default=1e7, #ns
                         help='Maximal time delay to first interaction which will be stored [ns]')
+    parser.add_argument('--EventRate', dest='event_rate', type=float,
+                    action='store', default=-1,
+                    help='Event rate for event separation. Use -1 for clean simulations'
+                         'or give a rate >0 to space events randomly.')
     parser.add_argument('--OutputPath', dest='output_path',
                        action='store', default="",
                        help=('Optional output path. If not specified the result will be saved'
@@ -149,11 +152,18 @@ def main(args, return_df=False):
     result = result[ak.argsort(result['t'])]
     result['t'] = result['t'] - result['t'][:, 0]
     result = result[result['t'] <= args.max_delay]
-    # Secondly truly separate events by time (1.1 times the max time),
-    # with first event starting at max time (needed for wfsim)
-    dt = np.arange(1, len(result['t']) + 1) + np.arange(1, len(result['t']) + 1) / 10
-    dt *= args.max_delay
-    result['t'] = (result['t'][:, :] + result['t'][:, 0] + dt)
+
+    #Separate event in time 
+    number_of_events = len(result["t"])
+    if args.event_rate == -1:
+        dt = epix.times_for_clean_separation(number_of_events, args.max_delay)
+        if args.debug:
+            print('Clean event separation')
+    else:
+        dt = epix.times_from_fixed_rate(args.event_rate, number_of_events, args.max_delay)
+        if args.debug:
+            print(f'Fixed event rate of {args.event_rate} Hz')
+    result['t'] = result['t'][:, :] + dt
 
     if args.debug:
         print('Generating photons and electrons for events')
@@ -182,6 +192,8 @@ def main(args, return_df=False):
             os.makedirs(args.output_path)
 
         output_path_and_name = os.path.join(args.output_path, file_name[:-5] + "_wfsim_instructions.csv")
+        if os.path.isfile(output_path_and_name):
+            warnings.warn("Output file already exists - Overwriting")
         ins_df.to_csv(output_path_and_name, index=False)
 
         print('Done')
