@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import numba
-import awkward1 as ak
+import awkward as ak
 from .common import reshape_awkward
 from sklearn.cluster import DBSCAN
 
@@ -12,10 +12,11 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
     Args:
         x (pandas.DataFrame): Subentries of event must contain the
             fields, x,y,z,time
-        cluster_size_space (float): Max distance between two points to
+        cluster_size_space (float): Max spatial distance between two points to
             be inside a cluster [cm].
-        cluster_size_time (float): Same as space bt for time in [ns].
-
+        cluster_size_time (float): Max time distance between two points to be 
+            inside a cluster [ns].
+    
     Returns:
         awkward.array: Adds to interaction a cluster_ids record.
     """
@@ -25,39 +26,75 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
         df.append(ak.to_pandas(interactions[key], anonymous=key))
     df = pd.concat(df, axis=1)
 
-    # Splitting into individual events and cluster:
+    # Splitting into individual events and apply time clustering:
     groups = df.groupby('entry')
-    groups = groups.apply(lambda x: _find_cluster(x, cluster_size_space, cluster_size_time))
+    df["time_cluster"] = np.concatenate(groups.apply(lambda x: simple_1d_clustering(x.t.values, cluster_size_time)))
+
+    # Splitting into individual events and time cluster and apply space clustering space:
+    groups = df.groupby(['entry', 'time_cluster'])
+    groups = groups.apply(lambda x: _find_cluster(x, cluster_size_space))
+
+    for i in np.unique(groups.index.get_level_values(0)):
+        add_to_cluster = 0
+        for j in range(len(groups[i])):
+            groups[i][j]+=add_to_cluster
+            add_to_cluster = np.max(groups[i][j])+1
+
     df['cluster_id'] = np.concatenate(groups.values)
 
     ci = df.loc[:, 'cluster_id'].values
     offsets = ak.num(interactions['x'])
     interactions['cluster_ids'] = reshape_awkward(ci, offsets)
-
+    
     return interactions
 
+@numba.jit(nopython=True)
+def simple_1d_clustering(data, scale):
+    """
+    Function to cluster one dimensional data.
 
-def _find_cluster(x, cluster_size_space, cluster_size_time):
+    Args:
+        data (numpy.array): one dimensional array to be clusterd
+        scale (float): Max distance between two points to
+            be inside a cluster.
+    
+    Returns:
+        clusters_undo_sort (np.array): Cluster Labels
+    """
+    
+    idx_sort = np.argsort(data)
+    idx_undo_sort = np.argsort(idx_sort)
+
+    data_sorted = data[idx_sort]
+
+    diff = data_sorted[1:] - data_sorted[:-1]
+    
+    clusters = [0]
+    c = 0
+    for value in diff:
+        if value <= scale:
+            clusters.append(c)
+        elif value > scale:
+            c=c+1
+            clusters.append(c)
+
+    clusters_undo_sort = np.array(clusters)[idx_undo_sort]
+    
+    return clusters_undo_sort
+
+def _find_cluster(x, cluster_size_space):
     """
     Function which finds cluster within a event.
-
     Args:
         x (pandas.DataFrame): Subentries of event must contain the
             fields, x,y,z,time
         cluster_size_space (float): Max distance between two points to
             be inside a cluster [cm].
-        cluster_size_time (float): Same as space bt for time in [ns].
-
     Returns:
         functon: to be used in groupby.apply.
     """
     db_cluster = DBSCAN(eps=cluster_size_space, min_samples=1)
-
-    # Converting time such that we can cluster the time space dimension
-    # together with the rest
-    convert_time = np.array([1, 1, 1, cluster_size_space / cluster_size_time])
-    xprime = x[['x', 'y', 'z', 't']].values * convert_time
-
+    xprime = x[['x', 'y', 'z']].values 
     return db_cluster.fit_predict(xprime)
 
 

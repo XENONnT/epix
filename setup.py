@@ -11,7 +11,7 @@ with open('HISTORY.md') as file:
 
 setuptools.setup(
     name='epix',
-    version='0.0.1',
+    version='0.0.3',
     description='Electron and Photon Instructions generator for XENON',
     author='epix contributors, the XENON collaboration',
     url='https://github.com/XENONnT/epix',
@@ -28,7 +28,7 @@ setuptools.setup(
             'nbsphinx',
             'recommonmark',
             'graphviz']},
-    scripts=['bin/run_epix],
+    scripts=['bin/run_epix'],
     packages=setuptools.find_packages(),
     classifiers=[
         'Natural Language :: English',
