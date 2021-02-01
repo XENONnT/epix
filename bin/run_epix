@@ -130,21 +130,28 @@ def main(args, return_df=False):
             df.to_csv(output_path_and_name, index=False)
             return
 
-    # Add electric field to array:
+    # Add electric field and field lines survival probability to array:
     efields = np.zeros(np.sum(ak.num(result)), np.float32)
+    surv_prob = np.zeros(np.sum(ak.num(result)), np.float32)
     # Loop over volume and assign values:
     for volume in detector:
         if isinstance(volume.electric_field, (float, int)):
             ids = epix.awkward_to_flat_numpy(result['vol_id'])
             m = ids == volume.volume_id
             efields[m] = volume.electric_field
+            surv_prob[m] = volume.survival_probability
         else:
             efields = volume.electric_field(epix.awkward_to_flat_numpy(result.x),
                                             epix.awkward_to_flat_numpy(result.y),
                                             epix.awkward_to_flat_numpy(result.z)
                                             )
+            surv_prob = volume.survival_probability(epix.awkward_to_flat_numpy(result.x),
+                                                    epix.awkward_to_flat_numpy(result.y),
+                                                    epix.awkward_to_flat_numpy(result.z)
+                                                    )
 
     result['e_field'] = epix.reshape_awkward(efields, ak.num(result))
+    result['el_prob'] = epix.reshape_awkward(surv_prob, ak.num(result))
 
     # Sort in time and set first cluster to t=0, then chop all delayed
     # events which are too far away from the rest.
@@ -171,6 +178,7 @@ def main(args, return_df=False):
     photons, electrons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
                                                epix.awkward_to_flat_numpy(result['nestid']),
                                                epix.awkward_to_flat_numpy(result['e_field']),
+                                               epix.awkward_to_flat_numpy(result['el_prob']),
                                                epix.awkward_to_flat_numpy(result['A']),
                                                epix.awkward_to_flat_numpy(result['Z']),
                                                epix.awkward_to_flat_numpy(result['create_S2']),

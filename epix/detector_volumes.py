@@ -58,6 +58,14 @@ def init_detector(detector_name, config_file):
                 option_value = lambda x, y, z: efield.get_field(x, y, z,
                                                                 outside_map=default_options['efield_outside_map']
                                                                 )
+
+            if option_key == 'survival_probability' and isinstance(option_value, str):
+                # Special case we have to init the efield first:
+                efield = epix.MyElectricFieldHandler(option_value)
+                option_value = lambda x, y, z: efield.get_survivalprob(x, y, z,
+                                                                       outside_map=default_options['surv_prob_outside_map']
+                                                                       )
+
             kwargs[option_key] = option_value
 
         detector.append(epix.SensitiveVolume(name=volume_name, **kwargs))
@@ -72,7 +80,7 @@ def init_detector(detector_name, config_file):
 
 
 class SensitiveVolume:
-    def __init__(self, name, volume_id, roi, electric_field, create_S2, xe_density=2.862):
+    def __init__(self, name, volume_id, roi, electric_field, survival_probability, create_S2, xe_density=2.862):
         """
         Sensitive detector volume for which S1 and/or S2 signals should be
         generated.
@@ -84,8 +92,10 @@ class SensitiveVolume:
                 volume.
             roi (function): Function which takes x, y, z as arguments.
                 Must return True or False. Must be numba njit-able.
-            e_field (function): Interpolated efield map associated
+            electric_field (function): Interpolated efield map associated
                 with volume.
+            survival_probability (function): Interpolated field lines survivale
+                probability map associated with volume.
             create_S2 (bool): Indicates if electrons should be generated
                 for wfsim.
 
@@ -98,6 +108,7 @@ class SensitiveVolume:
         self.roi = roi
 
         self.electric_field = electric_field
+        self.survival_probability = survival_probability
         self.xe_density = xe_density
         self.create_S2 = create_S2
         self._is_valid()
@@ -131,6 +142,19 @@ class SensitiveVolume:
                        f'"x", "y" and "z" but {args} were given.')
         # Cannot add a specific if **kwargs are valid properties. Cannot
         # inspect nestpy functions.
+
+        # Testing the survival probability:
+        if not (callable(self.survival_probability) or
+                isinstance(self.survival_probability, (int, float))):
+            raise ValueError('survival_probability must be either a function or '
+                             'a constant!')
+
+        if callable(self.survival_probability):
+            args = inspect.getfullargspec(self.survival_probability).args
+            m = np.all(np.isin(['x', 'y', 'z'], args))
+            m = m & (len(args) == 3)
+            assert m, ('Wrong arguments for survival_probability. Expected arguments: '
+                       f'"x", "y" and "z" but {args} were given.')
 
 
 @numba.njit

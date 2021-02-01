@@ -5,7 +5,7 @@ import nestpy
 print(f'Using nestpy version {nestpy.__version__}')
 
 @np.vectorize
-def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
+def quanta_from_NEST(en, model, e_field, el_prob, A, Z, create_s2, **kwargs):
     """
     Function which uses NEST to yield photons and electrons
     for a given set of parameters.
@@ -17,7 +17,9 @@ def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
     Args:
         en (numpy.array): Energy deposit of the interaction [keV]
         model (numpy.array): Nest Id for qunata generation (integers)
-        e_field (numpy.array): Field value in the interaction site [V/cm]
+        e_field (numpy.array): Field value at the interaction site [V/cm]
+        el_prob (numpy.array): Survival probability of electric field line
+            at the interaction site
         A (numpy.array): Atomic mass number
         Z (numpy.array): Atomic number
         create_s2 (bool): Specifies if S2 can be produced by interaction,
@@ -71,6 +73,6 @@ def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
 
     electrons = 0
     if create_s2:
-        electrons = event_quanta.electrons
+        electrons = event_quanta.electrons * el_prob
 
     return photons, electrons
