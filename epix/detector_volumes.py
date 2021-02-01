@@ -62,9 +62,9 @@ def init_detector(detector_name, config_file):
             if option_key == 'survival_probability' and isinstance(option_value, str):
                 # Special case we have to init the efield first:
                 efield = epix.MyElectricFieldHandler(option_value)
-                option_value = lambda x, y, z: efield.get_survivalprob(x, y, z,
-                                                                       outside_map=default_options['surv_prob_outside_map']
-                                                                       )
+                option_value = lambda x, y, z: efield.get_field(x, y, z,
+                                                               outside_map=default_options['surv_prob_outside_map']
+                                                               )
 
             kwargs[option_key] = option_value
 
