@@ -131,7 +131,7 @@ class SensitiveVolume:
         # Testing the electric field:
         if not (callable(self.electric_field) or
                 isinstance(self.electric_field, (int, float))):
-            raise ValueError('e_field must be either a function or '
+            raise ValueError('electric_field must be either a function or '
                              'a constant!')
 
         if callable(self.electric_field):
@@ -153,7 +153,7 @@ class SensitiveVolume:
             args = inspect.getfullargspec(self.survival_probability).args
             m = np.all(np.isin(['x', 'y', 'z'], args))
             m = m & (len(args) == 3)
-            assert m, ('Wrong arguments for survival_probability. Expected arguments: '
+            assert m, ('Wrong arguments for s_prob. Expected arguments: '
                        f'"x", "y" and "z" but {args} were given.')
 
 

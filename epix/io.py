@@ -10,9 +10,11 @@ from .common import awkward_to_flat_numpy, offset_range
 
 SUPPORTED_OPTION = {'to_be_stored': 'getboolean',
                     'electric_field': ('getfloat', 'get'),
+                    'survival_probability': ('getfloat', 'get'),
                     'create_S2': 'getboolean',
                     'xe_density': 'getfloat',
                     'efield_outside_map': 'getfloat',
+                    'sprob_outside_map': 'getfloat',
                     }
 
 
@@ -39,8 +41,8 @@ def load_config(config_file_path):
                               ' and will be ignored.')
                 continue
             # Get correct get method to convert string input:
-            if key == 'electric_field':
-                # Electric field is a bit more complicated can be
+            if key == 'electric_field' or key == 'survival_probability':
+                # A bit more complicated, since they can be
                 # either a float or string:
                 try:
                     getter = getattr(c, SUPPORTED_OPTION[key][0])
