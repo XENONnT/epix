@@ -73,6 +73,6 @@ def quanta_from_NEST(en, model, e_field, s_prob, A, Z, create_s2, **kwargs):
 
     electrons = 0
     if create_s2:
-        electrons = event_quanta.electrons * el_prob
+        electrons = event_quanta.electrons * s_prob
 
     return photons, electrons
