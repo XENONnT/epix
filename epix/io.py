@@ -181,12 +181,12 @@ def awkward_to_wfsim_row_style(interactions):
         res['g4id'][i::2] = awkward_to_flat_numpy(interactions['evtid'])
         res['vol_id'][i::2] = awkward_to_flat_numpy(interactions['vol_id'])
         res['e_dep'][i::2] = awkward_to_flat_numpy(interactions['ed'])
+        res['recoil'][i::2] = awkward_to_flat_numpy(interactions['nestid'])
         if i:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['electrons'])
         else:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['photons'])
 
-        res['recoil'][i::2] = awkward_to_flat_numpy(interactions['nestid'])
 
     #TODO: Add a function which generates a new event if interactions are too far apart
     return res
