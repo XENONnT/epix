@@ -158,7 +158,7 @@ int_dtype = [(('Waveform simulator event number.', 'event_number'), np.int32),
              (('Y position of the cluster[cm]', 'y'), np.float32),
              (('Z position of the cluster[cm]', 'z'), np.float32),
              (('Number of quanta', 'amp'), np.int32),
-             (('Recoil type of interaction.', 'recoil'), '<U5'),
+             (('Recoil type of interaction.', 'recoil'), np.int8),
              (('Energy deposit of interaction', 'e_dep'), np.float32),
              (('Eventid like in geant4 output rootfile', 'g4id'), np.int32),
              (('Volume id giving the detector subvolume', 'vol_id'), np.int32)
@@ -168,7 +168,6 @@ int_dtype = [(('Waveform simulator event number.', 'event_number'), np.int32),
 def awkward_to_wfsim_row_style(interactions):
     ninteractions = np.sum(ak.num(interactions['ed']))
     res = np.zeros(2 * ninteractions, dtype=int_dtype)
-    res['recoil'] = 'er' #default
 
     # TODO: Currently not supported rows with only electrons or photons due to
     # this super odd shape
@@ -182,13 +181,12 @@ def awkward_to_wfsim_row_style(interactions):
         res['g4id'][i::2] = awkward_to_flat_numpy(interactions['evtid'])
         res['vol_id'][i::2] = awkward_to_flat_numpy(interactions['vol_id'])
         res['e_dep'][i::2] = awkward_to_flat_numpy(interactions['ed'])
+        res['recoil'][i::2] = awkward_to_flat_numpy(interactions['nestid'])
         if i:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['electrons'])
         else:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['photons'])
 
-        res['recoil'][i::2][awkward_to_flat_numpy(interactions['nestid'] == 0)] = 'nr'
-        res['recoil'][i::2][awkward_to_flat_numpy(interactions['nestid'] == 6)] = 'alpha'
 
     #TODO: Add a function which generates a new event if interactions are too far apart
     return res
