@@ -29,11 +29,7 @@ class MyElectricFieldHandler:
                              ' for the electirc field map.')
 
     def _load_field(self):
-        self.field = pd.read_csv(self.map,
-                                 comment='#',
-                                 header=None,
-                                 delim_whitespace=True,
-                                 names=['r', 'z', 'E'])
+        self.field = pd.read_csv(self.map)
 
     def _get_coordinates(self):
         self.R = np.unique(self.field['r'])
