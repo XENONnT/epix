@@ -67,7 +67,7 @@ def xenonnt_detector():
                             'create_S2': False,
                             'xe_density': 0.0177,
                             'efield_outside_map': 200,
-                            'to_be_stored': True,
+                            'to_be_stored': False,
                             },
                }
     return volumes, outer_cylinder
@@ -120,7 +120,7 @@ def xenon1t_detector():
                             'create_S2': False,
                             'xe_density': 0.0177,
                             'efield_outside_map': 82,
-                            'to_be_stored': True,
+                            'to_be_stored': False,
                             },
                }
     return volumes, outer_cylinder
