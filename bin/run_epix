@@ -17,7 +17,7 @@ def pars_args():
                         action='store', required=True,
                         help='Input Geant4 ROOT file')
     parser.add_argument('--Detector', dest='detector', type=str,
-                        action='store', default='xenonnt_detector',
+                        action='store', default='XENONnT',
                         help='Detector which should be used. Has to be defined in epix.detectors.')
     parser.add_argument('--DetectorConfig', dest='detector_config', type=str,
                         action='store', default='',
@@ -224,7 +224,7 @@ def setup(args):
 
     # Init detector volume according to settings and get outer_cylinder
     # for data reduction of non-relevant interactions.
-    detector = epix.init_detector(args.detector, args.detector_config)
+    detector = epix.init_detector(args.detector.lower(), args.detector_config)
     outer_cylinder = getattr(epix.detectors, args.detector)
     _, outer_cylinder = outer_cylinder()
     return path, file_name, detector, outer_cylinder
