@@ -225,7 +225,7 @@ def setup(args):
     # Init detector volume according to settings and get outer_cylinder
     # for data reduction of non-relevant interactions.
     detector = epix.init_detector(args.detector.lower(), args.detector_config)
-    outer_cylinder = getattr(epix.detectors, args.detector)
+    outer_cylinder = getattr(epix.detectors, args.detector.lower())
     _, outer_cylinder = outer_cylinder()
     return path, file_name, detector, outer_cylinder
 
