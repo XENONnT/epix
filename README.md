@@ -22,7 +22,7 @@ bin/run_epix --InputFile <path_and_filename>
 The other keyword arguments are:
 | Argument | Description | Default |
 |--------------|------------------------|---|
-| `--Detector`  | Detector to be used. Has to be defined in epix.detectors | `xenonnt_detector` |
+| `--Detector`  | Detector to be used. Has to be defined in epix.detectors | `XENONnT` |
 | `--DetectorConfig`  | Config file to overwrite default detector settings | in epix.detectors |
 | `--EntryStop`  | How many entries from the ROOT file you want to process | all |
 | `--MicroSeparation`  | DBSCAN clustering distance (mm) | `0.05` |

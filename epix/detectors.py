@@ -20,7 +20,7 @@ xenon1t_z_bottom_pmts = -103.09  # cm ... top surface of the bottom PMT window
 xenon1t_z_lxe = 0.27 # cm ... liquid-gas interface
 
 
-def xenonnt_detector():
+def xenonnt():
     """
     Default XENONnT TPC with different sensitive volumes.
 
@@ -73,7 +73,7 @@ def xenonnt_detector():
     return volumes, outer_cylinder
 
 
-def xenon1t_detector():
+def xenon1t():
     """
     Default XENON1T TPC with different sensitive volumes.
 
