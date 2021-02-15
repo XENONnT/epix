@@ -167,12 +167,13 @@ def setup(args):
     :return:
     """
     # Getting file path and split it into directory and file name:
-    p = args['input_file']
-    p = p.split('/')
-    if p[0] == "":
-        p[0] = "/"
-    args['path'] = os.path.join(*p[:-1])
-    args['file_name'] = p[-1]
+    if not ('path' in args and 'file_name' in args):
+        p = args['input_file']
+        p = p.split('/')
+        if p[0] == "":
+            p[0] = "/"
+        args['path'] = os.path.join(*p[:-1])
+        args['file_name'] = p[-1]
 
     # Init detector volume according to settings and get outer_cylinder
     # for data reduction of non-relevant interactions.
