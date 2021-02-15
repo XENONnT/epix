@@ -1,11 +1,6 @@
 import strax
-import time
-import os
 import epix
 import wfsim
-import numpy as np
-import pandas as pd
-import awkward1 as ak
 
 def isNumber(x):
     try:
@@ -17,11 +12,11 @@ def isNumber(x):
 @strax.takes_config(
 strax.Option('input_file',
                     help='Input Geant4 ROOT file',track=True),
-strax.Option('entry_stop', type=int,default=None,
+strax.Option('entry_stop', type=int,default=None,track=False,
                     help='Number of entries to read from first. Defaulted to all'),
-strax.Option('events_per_chunk', type=int,default=200,
+strax.Option('events_per_chunk', type=int,default=200,track=False,
                     help='Number of events put in a chunk'),
-strax.Option('chunk_time_seperation',type=int,default=int(1e10),
+strax.Option('chunk_time_seperation',type=int,default=int(1e10),track=False,
                     help='Time seperation between chunks'),
 strax.Option('micro_separation', type=float, default=0.05,track=True,
                     help='Spatial resolution for DBSCAN micro-clustering [mm]'),
@@ -31,26 +26,17 @@ strax.Option('tag_cluster_by',  type=str,default='time',track=True,
                     help=('Classification of the type of particle of a cluster, '
                           'based on most energetic contributor ("energy") or first '
                           'depositing particle ("time")')),
-strax.Option('e_field', default=200,track=True,
-                    help=('Drift field map as text file ("r z E", with '
-                          'length in cm and field in V/cm) or as a constant (in V/cm; '
-                          'recommended only for testing)')),
 strax.Option('max_delay', type=float,track=True,default=1e7, #ns
                     help='Maximal time delay to first interaction which will be stored [ns]'),
-strax.Option('timing', type=bool,default=False,
-                    help='If true will print out the time needed.'),
-strax.Option('output_path',  default="",
-                    help=('Optional output path. If not specified the result will be saved'
-                        'in the same dir as the input file.')),
 strax.Option('detector',default='XENONnT',
                     help=('Detector which should be used. Has to be defined in epix.detectors.')),
 strax.Option('epix_config_override', type=str,
                         default='',
                         help='Config file to overwrite default detector settings.'),
-strax.Option('event_rate_epix', type=float,default=-1,
+strax.Option('source_rate', type=float,default=-1,track=False,
                     help='Event rate for event separation. Use -1 for clean simulations'
                          'or give a rate >0 to space events randomly.'),
-strax.Option('debug', default=False,
+strax.Option('debug', default=False,track=False,
                     help=('If specifed additional information is printed to the consol.')))
 class EpixInstructions(strax.Plugin):
     '''Strax plugin providing instructions for wfsim. Needs a GEANT4 mc file as input and

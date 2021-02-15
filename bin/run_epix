@@ -39,7 +39,7 @@ def pars_args():
     parser.add_argument('--MaxDelay', dest='max_delay', type=float,
                         action='store', default=1e7, #ns
                         help='Maximal time delay to first interaction which will be stored [ns]')
-    parser.add_argument('--EventRate', dest='event_rate_epix', type=float,
+    parser.add_argument('--SourceRate', dest='source_rate', type=float,
                     action='store', default=-1,
                     help='Event rate for event separation. Use -1 for clean simulations'
                          'or give a rate >0 to space events randomly.')

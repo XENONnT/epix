@@ -1,5 +1,4 @@
 import os
-import argparse
 import time
 import awkward as ak
 import numpy as np
@@ -105,14 +104,14 @@ def main(args, return_df=False, return_wfsim_instructions=False):
 
     #Separate event in time 
     number_of_events = len(result["t"])
-    if args['event_rate_epix'] == -1:
+    if args['source_rate'] == -1:
         dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
         if args['debug']:
             print('Clean event separation')
     else:
-        dt = epix.times_from_fixed_rate(args['event_rate_epix'], number_of_events, args['max_delay'])
+        dt = epix.times_from_fixed_rate(args['source_rate'], number_of_events, args['max_delay'])
         if args['debug']:
-            print(f"Fixed event rate of {args['event_rate_epix']} Hz")
+            print(f"Fixed event rate of {args['source_rate']} Hz")
     result['t'] = result['t'][:, :] + dt
 
     if args['debug']:
@@ -177,7 +176,6 @@ def setup(args):
 
     # Init detector volume according to settings and get outer_cylinder
     # for data reduction of non-relevant interactions.
-    print()
     args['detector_config'] = epix.init_detector(args['detector'].lower(), args['epix_config_override'])
     outer_cylinder = getattr(epix.detectors, args['detector'].lower())
     _, args['outer_cylinder'] = outer_cylinder()
