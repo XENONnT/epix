@@ -2,13 +2,6 @@ import strax
 import epix
 import wfsim
 
-def isNumber(x):
-    try:
-        float(x)
-        return True
-    except ValueError:
-        return False
-
 @strax.takes_config(
 strax.Option('input_file',
                     help='Input Geant4 ROOT file',track=True),
@@ -39,9 +32,8 @@ strax.Option('source_rate', type=float,default=-1,track=False,
 strax.Option('debug', default=False,track=False,
                     help=('If specifed additional information is printed to the consol.')))
 class EpixInstructions(strax.Plugin):
-    '''Strax plugin providing instructions for wfsim. Needs a GEANT4 mc file as input and
-     will return the instructions for wfsim in strax format. The code in compute is pretty much
-     a copy of the run_epix script'''
+    '''strax plugin providing instructions for wfsim. Needs a Geant4 mc file as input and
+     will return the instructions for wfsim in strax format. Queries the epix.run_epix script'''
     depends_on = tuple()
     provides = 'epix_instructions'
     data_kind  = 'wfsim_instructions'
@@ -58,8 +50,7 @@ class EpixInstructions(strax.Plugin):
             self.instructions = epix.run_epix.main(args=self.config,
                                                    return_wfsim_instructions=True)
 
-
-        #See if there is still a full chunk not jet read out. If not read out what is left and stop
+        # See if there is still a full chunk not yet read out. If not, read out what is left and stop
         if len(self.instructions)<(chunk_i+1)*self.config['events_per_chunk']:
             instructions = self.instructions[chunk_i*self.config['events_per_chunk']:]
             self.finished = True
@@ -68,7 +59,7 @@ class EpixInstructions(strax.Plugin):
 
         endtime = self.last_endtime
         self.last_endtime = instructions['endtime'][-1]
-        #Make some artifical time spacing
+        # TODO This endtime needs some extra love
         return self.chunk(
                         start=int(endtime),
                         end=int(instructions['endtime'][-1]),
