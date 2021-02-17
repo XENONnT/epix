@@ -156,6 +156,15 @@ int_dtype = wfsim.instruction_dtype
 
 
 def awkward_to_wfsim_row_style(interactions):
+    """
+    Converts awkward array instructions into instructions required by
+    WFSim.
+
+    :param interactions: awkward.Array containing GEANT4 simulation
+        information.
+    :return: Structured numpy.array. Each row represents either a S1 or
+        S2
+    """
     ninteractions = np.sum(ak.num(interactions['ed']))
     res = np.zeros(2 * ninteractions, dtype=int_dtype)
 
@@ -177,6 +186,6 @@ def awkward_to_wfsim_row_style(interactions):
         else:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['photons'])
 
-
-    #TODO: Add a function which generates a new event if interactions are too far apart
+    # Remove entries with no quanta
+    res = res[res['amp'] > 0]
     return res
