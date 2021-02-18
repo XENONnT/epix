@@ -81,6 +81,7 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
 
     Returns:
         awkward1.records: Interactions (eventids, parameters, types).
+        integer: Number of events simulated.
 
     Note:
         We process eventids and the rest of the data in two different
@@ -88,11 +89,14 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
         are split off since they suck. All arrays are finally merged.
     """
     root_dir = uproot.open(os.path.join(directory, file_name))
-    
+
+    # Searching for TTree according to old/new MC file structure:
     if root_dir.classname_of('events') == 'TTree':
         ttree = root_dir['events']
+        n_simulated_events = root_dir['nEVENTS'].members['fVal']
     elif root_dir.classname_of('events/events') == 'TTree':
         ttree = root_dir['events/events']
+        n_simulated_events = root_dir['events/nbevents'].members['fVal']
     else:
         ttrees = []
         for k, v in root_dir.classnames().items():
@@ -101,10 +105,27 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
         raise ValueError(f'Cannot find ttree object of "{file_name}".' 
                          'I tried to search in events and events/events.' 
                          f'Found a ttree in {ttrees}?')
+
+    # If user specified entry start/stop we have to update number of
+    # events for source rate computation:
+    if kwargs_uproot_arrays['entry_start'] != None:
+        start = kwargs_uproot_arrays['entry_start']
+    else:
+        start = 0
+
+    if kwargs_uproot_arrays['entry_stop'] != None:
+        stop = kwargs_uproot_arrays['entry_stop']
+    else:
+        stop = n_simulated_events
+
+    n_simulated_events = stop - start
+
     if arg_debug:
         print(f'Total entries in input file = {ttree.num_entries}')
+        if kwargs_uproot_arrays['entry_start']!=None:
+            print(f'Starting to read from event {kwargs_uproot_arrays["entry_stop"]}.')
         if kwargs_uproot_arrays['entry_stop']!=None:
-            print(f'... from which {kwargs_uproot_arrays["entry_stop"]} are read')
+            print(f'Ending read in at event {kwargs_uproot_arrays["entry_stop"]}.')
 
     # Columns to be read from the root_file:
     column_names = ["x", "y", "z", "t", "ed",
@@ -146,7 +167,7 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
     m = ak.num(interactions['ed']) > 0
     interactions = interactions[m]
 
-    return interactions
+    return interactions, n_simulated_events
 
 
 # ----------------------
