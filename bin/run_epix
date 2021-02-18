@@ -16,7 +16,10 @@ def pars_args():
     parser.add_argument('--EpixConfigOverride', dest='epix_config_override', type=str,
                         action='store', default='',
                         help='Config file to overwrite default detector settings.')
-    parser.add_argument('--EntryStop', dest='entry_stop', type=int,
+    parser.add_argument('--EntryStart', dest='entry_stop', type=int,
+                        action='store',
+                        help='First event to be read. Defaulted is zero.'),
+    parser.add_argument('--EntryStop', dest='entry_start', type=int,
                         action='store',
                         help='Number of entries to read from first. Defaulted to all')
     parser.add_argument('--MicroSeparation', dest='micro_separation', type=float,
