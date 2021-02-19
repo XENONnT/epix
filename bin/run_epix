@@ -38,9 +38,9 @@ def pars_args():
                         action='store', default=1e7, #ns
                         help='Maximal time delay to first interaction which will be stored [ns]')
     parser.add_argument('--SourceRate', dest='source_rate', type=float,
-                    action='store', default=-1,
-                    help='Event rate for event separation. Use -1 for clean simulations'
-                         'or give a rate >0 to space events randomly.')
+                    action='store', default=0,
+                    help='Event rate for event separation. Default 0 means no time shift is applied for the different '
+                         'events. Use -1 for clean simulations or give a rate >0 to space events randomly.')
     parser.add_argument('--JobId', dest='job_id', type=int,
                     action='store', default=0,
                     help='Job id in full chain simulation. Offset is computed as '
