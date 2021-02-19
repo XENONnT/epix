@@ -130,6 +130,9 @@ def main(args, return_df=False, return_wfsim_instructions=False):
         dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
         if args['debug']:
             print('Clean event separation')
+    elif args['source_rate'] == 0:
+        # In case no delay should be applied we just add zeros
+        dt = np.zeros(number_of_events)
     else:
         # Rate offset computed based on the specified rate and job_id.
         # Assumes all jobs were started with the same number of events.
@@ -141,6 +144,7 @@ def main(args, return_df=False, return_wfsim_instructions=False):
                                         )
         if args['debug']:
             print(f"Fixed event rate of {args['source_rate']} Hz")
+
     result['t'] = result['t'][:, :] + dt
 
     # Reshape instructions:
