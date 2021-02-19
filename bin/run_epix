@@ -41,6 +41,11 @@ def pars_args():
                     action='store', default=-1,
                     help='Event rate for event separation. Use -1 for clean simulations'
                          'or give a rate >0 to space events randomly.')
+    parser.add_argument('--JobId', dest='job_id', type=int,
+                    action='store', default=0,
+                    help='Job id in full chain simulation. Offset is computed as '
+                         '"JobId * n_simulated_events/SourceRate", n_simulated_events '
+                         'is read from file.')
     parser.add_argument('--OutputPath', dest='output_path',
                        action='store', default="",
                        help=('Optional output path. If not specified the result will be saved'
