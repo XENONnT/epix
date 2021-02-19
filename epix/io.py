@@ -88,23 +88,7 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
         arrays due to different array structures. Also the type strings
         are split off since they suck. All arrays are finally merged.
     """
-    root_dir = uproot.open(os.path.join(directory, file_name))
-
-    # Searching for TTree according to old/new MC file structure:
-    if root_dir.classname_of('events') == 'TTree':
-        ttree = root_dir['events']
-        n_simulated_events = root_dir['nEVENTS'].members['fVal']
-    elif root_dir.classname_of('events/events') == 'TTree':
-        ttree = root_dir['events/events']
-        n_simulated_events = root_dir['events/nbevents'].members['fVal']
-    else:
-        ttrees = []
-        for k, v in root_dir.classnames().items():
-            if v == 'TTree':
-                ttrees.append(k)
-        raise ValueError(f'Cannot find ttree object of "{file_name}".' 
-                         'I tried to search in events and events/events.' 
-                         f'Found a ttree in {ttrees}?')
+    ttree, n_simulated_events = _get_ttree(directory, file_name)
 
     # If user specified entry start/stop we have to update number of
     # events for source rate computation:
@@ -168,6 +152,34 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
     interactions = interactions[m]
 
     return interactions, n_simulated_events
+
+
+def _get_ttree(directory, file_name):
+    """
+    Function which searches for the correct ttree in MC root file.
+
+    :param directory: Directory where file is
+    :param file_name: Name of the file
+    :return: root ttree and number of simulated events
+    """
+    root_dir = uproot.open(os.path.join(directory, file_name))
+
+    # Searching for TTree according to old/new MC file structure:
+    if root_dir.classname_of('events') == 'TTree':
+        ttree = root_dir['events']
+        n_simulated_events = root_dir['nEVENTS'].members['fVal']
+    elif root_dir.classname_of('events/events') == 'TTree':
+        ttree = root_dir['events/events']
+        n_simulated_events = root_dir['events/nbevents'].members['fVal']
+    else:
+        ttrees = []
+        for k, v in root_dir.classnames().items():
+            if v == 'TTree':
+                ttrees.append(k)
+        raise ValueError(f'Cannot find ttree object of "{file_name}".'
+                         'I tried to search in events and events/events.'
+                         f'Found a ttree in {ttrees}?')
+    return ttree, n_simulated_events
 
 
 # ----------------------
