@@ -7,6 +7,7 @@ import warnings
 
 import epix
 
+
 def main(args, return_df=False, return_wfsim_instructions=False):
     """Call this function from the run_epix script"""
 
@@ -18,10 +19,13 @@ def main(args, return_df=False, return_wfsim_instructions=False):
         tnow = starttime
 
     # Loading data:
-    inter = epix.loader(args['path'], args['file_name'], args['debug'],
-                        outer_cylinder=args['outer_cylinder'],
-                        kwargs_uproot_arrays={'entry_stop': args['entry_stop']}
-                        )
+    inter, n_simulated_events = epix.loader(args['path'],
+                                            args['file_name'],
+                                            args['debug'],
+                                            outer_cylinder=args['outer_cylinder'],
+                                            kwargs_uproot_arrays={'entry_start': args['entry_start'],
+                                                                  'entry_stop': args['entry_stop']}
+                                            )
 
     if args['debug']:
         tnow = monitor_time(tnow, 'load data.')
@@ -74,7 +78,8 @@ def main(args, return_df=False, return_wfsim_instructions=False):
             if args.output_path and not os.path.isdir(args.output_path):
                 os.makedirs(args.output_path)
 
-            output_path_and_name = os.path.join(args.output_path, args['file_name'][:-5] + "_wfsim_instructions.csv")
+            output_path_and_name = os.path.join(args.output_path,
+                                                args['file_name'][:-5] + "_wfsim_instructions.csv")
             df = pd.DataFrame()
             df.to_csv(output_path_and_name, index=False)
             return
@@ -99,20 +104,6 @@ def main(args, return_df=False, return_wfsim_instructions=False):
     # events which are too far away from the rest.
     # (This is a requirement of WFSim)
     result = result[ak.argsort(result['t'])]
-    result['t'] = result['t'] - result['t'][:, 0]
-    result = result[result['t'] <= args['max_delay']]
-
-    #Separate event in time 
-    number_of_events = len(result["t"])
-    if args['source_rate'] == -1:
-        dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
-        if args['debug']:
-            print('Clean event separation')
-    else:
-        dt = epix.times_from_fixed_rate(args['source_rate'], number_of_events, args['max_delay'])
-        if args['debug']:
-            print(f"Fixed event rate of {args['source_rate']} Hz")
-    result['t'] = result['t'][:, :] + dt
 
     if args['debug']:
         print('Generating photons and electrons for events')
@@ -129,11 +120,33 @@ def main(args, return_df=False, return_wfsim_instructions=False):
     if args['debug']:
         _ = monitor_time(tnow, 'get quanta.')
 
+    # Separate event in time
+    number_of_events = len(result["t"])
+    if args['source_rate'] == -1:
+        # Only needed for a clean separation:
+        result['t'] = result['t'] - result['t'][:, 0]
+        result = result[result['t'] <= args['max_delay']]
+
+        dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
+        if args['debug']:
+            print('Clean event separation')
+    else:
+        # Rate offset computed based on the specified rate and job_id.
+        # Assumes all jobs were started with the same number of events.
+        offset = (args['job_id']*n_simulated_events)/args['source_rate']
+        dt = epix.times_from_fixed_rate(args['source_rate'],
+                                        number_of_events,
+                                        n_simulated_events,
+                                        offset
+                                        )
+        if args['debug']:
+            print(f"Fixed event rate of {args['source_rate']} Hz")
+    result['t'] = result['t'][:, :] + dt
+
     # Reshape instructions:
     instructions = epix.awkward_to_wfsim_row_style(result)
+    instructions = np.sort(instructions, order='time')
 
-    # Remove entries with no quanta
-    instructions = instructions[instructions['amp'] > 0]
     ins_df = pd.DataFrame(instructions)
 
     if return_df:
