@@ -7,7 +7,8 @@ import warnings
 
 import epix
 
-def main(args, return_df=False, return_wfsim_instructions=False):
+
+def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     """Call this function from the run_epix script"""
 
     if args['debug']:
@@ -99,20 +100,6 @@ def main(args, return_df=False, return_wfsim_instructions=False):
     # events which are too far away from the rest.
     # (This is a requirement of WFSim)
     result = result[ak.argsort(result['t'])]
-    result['t'] = result['t'] - result['t'][:, 0]
-    result = result[result['t'] <= args['max_delay']]
-
-    #Separate event in time 
-    number_of_events = len(result["t"])
-    if args['source_rate'] == -1:
-        dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
-        if args['debug']:
-            print('Clean event separation')
-    else:
-        dt = epix.times_from_fixed_rate(args['source_rate'], number_of_events, args['max_delay'])
-        if args['debug']:
-            print(f"Fixed event rate of {args['source_rate']} Hz")
-    result['t'] = result['t'][:, :] + dt
 
     if args['debug']:
         print('Generating photons and electrons for events')
@@ -128,6 +115,30 @@ def main(args, return_df=False, return_wfsim_instructions=False):
     result['electrons'] = epix.reshape_awkward(electrons, ak.num(result['ed']))
     if args['debug']:
         _ = monitor_time(tnow, 'get quanta.')
+
+    # TODO: This may be problematic for nVETO photons!
+    result['t'] = result['t'] - result['t'][:, 0]
+    result = result[result['t'] <= args['max_delay']]
+
+    if strax:
+        # main is called in a strax plugin, return awkward array without
+        # timing. Timing is defined in plugin to handle chunking correctly
+        return result
+
+    # Separate event in time
+    number_of_events = len(result["t"])
+    # If strax is in args, we are calling main in a strax plugin,
+    # let the plugin do the chunking.
+    if args['source_rate'] == -1:
+        dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
+        if args['debug']:
+            print('Clean event separation')
+    else:
+        dt = epix.times_from_fixed_rate(args['source_rate'], number_of_events, args['max_delay'])
+        if args['debug']:
+            print(f"Fixed event rate of {args['source_rate']} Hz")
+    result['t'] = result['t'][:, :] + dt
+
 
     # Reshape instructions:
     instructions = epix.awkward_to_wfsim_row_style(result)
@@ -167,12 +178,13 @@ def setup(args):
     :return:
     """
     # Getting file path and split it into directory and file name:
-    p = args['input_file']
-    p = p.split('/')
-    if p[0] == "":
-        p[0] = "/"
-    args['path'] = os.path.join(*p[:-1])
-    args['file_name'] = p[-1]
+    if not ('path' in args and 'file_name' in args):
+        p = args['input_file']
+        p = p.split('/')
+        if p[0] == "":
+            p[0] = "/"
+        args['path'] = os.path.join(*p[:-1])
+        args['file_name'] = p[-1]
 
     # Init detector volume according to settings and get outer_cylinder
     # for data reduction of non-relevant interactions.
