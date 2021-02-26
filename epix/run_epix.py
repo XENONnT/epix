@@ -19,10 +19,13 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         tnow = starttime
 
     # Loading data:
-    inter = epix.loader(args['path'], args['file_name'], args['debug'],
-                        outer_cylinder=args['outer_cylinder'],
-                        kwargs_uproot_arrays={'entry_stop': args['entry_stop']}
-                        )
+    inter, n_simulated_events = epix.loader(args['path'],
+                                            args['file_name'],
+                                            args['debug'],
+                                            outer_cylinder=args['outer_cylinder'],
+                                            kwargs_uproot_arrays={'entry_start': args['entry_start'],
+                                                                  'entry_stop': args['entry_stop']}
+                                            )
 
     if args['debug']:
         tnow = monitor_time(tnow, 'load data.')
@@ -75,7 +78,8 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
             if args.output_path and not os.path.isdir(args.output_path):
                 os.makedirs(args.output_path)
 
-            output_path_and_name = os.path.join(args.output_path, args['file_name'][:-5] + "_wfsim_instructions.csv")
+            output_path_and_name = os.path.join(args.output_path,
+                                                args['file_name'][:-5] + "_wfsim_instructions.csv")
             df = pd.DataFrame()
             df.to_csv(output_path_and_name, index=False)
             return
@@ -116,35 +120,37 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     if args['debug']:
         _ = monitor_time(tnow, 'get quanta.')
 
-    # TODO: This may be problematic for nVETO photons!
-    result['t'] = result['t'] - result['t'][:, 0]
-    result = result[result['t'] <= args['max_delay']]
-
-    if strax:
-        # main is called in a strax plugin, return awkward array without
-        # timing. Timing is defined in plugin to handle chunking correctly
-        return result
-
     # Separate event in time
     number_of_events = len(result["t"])
-    # If strax is in args, we are calling main in a strax plugin,
-    # let the plugin do the chunking.
     if args['source_rate'] == -1:
+        # Only needed for a clean separation:
+        result['t'] = result['t'] - result['t'][:, 0]
+        result = result[result['t'] <= args['max_delay']]
+
         dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
         if args['debug']:
             print('Clean event separation')
+    elif args['source_rate'] == 0:
+        # In case no delay should be applied we just add zeros
+        dt = np.zeros(number_of_events)
     else:
-        dt = epix.times_from_fixed_rate(args['source_rate'], number_of_events, args['max_delay'])
+        # Rate offset computed based on the specified rate and job_id.
+        # Assumes all jobs were started with the same number of events.
+        offset = (args['job_id']*n_simulated_events)/args['source_rate']
+        dt = epix.times_from_fixed_rate(args['source_rate'],
+                                        number_of_events,
+                                        n_simulated_events,
+                                        offset
+                                        )
         if args['debug']:
             print(f"Fixed event rate of {args['source_rate']} Hz")
-    result['t'] = result['t'][:, :] + dt
 
+    result['t'] = result['t'][:, :] + dt
 
     # Reshape instructions:
     instructions = epix.awkward_to_wfsim_row_style(result)
+    instructions = np.sort(instructions, order='time')
 
-    # Remove entries with no quanta
-    instructions = instructions[instructions['amp'] > 0]
     ins_df = pd.DataFrame(instructions)
 
     if return_df:

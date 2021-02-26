@@ -81,30 +81,35 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
 
     Returns:
         awkward1.records: Interactions (eventids, parameters, types).
+        integer: Number of events simulated.
 
     Note:
         We process eventids and the rest of the data in two different
         arrays due to different array structures. Also the type strings
         are split off since they suck. All arrays are finally merged.
     """
-    root_dir = uproot.open(os.path.join(directory, file_name))
-    
-    if root_dir.classname_of('events') == 'TTree':
-        ttree = root_dir['events']
-    elif root_dir.classname_of('events/events') == 'TTree':
-        ttree = root_dir['events/events']
+    ttree, n_simulated_events = _get_ttree(directory, file_name)
+
+    # If user specified entry start/stop we have to update number of
+    # events for source rate computation:
+    if kwargs_uproot_arrays['entry_start'] != None:
+        start = kwargs_uproot_arrays['entry_start']
     else:
-        ttrees = []
-        for k, v in root_dir.classnames().items():
-            if v == 'TTree':
-                ttrees.append(k)
-        raise ValueError(f'Cannot find ttree object of "{file_name}".' 
-                         'I tried to search in events and events/events.' 
-                         f'Found a ttree in {ttrees}?')
+        start = 0
+
+    if kwargs_uproot_arrays['entry_stop'] != None:
+        stop = kwargs_uproot_arrays['entry_stop']
+    else:
+        stop = n_simulated_events
+
+    n_simulated_events = stop - start
+
     if arg_debug:
         print(f'Total entries in input file = {ttree.num_entries}')
+        if kwargs_uproot_arrays['entry_start']!=None:
+            print(f'Starting to read from event {kwargs_uproot_arrays["entry_stop"]}.')
         if kwargs_uproot_arrays['entry_stop']!=None:
-            print(f'... from which {kwargs_uproot_arrays["entry_stop"]} are read')
+            print(f'Ending read in at event {kwargs_uproot_arrays["entry_stop"]}.')
 
     # Columns to be read from the root_file:
     column_names = ["x", "y", "z", "t", "ed",
@@ -146,7 +151,35 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
     m = ak.num(interactions['ed']) > 0
     interactions = interactions[m]
 
-    return interactions
+    return interactions, n_simulated_events
+
+
+def _get_ttree(directory, file_name):
+    """
+    Function which searches for the correct ttree in MC root file.
+
+    :param directory: Directory where file is
+    :param file_name: Name of the file
+    :return: root ttree and number of simulated events
+    """
+    root_dir = uproot.open(os.path.join(directory, file_name))
+
+    # Searching for TTree according to old/new MC file structure:
+    if root_dir.classname_of('events') == 'TTree':
+        ttree = root_dir['events']
+        n_simulated_events = root_dir['nEVENTS'].members['fVal']
+    elif root_dir.classname_of('events/events') == 'TTree':
+        ttree = root_dir['events/events']
+        n_simulated_events = root_dir['events/nbevents'].members['fVal']
+    else:
+        ttrees = []
+        for k, v in root_dir.classnames().items():
+            if v == 'TTree':
+                ttrees.append(k)
+        raise ValueError(f'Cannot find ttree object of "{file_name}".'
+                         'I tried to search in events and events/events.'
+                         f'Found a ttree in {ttrees}?')
+    return ttree, n_simulated_events
 
 
 # ----------------------
@@ -156,6 +189,15 @@ int_dtype = wfsim.instruction_dtype
 
 
 def awkward_to_wfsim_row_style(interactions):
+    """
+    Converts awkward array instructions into instructions required by
+    WFSim.
+
+    :param interactions: awkward.Array containing GEANT4 simulation
+        information.
+    :return: Structured numpy.array. Each row represents either a S1 or
+        S2
+    """
     ninteractions = np.sum(ak.num(interactions['ed']))
     res = np.zeros(2 * ninteractions, dtype=int_dtype)
 
@@ -177,6 +219,6 @@ def awkward_to_wfsim_row_style(interactions):
         else:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['photons'])
 
-
-    #TODO: Add a function which generates a new event if interactions are too far apart
+    # Remove entries with no quanta
+    res = res[res['amp'] > 0]
     return res
