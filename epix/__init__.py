@@ -7,7 +7,6 @@ from .quanta_generation import *
 from .detector_volumes import *
 from .clustering import *
 from .ElectricFieldHandler import *
-from .strax_interface import *
 from .event_separation import *
 from .detectors import *
 from .run_epix import *
