@@ -149,7 +149,9 @@ def main(args, return_df=False, return_wfsim_instructions=False):
 
     # Reshape instructions:
     instructions = epix.awkward_to_wfsim_row_style(result)
-    instructions = np.sort(instructions, order='time')
+    if not args['source_rate'] == 0:
+        # Only sort by time if source rates are applied.
+        instructions = np.sort(instructions, order='time')
 
     ins_df = pd.DataFrame(instructions)
 
