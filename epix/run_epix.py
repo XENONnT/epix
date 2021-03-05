@@ -36,12 +36,12 @@ def main(args, return_df=False, return_wfsim_instructions=False):
     inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
 
     if args['debug']:
-        tnow = monitor_time(tnow, 'cluster finding.')
+        tnow = monitor_time(tnow, 'find clusters.')
 
     result = epix.cluster(inter, args['tag_cluster_by'] == 'energy')
 
     if args['debug']:
-        tnow = monitor_time(tnow, 'cluster merging.')
+        tnow = monitor_time(tnow, 'merge clusters.')
 
     # Add eventid again:
     result['evtid'] = ak.broadcast_arrays(inter['evtid'][:, 0], result['ed'])[0]
@@ -136,7 +136,7 @@ def main(args, return_df=False, return_wfsim_instructions=False):
     else:
         # Rate offset computed based on the specified rate and job_id.
         # Assumes all jobs were started with the same number of events.
-        offset = (args['job_id']*n_simulated_events)/args['source_rate']
+        offset = (args['job_number']*n_simulated_events)/args['source_rate']
         dt = epix.times_from_fixed_rate(args['source_rate'],
                                         number_of_events,
                                         n_simulated_events,
@@ -149,7 +149,7 @@ def main(args, return_df=False, return_wfsim_instructions=False):
 
     # Reshape instructions:
     instructions = epix.awkward_to_wfsim_row_style(result)
-    if not args['source_rate'] == 0:
+    if args['source_rate'] != 0:
         # Only sort by time if source rates are applied.
         instructions = np.sort(instructions, order='time')
 

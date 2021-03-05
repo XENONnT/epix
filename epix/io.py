@@ -107,7 +107,7 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
     if arg_debug:
         print(f'Total entries in input file = {ttree.num_entries}')
         if kwargs_uproot_arrays['entry_start']!=None:
-            print(f'Starting to read from event {kwargs_uproot_arrays["entry_stop"]}.')
+            print(f'Starting to read from event {kwargs_uproot_arrays["entry_start"]}.')
         if kwargs_uproot_arrays['entry_stop']!=None:
             print(f'Ending read in at event {kwargs_uproot_arrays["entry_stop"]}.')
 

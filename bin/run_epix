@@ -16,10 +16,10 @@ def pars_args():
     parser.add_argument('--EpixConfigOverride', dest='epix_config_override', type=str,
                         action='store', default='',
                         help='Config file to overwrite default detector settings.')
-    parser.add_argument('--EntryStart', dest='entry_stop', type=int,
+    parser.add_argument('--EntryStart', dest='entry_start', type=int,
                         action='store',
                         help='First event to be read. Defaulted is zero.'),
-    parser.add_argument('--EntryStop', dest='entry_start', type=int,
+    parser.add_argument('--EntryStop', dest='entry_stop', type=int,
                         action='store',
                         help='Number of entries to read from first. Defaulted to all')
     parser.add_argument('--MicroSeparation', dest='micro_separation', type=float,
@@ -41,10 +41,10 @@ def pars_args():
                     action='store', default=0,
                     help='Event rate for event separation. Default 0 means no time shift is applied for the different '
                          'events. Use -1 for clean simulations or give a rate >0 to space events randomly.')
-    parser.add_argument('--JobId', dest='job_id', type=int,
+    parser.add_argument('--JobNumber', dest='job_number', type=int,
                     action='store', default=0,
-                    help='Job id in full chain simulation. Offset is computed as '
-                         '"JobId * n_simulated_events/SourceRate", n_simulated_events '
+                    help='Job number in full chain simulation. Offset is computed as '
+                         '"Job number * n_simulated_events/SourceRate", n_simulated_events '
                          'is read from file.')
     parser.add_argument('--OutputPath', dest='output_path',
                        action='store', default="",
