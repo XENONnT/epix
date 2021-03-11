@@ -1,5 +1,4 @@
 import os
-import argparse
 import time
 import awkward as ak
 import numpy as np
@@ -8,7 +7,8 @@ import warnings
 
 import epix
 
-def main(args, return_df=False, return_wfsim_instructions=False):
+
+def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     """Call this function from the run_epix script"""
 
     if args['debug']:
@@ -19,10 +19,13 @@ def main(args, return_df=False, return_wfsim_instructions=False):
         tnow = starttime
 
     # Loading data:
-    inter = epix.loader(args['path'], args['file_name'], args['debug'],
-                        outer_cylinder=args['outer_cylinder'],
-                        kwargs_uproot_arrays={'entry_stop': args['entry_stop']}
-                        )
+    inter, n_simulated_events = epix.loader(args['path'],
+                                            args['file_name'],
+                                            args['debug'],
+                                            outer_cylinder=args['outer_cylinder'],
+                                            kwargs_uproot_arrays={'entry_start': args['entry_start'],
+                                                                  'entry_stop': args['entry_stop']}
+                                            )
 
     if args['debug']:
         tnow = monitor_time(tnow, 'load data.')
@@ -75,7 +78,8 @@ def main(args, return_df=False, return_wfsim_instructions=False):
             if args.output_path and not os.path.isdir(args.output_path):
                 os.makedirs(args.output_path)
 
-            output_path_and_name = os.path.join(args.output_path, args['file_name'][:-5] + "_wfsim_instructions.csv")
+            output_path_and_name = os.path.join(args.output_path,
+                                                args['file_name'][:-5] + "_wfsim_instructions.csv")
             df = pd.DataFrame()
             df.to_csv(output_path_and_name, index=False)
             return
@@ -100,20 +104,6 @@ def main(args, return_df=False, return_wfsim_instructions=False):
     # events which are too far away from the rest.
     # (This is a requirement of WFSim)
     result = result[ak.argsort(result['t'])]
-    result['t'] = result['t'] - result['t'][:, 0]
-    result = result[result['t'] <= args['max_delay']]
-
-    #Separate event in time 
-    number_of_events = len(result["t"])
-    if args['event_rate_epix'] == -1:
-        dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
-        if args['debug']:
-            print('Clean event separation')
-    else:
-        dt = epix.times_from_fixed_rate(args['event_rate_epix'], number_of_events, args['max_delay'])
-        if args['debug']:
-            print(f"Fixed event rate of {args['event_rate_epix']} Hz")
-    result['t'] = result['t'][:, :] + dt
 
     if args['debug']:
         print('Generating photons and electrons for events')
@@ -130,11 +120,39 @@ def main(args, return_df=False, return_wfsim_instructions=False):
     if args['debug']:
         _ = monitor_time(tnow, 'get quanta.')
 
+    # Separate event in time
+    number_of_events = len(result["t"])
+    if args['source_rate'] == -1:
+        # Only needed for a clean separation:
+        result['t'] = result['t'] - result['t'][:, 0]
+        result = result[result['t'] <= args['max_delay']]
+
+        dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
+        if args['debug']:
+            print('Clean event separation')
+    elif args['source_rate'] == 0:
+        # In case no delay should be applied we just add zeros
+        dt = np.zeros(number_of_events)
+    else:
+        # Rate offset computed based on the specified rate and job_id.
+        # Assumes all jobs were started with the same number of events.
+        offset = (args['job_id']*n_simulated_events)/args['source_rate']
+        dt = epix.times_from_fixed_rate(args['source_rate'],
+                                        number_of_events,
+                                        n_simulated_events,
+                                        offset
+                                        )
+        if args['debug']:
+            print(f"Fixed event rate of {args['source_rate']} Hz")
+
+    result['t'] = result['t'][:, :] + dt
+
     # Reshape instructions:
     instructions = epix.awkward_to_wfsim_row_style(result)
+    if not args['source_rate'] == 0:
+        # Only sort by time if source rates are applied.
+        instructions = np.sort(instructions, order='time')
 
-    # Remove entries with no quanta
-    instructions = instructions[instructions['amp'] > 0]
     ins_df = pd.DataFrame(instructions)
 
     if return_df:
@@ -168,16 +186,16 @@ def setup(args):
     :return:
     """
     # Getting file path and split it into directory and file name:
-    p = args['input_file']
-    p = p.split('/')
-    if p[0] == "":
-        p[0] = "/"
-    args['path'] = os.path.join(*p[:-1])
-    args['file_name'] = p[-1]
+    if not ('path' in args and 'file_name' in args):
+        p = args['input_file']
+        p = p.split('/')
+        if p[0] == "":
+            p[0] = "/"
+        args['path'] = os.path.join(*p[:-1])
+        args['file_name'] = p[-1]
 
     # Init detector volume according to settings and get outer_cylinder
     # for data reduction of non-relevant interactions.
-    print()
     args['detector_config'] = epix.init_detector(args['detector'].lower(), args['epix_config_override'])
     outer_cylinder = getattr(epix.detectors, args['detector'].lower())
     _, args['outer_cylinder'] = outer_cylinder()
