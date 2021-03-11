@@ -62,27 +62,39 @@ class GenerateEvents():
 class  Simulator():
     '''Simulator class for epix to go from  epix instructions to fully processed data'''
 
-    def __init__(self,epix_instructions):
+    def __init__(self,instructions_epix):
         self.ge = GenerateEvents
-        self.epix_instructions=epix_instructions
+        self.instructions_epix=instructions_epix
 
     def cluster_events(self,):
         #Events have more than 1 s1/s2. Here we throw away all of them except the largest 2
         #Take the position to be that of the main s2
+        #And strax wants some start and endtime, so we make something up
         instructions = np.zeros(self.epix_instructions['event_number'][-1],dtype=StraxSimulator.dtype)
-        for ix in np.unique(self.epix_instructions):
-            inst =  self.epix_instructions[self.epix_instructions['event_number']==ix]
-            s1 = inst[inst['type']==1]
-            instructions['s1_area']=np.max(s1['amp'])
-            instructions['alt_s1_area']=np.max(s1['amp'])
-        return instructions
+        for ix in np.unique(self.instructions_epix['event_number']):
+            i=instructions[ix]
+            inst =  self.instructions_epix[self.instructions_epix['event_number']==ix]
+            s1 = np.argsort(inst[inst['type']==1]['amp'])
+            i['s1_area']=inst[s1[0]]['amp']
+            if len(s1)>1:
+                i['alt_s1_area']=inst[s1[1]]['amp']
+            s2 = np.argsort(inst[inst['type']==2]['amp'])
+            i['s2_area']=inst[s2[0]]['amp']
+            if len(s2)>1:
+                i['alt_s2_area']=inst[s2[1]]['amp']
+            i['x']= inst[s2[0]]['x']
+            i['y']= inst[s2[0]]['y']
+            i['time']=ix*1000
+            i['endtime']=ix*1000+1
+        self.instructions=instructions
+        print(self.instructions)
 
-    def simulate(self,instructions):
+    def simulate(self,):
         #So this guy will take the instructions, fire the other functions to do all the (sort of ) smearings
         #Do large aray multiplication and returns data. Currently I assume there to be 1 S1 and 1 S2 per event!
         pass
 
-    def run_simulator(self,instructions):
+    def run_simulator(self,):
         self.cluster_events()
         self.simulate()
 
