@@ -8,7 +8,7 @@ import warnings
 import epix
 
 
-def main(args, return_df=False, return_wfsim_instructions=False):
+def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     """Call this function from the run_epix script"""
 
     if args['debug']:
