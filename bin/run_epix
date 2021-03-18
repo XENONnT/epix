@@ -16,6 +16,9 @@ def pars_args():
     parser.add_argument('--EpixConfigOverride', dest='epix_config_override', type=str,
                         action='store', default='',
                         help='Config file to overwrite default detector settings.')
+    parser.add_argument('--CutOnEventit', dest='cut_by_eventid',
+                        type=bool, default=False, action='store',
+                        help='If true eventy start/stop acts on eventid instead of rows.'),
     parser.add_argument('--EntryStart', dest='entry_start', type=int,
                         action='store',
                         help='First event to be read. Defaulted is zero.'),
