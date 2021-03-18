@@ -24,7 +24,8 @@ def main(args, return_df=False, return_wfsim_instructions=False):
                                             args['debug'],
                                             outer_cylinder=args['outer_cylinder'],
                                             kwargs_uproot_arrays={'entry_start': args['entry_start'],
-                                                                  'entry_stop': args['entry_stop']}
+                                                                  'entry_stop': args['entry_stop']},
+                                            cut_by_eventid=args['cut_by_eventid']
                                             )
 
     if args['debug']:
@@ -73,6 +74,7 @@ def main(args, return_df=False, return_wfsim_instructions=False):
 
     if not ak.any(m):
         # There are not any events left so return empty array:
+        #TODO: Add option for WFSim
         warnings.warn('No interactions left, return empty DataFrame.')
         if return_df:
             if args.output_path and not os.path.isdir(args.output_path):
@@ -100,10 +102,12 @@ def main(args, return_df=False, return_wfsim_instructions=False):
 
     result['e_field'] = epix.reshape_awkward(efields, ak.num(result))
 
-    # Sort in time and set first cluster to t=0, then chop all delayed
+    # Sort in time and set first cluster, then chop all delayed
     # events which are too far away from the rest.
     # (This is a requirement of WFSim)
     result = result[ak.argsort(result['t'])]
+    dt = result['t'] - result['t'][:, 0]
+    result = result[dt <= args['max_delay']]
 
     if args['debug']:
         print('Generating photons and electrons for events')
@@ -125,7 +129,6 @@ def main(args, return_df=False, return_wfsim_instructions=False):
     if args['source_rate'] == -1:
         # Only needed for a clean separation:
         result['t'] = result['t'] - result['t'][:, 0]
-        result = result[result['t'] <= args['max_delay']]
 
         dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
         if args['debug']:
@@ -150,7 +153,8 @@ def main(args, return_df=False, return_wfsim_instructions=False):
     # Reshape instructions:
     instructions = epix.awkward_to_wfsim_row_style(result)
     if args['source_rate'] != 0:
-        # Only sort by time if source rates are applied.
+        # Only sort by time again if source rates were applied, otherwise
+        # things are already sorted within the events and should stay this way.
         instructions = np.sort(instructions, order='time')
 
     ins_df = pd.DataFrame(instructions)
@@ -188,7 +192,10 @@ def setup(args):
     # Getting file path and split it into directory and file name:
     if not ('path' in args and 'file_name' in args):
         p = args['input_file']
-        p = p.split('/')
+        if '/' in p:
+            p = p.split('/')
+        else:
+            p = ["", p]
         if p[0] == "":
             p[0] = "/"
         args['path'] = os.path.join(*p[:-1])
