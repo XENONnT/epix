@@ -12,21 +12,6 @@ def assignOrder(order):
     return to_func
   return do_assignment
 
-class Foo():
-
-  @assignOrder(1)
-  def bar(self):
-    print "bar"
-
-  @assignOrder(2)
-  def foo(self):
-    print "foo"
-
-  #don't decorate functions you don't want called
-  def __init__(self):
-    #don't call this one either!
-    self.egg = 2
-
 def average_spe_distibution(spe_shapes):
     uniform_to_pe_arr = []
     for ch in spe_shapes.columns[1:]:  # skip the first element which is the 'charge' header
