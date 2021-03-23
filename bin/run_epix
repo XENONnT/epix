@@ -9,14 +9,14 @@ def pars_args():
     parser = argparse.ArgumentParser(description="Electron and Photon Instructions generator for XENON (wfsim)")
     parser.add_argument('--InputFile', dest='input_file',
                         action='store', required=True,
-                        help='Input Geant4 ROOT file')
+                        help='Input Geant4 ROOT file.')
     parser.add_argument('--Detector', dest='detector', type=str,
                         action='store', default='XENONnT',
                         help='Detector which should be used. Has to be defined in epix.detectors.')
-    parser.add_argument('--EpixConfigOverride', dest='epix_config_override', type=str,
+    parser.add_argument('--DetectorConfigOverride', dest='detector_config_override', type=str,
                         action='store', default='',
                         help='Config file to overwrite default detector settings.')
-    parser.add_argument('--CutOnEventit', dest='cut_by_eventid',
+    parser.add_argument('--CutOnEventid', dest='cut_by_eventid',
                         type=bool, default=False, action='store',
                         help='If true eventy start/stop acts on eventid instead of rows.'),
     parser.add_argument('--EntryStart', dest='entry_start', type=int,
@@ -24,38 +24,38 @@ def pars_args():
                         help='First event to be read. Defaulted is zero.'),
     parser.add_argument('--EntryStop', dest='entry_stop', type=int,
                         action='store',
-                        help='Number of entries to read from first. Defaulted to all')
+                        help='Number of entries to read from first. Defaulted to all.')
     parser.add_argument('--MicroSeparation', dest='micro_separation', type=float,
                         action='store', default=0.05,
-                        help='Spatial resolution for DBSCAN micro-clustering [mm]')
+                        help='Spatial resolution for DBSCAN micro-clustering [mm].')
     parser.add_argument('--MicroSeparationTime', dest='micro_separation_time', type=float,
                         action='store', default=10,
-                        help='Time resolution for DBSCAN micro-clustering [ns]')
+                        help='Time resolution for DBSCAN micro-clustering [ns].')
     parser.add_argument('--TagClusterBy', dest='tag_cluster_by', type=str,
                         action='store', default='time',
                         help=('Classification of the type of particle of a cluster, '
                               'based on most energetic contributor ("energy") or first '
-                              'depositing particle ("time")'),
+                              'depositing particle ("time").'),
                         choices={'time', 'energy'})
     parser.add_argument('--MaxDelay', dest='max_delay', type=float,
                         action='store', default=1e7, #ns
-                        help='Maximal time delay to first interaction which will be stored [ns]')
+                        help='Maximal time delay to first interaction which will be stored [ns].')
     parser.add_argument('--SourceRate', dest='source_rate', type=float,
-                    action='store', default=0,
-                    help='Event rate for event separation. Default 0 means no time shift is applied for the different '
-                         'events. Use -1 for clean simulations or give a rate >0 to space events randomly.')
+                        action='store', default=0,
+                        help='Event rate for event separation. 0 (default) means no time shift is applied for the '
+                             'different events. Use -1 for clean spacing or give a rate >0 to space events randomly.')
     parser.add_argument('--JobNumber', dest='job_number', type=int,
-                    action='store', default=0,
-                    help='Job number in full chain simulation. Offset is computed as '
-                         '"Job number * n_simulated_events/SourceRate", n_simulated_events '
-                         'is read from file.')
+                        action='store', default=0,
+                        help='Job number in full chain simulation. Offset is computed as '
+                             '"Job number * n_simulated_events/SourceRate", n_simulated_events '
+                             'is read from file.')
     parser.add_argument('--OutputPath', dest='output_path',
                        action='store', default="",
                        help=('Optional output path. If not specified the result will be saved'
                              'in the same dir as the input file.'))
     parser.add_argument('--Debug', dest='debug',
                        action='store_true', default=False,
-                       help=('If specifed additional information is printed to the consol.')
+                       help=('If specifed additional information is printed to the console.')
                         )
 
     args = parser.parse_args(sys.argv[1:])

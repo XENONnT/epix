@@ -13,7 +13,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     if args['debug']:
         print("epix configuration: ", args)
-        # TODO: also add memory information see starxer and change this to debug
+        # TODO: also add memory information (see straxer) and change this to debug
         # Getting time information:
         starttime = time.time()
         tnow = starttime
@@ -33,7 +33,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         print(f"Finding clusters of interactions with a dr = {args['micro_separation']} mm"
                f" and dt = {args['micro_separation_time']} ns")
 
-    # Cluster finding and clustering:
+    # Cluster finding and clustering (convert micro_separation mm -> cm):
     inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
 
     if args['debug']:
@@ -53,7 +53,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         print(f'Number of clusters before: {np.sum(ak.num(result["ed"]))}')
 
     # Returns all interactions which are inside in one of the volumes,
-    # Checks for volume overlap, assigns Xe density and create S2 to
+    # Checks for volume overlap, assigns Xe density and create_S2 to
     # interactions. EField comes later since interpolated maps cannot be
     # called inside numba functions.
     res_det = epix.in_sensitive_volume(result, args['detector_config'])
@@ -102,7 +102,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     result['e_field'] = epix.reshape_awkward(efields, ak.num(result))
 
-    # Sort in time and set first cluster, then chop all delayed
+    # Sort entries (in an event) by in time, then chop all delayed
     # events which are too far away from the rest.
     # (This is a requirement of WFSim)
     result = result[ak.argsort(result['t'])]
@@ -124,7 +124,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     if args['debug']:
         _ = monitor_time(tnow, 'get quanta.')
 
-    # Separate event in time
+    # Separate events in time
     number_of_events = len(result["t"])
     if args['source_rate'] == -1:
         # Only needed for a clean separation:
@@ -203,7 +203,7 @@ def setup(args):
 
     # Init detector volume according to settings and get outer_cylinder
     # for data reduction of non-relevant interactions.
-    args['detector_config'] = epix.init_detector(args['detector'].lower(), args['epix_config_override'])
+    args['detector_config'] = epix.init_detector(args['detector'].lower(), args['detector_config_override'])
     outer_cylinder = getattr(epix.detectors, args['detector'].lower())
     _, args['outer_cylinder'] = outer_cylinder()
     return args

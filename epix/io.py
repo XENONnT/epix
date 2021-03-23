@@ -71,7 +71,7 @@ def loader(directory,
     Function which loads geant4 interactions from a root file via
     uproot4.
 
-    Beside loading the a simple data selection is performed. Units are
+    Besides loading, a simple data selection is performed. Units are
     already converted into strax conform values. mm -> cm and s -> ns.
 
     Args:
@@ -83,7 +83,7 @@ def loader(directory,
         kwargs_uproot_arrays (dict): Keyword arguments passed to .arrays of
             uproot4.
         cut_by_eventid (bool): If true event start/stop are applied to
-            eventids instead.
+            eventids, instead of rows.
 
     Returns:
         awkward1.records: Interactions (eventids, parameters, types).
@@ -113,7 +113,7 @@ def loader(directory,
 
     if cut_by_eventid:
         # Start/stop refers to eventid so drop start drop from kwargs
-        # dict if specified, otherwise we also cut on rows.
+        # dict if specified, otherwise we cut again on rows.
         kwargs_uproot_arrays.pop('entry_start', None)
         kwargs_uproot_arrays.pop('entry_stop', None)
 
