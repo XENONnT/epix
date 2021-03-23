@@ -17,7 +17,7 @@ def pars_args():
                         action='store', default='',
                         help='Config file to overwrite default detector settings.')
     parser.add_argument('--CutOnEventid', dest='cut_by_eventid',
-                        type=bool, default=False, action='store',
+                        action='store_true', default=False,
                         help='If true eventy start/stop acts on eventid instead of rows.'),
     parser.add_argument('--EntryStart', dest='entry_start', type=int,
                         action='store',

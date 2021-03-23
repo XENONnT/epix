@@ -93,10 +93,14 @@ def loader(directory,
 
     if arg_debug:
         print(f'Total entries in input file = {ttree.num_entries}')
+        cutby_string='output file entry'
+        if cut_by_eventid:
+            cutby_string='g4 eventid'
+
         if kwargs_uproot_arrays['entry_start'] is not None:
-            print(f'Starting to read from event {kwargs_uproot_arrays["entry_start"]}.')
+            print(f'Starting to read from {cutby_string} {kwargs_uproot_arrays["entry_start"]}')
         if kwargs_uproot_arrays['entry_stop'] is not None:
-            print(f'Ending read in at event {kwargs_uproot_arrays["entry_stop"]}.')
+            print(f'Ending read in at {cutby_string} {kwargs_uproot_arrays["entry_stop"]}')
 
     # If user specified entry start/stop we have to update number of
     # events for source rate computation:
