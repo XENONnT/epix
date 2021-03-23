@@ -223,7 +223,10 @@ def awkward_to_wfsim_row_style(interactions):
         res['g4id'][i::2] = awkward_to_flat_numpy(interactions['evtid'])
         res['vol_id'][i::2] = awkward_to_flat_numpy(interactions['vol_id'])
         res['e_dep'][i::2] = awkward_to_flat_numpy(interactions['ed'])
-        res['recoil'][i::2] = awkward_to_flat_numpy(interactions['nestid'])
+        
+        recoil = awkward_to_flat_numpy(interactions['nestid'])
+        res['recoil'][i::2] = np.where(np.isin(recoil, [0,6,7,8,11]), recoil, 8)
+
         if i:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['electrons'])
         else:
