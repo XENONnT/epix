@@ -4,6 +4,7 @@ import awkward as ak
 
 import os
 import warnings
+import wfsim
 import configparser
 
 from .common import awkward_to_flat_numpy, offset_range
@@ -59,51 +60,66 @@ def load_config(config_file_path):
     return settings
 
 
-def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_uproot_arrays={}):
+def loader(directory,
+           file_name,
+           arg_debug=False,
+           outer_cylinder=None,
+           kwargs_uproot_arrays={},
+           cut_by_eventid=False,
+           ):
     """
     Function which loads geant4 interactions from a root file via
     uproot4.
 
-    Beside loading the a simple data selection is performed. Units are
+    Besides loading, a simple data selection is performed. Units are
     already converted into strax conform values. mm -> cm and s -> ns.
 
     Args:
         directory (str): Directory in which the data is stored.
         file_name (str): File name
-
-    Kwargs:
-        arg_debug: If true, print out loading information.
-        outer_cylinder: If specified will cut all events outside of the
+        arg_debug (bool): If true, print out loading information.
+        outer_cylinder (dict): If specified will cut all events outside of the
             given cylinder.
-        kwargs_uproot_arrays: Keyword arguments passed to .arrays of
+        kwargs_uproot_arrays (dict): Keyword arguments passed to .arrays of
             uproot4.
+        cut_by_eventid (bool): If true event start/stop are applied to
+            eventids, instead of rows.
 
     Returns:
         awkward1.records: Interactions (eventids, parameters, types).
-
-    Note:
-        We process eventids and the rest of the data in two different
-        arrays due to different array structures. Also the type strings
-        are split off since they suck. All arrays are finally merged.
+        integer: Number of events simulated.
     """
-    root_dir = uproot.open(os.path.join(directory, file_name))
-    
-    if root_dir.classname_of('events') == 'TTree':
-        ttree = root_dir['events']
-    elif root_dir.classname_of('events/events') == 'TTree':
-        ttree = root_dir['events/events']
-    else:
-        ttrees = []
-        for k, v in root_dir.classnames().items():
-            if v == 'TTree':
-                ttrees.append(k)
-        raise ValueError(f'Cannot find ttree object of "{file_name}".' 
-                         'I tried to search in events and events/events.' 
-                         f'Found a ttree in {ttrees}?')
+    ttree, n_simulated_events = _get_ttree(directory, file_name)
+
     if arg_debug:
         print(f'Total entries in input file = {ttree.num_entries}')
-        if kwargs_uproot_arrays['entry_stop']!=None:
-            print(f'... from which {kwargs_uproot_arrays["entry_stop"]} are read')
+        cutby_string='output file entry'
+        if cut_by_eventid:
+            cutby_string='g4 eventid'
+
+        if kwargs_uproot_arrays['entry_start'] is not None:
+            print(f'Starting to read from {cutby_string} {kwargs_uproot_arrays["entry_start"]}')
+        if kwargs_uproot_arrays['entry_stop'] is not None:
+            print(f'Ending read in at {cutby_string} {kwargs_uproot_arrays["entry_stop"]}')
+
+    # If user specified entry start/stop we have to update number of
+    # events for source rate computation:
+    if kwargs_uproot_arrays['entry_start'] is not None:
+        start = kwargs_uproot_arrays['entry_start']
+    else:
+        start = 0
+
+    if kwargs_uproot_arrays['entry_stop'] is not None:
+        stop = kwargs_uproot_arrays['entry_stop']
+    else:
+        stop = n_simulated_events
+    n_simulated_events = stop - start
+
+    if cut_by_eventid:
+        # Start/stop refers to eventid so drop start drop from kwargs
+        # dict if specified, otherwise we cut again on rows.
+        kwargs_uproot_arrays.pop('entry_start', None)
+        kwargs_uproot_arrays.pop('entry_stop', None)
 
     # Columns to be read from the root_file:
     column_names = ["x", "y", "z", "t", "ed",
@@ -139,33 +155,63 @@ def loader(directory, file_name, arg_debug=False, outer_cylinder=None, kwargs_up
 
     # Removing all events with zero energy deposit
     m = interactions['ed'] > 0
+    if cut_by_eventid:
+        # ufunc does not work here...
+        m2 = (interactions['evtid'] >= start) & (interactions['evtid'] < stop)
+        m = m & m2
     interactions = interactions[m]
 
     # Removing all events with no interactions:
     m = ak.num(interactions['ed']) > 0
     interactions = interactions[m]
 
-    return interactions
+    return interactions, n_simulated_events
+
+
+def _get_ttree(directory, file_name):
+    """
+    Function which searches for the correct ttree in MC root file.
+
+    :param directory: Directory where file is
+    :param file_name: Name of the file
+    :return: root ttree and number of simulated events
+    """
+    root_dir = uproot.open(os.path.join(directory, file_name))
+
+    # Searching for TTree according to old/new MC file structure:
+    if root_dir.classname_of('events') == 'TTree':
+        ttree = root_dir['events']
+        n_simulated_events = root_dir['nEVENTS'].members['fVal']
+    elif root_dir.classname_of('events/events') == 'TTree':
+        ttree = root_dir['events/events']
+        n_simulated_events = root_dir['events/nbevents'].members['fVal']
+    else:
+        ttrees = []
+        for k, v in root_dir.classnames().items():
+            if v == 'TTree':
+                ttrees.append(k)
+        raise ValueError(f'Cannot find ttree object of "{file_name}".'
+                         'I tried to search in events and events/events.'
+                         f'Found a ttree in {ttrees}?')
+    return ttree, n_simulated_events
 
 
 # ----------------------
 # Outputing wfsim instructions:
 # ----------------------
-int_dtype = [(('Waveform simulator event number.', 'event_number'), np.int32),
-             (('Quanta type (S1 photons or S2 electrons)', 'type'), np.int8),
-             (('Time of the interaction [ns]', 'time'), np.int64),
-             (('X position of the cluster[cm]', 'x'), np.float32),
-             (('Y position of the cluster[cm]', 'y'), np.float32),
-             (('Z position of the cluster[cm]', 'z'), np.float32),
-             (('Number of quanta', 'amp'), np.int32),
-             (('Recoil type of interaction.', 'recoil'), np.int8),
-             (('Energy deposit of interaction', 'e_dep'), np.float32),
-             (('Eventid like in geant4 output rootfile', 'g4id'), np.int32),
-             (('Volume id giving the detector subvolume', 'vol_id'), np.int32)
-             ]
+int_dtype = wfsim.instruction_dtype
 
 
 def awkward_to_wfsim_row_style(interactions):
+    """
+    Converts awkward array instructions into instructions required by
+    WFSim.
+
+    :param interactions: awkward.Array containing GEANT4 simulation
+        information.
+    :return: Structured numpy.array. Each row represents either a S1 or
+        S2
+    """
     ninteractions = np.sum(ak.num(interactions['ed']))
     res = np.zeros(2 * ninteractions, dtype=int_dtype)
 
@@ -190,6 +236,6 @@ def awkward_to_wfsim_row_style(interactions):
         else:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['photons'])
 
-
-    #TODO: Add a function which generates a new event if interactions are too far apart
+    # Remove entries with no quanta
+    res = res[res['amp'] > 0]
     return res
