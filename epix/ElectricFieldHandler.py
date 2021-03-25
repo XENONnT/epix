@@ -31,15 +31,22 @@ class MyElectricFieldHandler:
                              ' for the electirc field map.')
 
     def _load_field(self):
-        #self.field = pd.read_csv(self.map)
-        with gzip.open(self.map, 'rb') as f:
-            field_map = json.load(f)
+        file_ending = self.map.split(".")[-1]
 
-        self.field = pd.DataFrame()
-        self.field["r"] = np.array(field_map["coordinate_system"])[:,0]/10
-        self.field["z"] = np.array(field_map["coordinate_system"])[:,1]/10
-        self.field["E"] = np.array(field_map["map"])
+        if file_ending == "csv":
+            self.field = pd.read_csv(self.map)
 
+        elif file_ending == "gz":
+            with gzip.open(self.map, 'rb') as f:
+                field_map = json.load(f)
+            self.field = pd.DataFrame()
+            self.field["r"] = np.array(field_map["coordinate_system"])[:,0]/10
+            self.field["z"] = np.array(field_map["coordinate_system"])[:,1]/10
+            self.field["E"] = np.array(field_map["map"])
+
+        else:
+            raise ValueError(f'Cannot open "{self.map}". File extension is not a valid'
+                             ' for the electirc field map. Use .csv or .json.gz')
 
     def _get_coordinates(self):
         self.R = np.unique(self.field['r'])
