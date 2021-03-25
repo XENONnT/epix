@@ -1,3 +1,7 @@
+0.0.6 (2021-02-12)
+==================
+  * Set e- recoil type as default (#15)
+
 0.0.5 (2021-02-08)
 ==================
   * Change detector naming (#13)

@@ -13,7 +13,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     if args['debug']:
         print("epix configuration: ", args)
-        # TODO: also add memory information see starxer and change this to debug
+        # TODO: also add memory information (see straxer) and change this to debug
         # Getting time information:
         starttime = time.time()
         tnow = starttime
@@ -24,7 +24,8 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
                                             args['debug'],
                                             outer_cylinder=args['outer_cylinder'],
                                             kwargs_uproot_arrays={'entry_start': args['entry_start'],
-                                                                  'entry_stop': args['entry_stop']}
+                                                                  'entry_stop': args['entry_stop']},
+                                            cut_by_eventid=args['cut_by_eventid']
                                             )
 
     if args['debug']:
@@ -32,16 +33,16 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         print(f"Finding clusters of interactions with a dr = {args['micro_separation']} mm"
                f" and dt = {args['micro_separation_time']} ns")
 
-    # Cluster finding and clustering:
+    # Cluster finding and clustering (convert micro_separation mm -> cm):
     inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
 
     if args['debug']:
-        tnow = monitor_time(tnow, 'cluster finding.')
+        tnow = monitor_time(tnow, 'find clusters.')
 
     result = epix.cluster(inter, args['tag_cluster_by'] == 'energy')
 
     if args['debug']:
-        tnow = monitor_time(tnow, 'cluster merging.')
+        tnow = monitor_time(tnow, 'merge clusters.')
 
     # Add eventid again:
     result['evtid'] = ak.broadcast_arrays(inter['evtid'][:, 0], result['ed'])[0]
@@ -52,7 +53,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         print(f'Number of clusters before: {np.sum(ak.num(result["ed"]))}')
 
     # Returns all interactions which are inside in one of the volumes,
-    # Checks for volume overlap, assigns Xe density and create S2 to
+    # Checks for volume overlap, assigns Xe density and create_S2 to
     # interactions. EField comes later since interpolated maps cannot be
     # called inside numba functions.
     res_det = epix.in_sensitive_volume(result, args['detector_config'])
@@ -73,6 +74,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     if not ak.any(m):
         # There are not any events left so return empty array:
+        #TODO: Add option for WFSim
         warnings.warn('No interactions left, return empty DataFrame.')
         if return_df:
             if args.output_path and not os.path.isdir(args.output_path):
@@ -100,10 +102,12 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     result['e_field'] = epix.reshape_awkward(efields, ak.num(result))
 
-    # Sort in time and set first cluster to t=0, then chop all delayed
+    # Sort entries (in an event) by in time, then chop all delayed
     # events which are too far away from the rest.
     # (This is a requirement of WFSim)
     result = result[ak.argsort(result['t'])]
+    dt = result['t'] - result['t'][:, 0]
+    result = result[dt <= args['max_delay']]
 
     if args['debug']:
         print('Generating photons and electrons for events')
@@ -120,12 +124,11 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     if args['debug']:
         _ = monitor_time(tnow, 'get quanta.')
 
-    # Separate event in time
+    # Separate events in time
     number_of_events = len(result["t"])
     if args['source_rate'] == -1:
         # Only needed for a clean separation:
         result['t'] = result['t'] - result['t'][:, 0]
-        result = result[result['t'] <= args['max_delay']]
 
         dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
         if args['debug']:
@@ -136,7 +139,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     else:
         # Rate offset computed based on the specified rate and job_id.
         # Assumes all jobs were started with the same number of events.
-        offset = (args['job_id']*n_simulated_events)/args['source_rate']
+        offset = (args['job_number']*n_simulated_events)/args['source_rate']
         dt = epix.times_from_fixed_rate(args['source_rate'],
                                         number_of_events,
                                         n_simulated_events,
@@ -149,8 +152,9 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     # Reshape instructions:
     instructions = epix.awkward_to_wfsim_row_style(result)
-    if not args['source_rate'] == 0:
-        # Only sort by time if source rates are applied.
+    if args['source_rate'] != 0:
+        # Only sort by time again if source rates were applied, otherwise
+        # things are already sorted within the events and should stay this way.
         instructions = np.sort(instructions, order='time')
 
     ins_df = pd.DataFrame(instructions)
@@ -188,7 +192,10 @@ def setup(args):
     # Getting file path and split it into directory and file name:
     if not ('path' in args and 'file_name' in args):
         p = args['input_file']
-        p = p.split('/')
+        if '/' in p:
+            p = p.split('/')
+        else:
+            p = ["", p]
         if p[0] == "":
             p[0] = "/"
         args['path'] = os.path.join(*p[:-1])
@@ -196,7 +203,7 @@ def setup(args):
 
     # Init detector volume according to settings and get outer_cylinder
     # for data reduction of non-relevant interactions.
-    args['detector_config'] = epix.init_detector(args['detector'].lower(), args['epix_config_override'])
+    args['detector_config'] = epix.init_detector(args['detector'].lower(), args['detector_config_override'])
     outer_cylinder = getattr(epix.detectors, args['detector'].lower())
     _, args['outer_cylinder'] = outer_cylinder()
     return args

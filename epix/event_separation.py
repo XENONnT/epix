@@ -6,7 +6,7 @@ def times_for_clean_separation(n_events, MaxDelay):
 
     Args:
         n_events (int): Number of events 
-        MaxDelay (float): Time difference between events. Should be large enought to 
+        MaxDelay (float): Time difference between events. Should be large enough to 
             prevent event pile-up.
 
     Returns:
@@ -24,7 +24,7 @@ def times_from_fixed_rate(rate, n_events, n_simulated_events, offset=0):
 
     The event times are drawn from a uniform distribution.
     For higher rates pile-up is possible. The normalization
-    is achived by a variable overall simulation length in time.
+    is achieved by a variable overall simulation length in time.
 
     !Rate normalization is only valid for one simualtion job!
 
