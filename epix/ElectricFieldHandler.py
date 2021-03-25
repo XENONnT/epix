@@ -2,6 +2,8 @@ from scipy.interpolate import RegularGridInterpolator as RGI
 import pandas as pd
 import numpy as np
 import os
+import gzip
+import json
 
 
 class MyElectricFieldHandler:
@@ -29,7 +31,15 @@ class MyElectricFieldHandler:
                              ' for the electirc field map.')
 
     def _load_field(self):
-        self.field = pd.read_csv(self.map)
+        #self.field = pd.read_csv(self.map)
+        with gzip.open(self.map, 'rb') as f:
+            field_map = json.load(f)
+
+        self.field = pd.DataFrame()
+        self.field["r"] = np.array(field_map["coordinate_system"])[:,0]/10
+        self.field["z"] = np.array(field_map["coordinate_system"])[:,1]/10
+        self.field["E"] = np.array(field_map["map"])
+
 
     def _get_coordinates(self):
         self.R = np.unique(self.field['r'])
