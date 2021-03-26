@@ -9,10 +9,11 @@ import json
 class MyElectricFieldHandler:
     def __init__(self, field_map=""):
         """
-        The field map should be a text file with the following
-        structure: "r z E", with length in cm and field in V/cm.
-        The elements are delimited by a white space. Header lines
-        should start with a '#'.
+        The field map should be a .csv or .json.gz file. 
+
+        Structure of the csv file:
+        Columns "r" "z" and "E", with lenght in cm and field in V/cm.
+        The elements are delimited by a ",". 
 
         The map has to be defined over a regular grid and it has to
         be given as follows:
@@ -20,6 +21,12 @@ class MyElectricFieldHandler:
         0.1 -97.2 305
         0.2 -97.2 298
         ...
+
+        Structure of the json.gz file:
+        File needs to contain the "r" and "z" coordinate in mm under the 
+        key "coordinate_system" and the field in V/cm under the key 
+        "map". 
+
         """
         self.map = field_map
         if os.path.isfile(self.map):
