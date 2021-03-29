@@ -1,19 +1,31 @@
 import strax
 import straxen
+from straxen import pax_file, InterpolatingMap, get_resource, get_config_from_cmt
+
 import wfsim
+from wfsim.load_resource import make_map
+
 import epix
 import numpy as np
 from numpy import int64, float64
-
-from straxen import pax_file, InterpolatingMap, get_resource, get_config_from_cmt
-from wfsim.load_resource import make_map
 from copy import deepcopy
+
+import scipy as scp
 from scipy.interpolate import interp1d
+
+import collections
+import uproot
+import json
 
 class nVeto_utils():
     @staticmethod
+    def eV_to_nm(eV):
+        J_per_eV=1.60218e-19
+        return (1e9*(scp.constants.c * scp.constants.h)/(eV*J_per_eV))
+
+    @staticmethod
     def nVeto_get_QE(pmt_json_dict, pmt_ch, photon_eV):
-        wvl = eV_to_nm(photon_eV)
+        wvl = nVeto_utils.eV_to_nm(photon_eV)
 
         nv_pmt_qe_wavelength = np.array(pmt_json_dict['nv_pmt_qe_wavelength'])
         nv_pmt_qe = pmt_json_dict['nv_pmt_qe']
@@ -374,14 +386,13 @@ class StraxSimulator(strax.Plugin):
 
     def get_nveto_data(self, ):
         file_tree, _ = epix.io._get_ttree(self.config['epix_config']['path'], self.config['epix_config']['file_name'])
-        nveto_df = None
+        nveto_hits = None
         if 'pmthitID' in file_tree.keys():
-            nVeto_hits = nVeto_utils.nVeto_get_hits(file_tree,
+            nveto_hits = nVeto_utils.nVeto_get_hits(file_tree,
                                                     self.resource.nveto_pmt_qe,
                                                     SPE_Resolution=0.35, SPE_ResThreshold=0.5,
                                                     max_coin_time_ns=500.0, batch_size=10000)
-            nveto_df = pd.DataFrame(nVeto_hits)
-        return nveto_df
+        return nveto_hits
 
     def get_epix_instructions(self, ):
         detector = epix.init_detector('xenonnt', '')
@@ -394,7 +405,7 @@ class StraxSimulator(strax.Plugin):
         return epix.run_epix.main(self.config['epix_config'], return_wfsim_instructions=True)
 
     def compute(self, ):
-        nveto_df = self.get_nveto_data()
+        nveto_hits = self.get_nveto_data()
         epix_instructions = self.get_epix_instructions()
         self.config['fax_config']['detector'] = self.config['detector']
         self.config['fax_config']['dpe_fraction'] = 1.0
@@ -405,8 +416,9 @@ class StraxSimulator(strax.Plugin):
                                    resource=self.resource)
         simulated_data = self.Simulator.run_simulator()
 
-        return simulated_data, nveto_df
+        return simulated_data, nveto_hits
 
     def is_ready(self, chunk):
         # For this plugin we'll smash everything into 1 chunk, should be oke
         return True
+
