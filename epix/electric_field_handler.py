@@ -42,8 +42,8 @@ class MyElectricFieldHandler:
             self.field["z"] = np.array(field_map["coordinate_system"])[:,1]
             self.field["E"] = np.array(field_map["map"])
         else:
-            raise ValueError(f'Cannot open "{self.map}". File extension is not a valid'
-                             ' for the electirc field map. Use .csv or .json.gz')
+            raise ValueError(f'Cannot open "{self.map}". File extension is not valid'
+                             ' for the electric field map. Use .csv or .json.gz')
 
     def _get_coordinates(self):
         self.R = np.unique(self.field['r'])
