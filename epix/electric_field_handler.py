@@ -9,24 +9,16 @@ import json
 class MyElectricFieldHandler:
     def __init__(self, field_map=""):
         """
-        The field map should be a .csv or .json.gz file. 
+        The field map, defined over a regular grid, should be
+        a .csv or .json.gz file. 
 
         Structure of the csv file:
         Columns "r" "z" and "E", with lenght in cm and field in V/cm.
         The elements are delimited by a ",". 
 
-        The map has to be defined over a regular grid and it has to
-        be given as follows:
-        0.0 -97.2 300
-        0.1 -97.2 305
-        0.2 -97.2 298
-        ...
-
         Structure of the json.gz file:
-        File needs to contain the "r" and "z" coordinate in mm under the 
-        key "coordinate_system" and the field in V/cm under the key 
-        "map". 
-
+        Contains the "r" and "z" coordinates in cm under the key
+        "coordinate_system" and the field in V/cm under the key "map".
         """
         self.map = field_map
         if os.path.isfile(self.map):
@@ -42,15 +34,13 @@ class MyElectricFieldHandler:
 
         if file_ending == "csv":
             self.field = pd.read_csv(self.map)
-
         elif file_ending == "gz":
             with gzip.open(self.map, 'rb') as f:
                 field_map = json.load(f)
             self.field = pd.DataFrame()
-            self.field["r"] = np.array(field_map["coordinate_system"])[:,0]/10
-            self.field["z"] = np.array(field_map["coordinate_system"])[:,1]/10
+            self.field["r"] = np.array(field_map["coordinate_system"])[:,0]
+            self.field["z"] = np.array(field_map["coordinate_system"])[:,1]
             self.field["E"] = np.array(field_map["map"])
-
         else:
             raise ValueError(f'Cannot open "{self.map}". File extension is not a valid'
                              ' for the electirc field map. Use .csv or .json.gz')
