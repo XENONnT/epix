@@ -1,3 +1,8 @@
+0.1.0 (2021-03-30)
+==================
+  * E-Field format change (#23)
+  * strax interface (#19)
+
 0.0.6 (2021-02-12)
 ==================
   * Set e- recoil type as default (#15)

@@ -23,7 +23,7 @@ The other keyword arguments are:
 | Argument | Description | Default |
 |--------------|------------------------|---|
 | `--Detector`  | Detector to be used. Has to be defined in epix.detectors | `XENONnT` |
-| `--DetectorConfigOverride`  | Config file to overwrite default detector settings | in epix.detectors |
+| `--DetectorConfigOverride`  | Config file to overwrite default epix.detectors settings; see examples in the `configs` folder | in epix.detectors |
 | `--CutOnEventid`  | If selected, the next two arguments act on the G4 event id, and not the entry number (default) | `false` |
 | `--EntryStart`  | First event to be read | 0 |
 | `--EntryStop`  | How many entries from the ROOT file you want to process | all |
