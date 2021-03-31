@@ -20,10 +20,9 @@ import json
 
 
 class NVetoUtils():
-
     @staticmethod
     def get_nv_pmt_qe(pmt_json_dict, pmt_ch, photon_ev):
-        wvl = (1e9*(scp.constants.c * scp.constants.h)/(photon_ev*1.60218e-19))
+        wvl = (1e9 * (scp.constants.c * scp.constants.h) / (photon_ev * 1.60218e-19))
 
         nv_pmt_qe_wavelength = np.array(pmt_json_dict['nv_pmt_qe_wavelength'])
         nv_pmt_qe = pmt_json_dict['nv_pmt_qe']
@@ -112,6 +111,14 @@ class Helpers():
             uniform_to_pe_arr.append(grid_scale)
         spe_distribution = np.mean(uniform_to_pe_arr, axis=0)
         return spe_distribution
+
+    @staticmethod
+    def get_s1_area_with_spe(spe_distribution, num_photons):
+        s1_area_spe = []
+        for n_ph in num_photons:
+            s1_area_spe.append(np.sum(spe_distribution[
+                                          (np.random.random(n_ph) * len(spe_distribution)).astype(int64)]))
+        return np.array(s1_area_spe)
 
     @staticmethod
     def get_s1_light_yield(n_photons, positions, s1_light_yield_map, config):
@@ -211,16 +218,16 @@ class GenerateEvents():
                                                positions=xyz,
                                                s1_light_yield_map=resource.s1_light_yield_map,
                                                config=config) * config['dpe_fraction']
-        # instructions['s1_area'] = np.sum(resource.photon_area_distribution[np.random.random(n_photons)],axis=1)
-        instructions['s1_area'] = n_photons
+        instructions['s1_area'] = Helpers.get_s1_area_with_spe(resource.photon_area_distribution,
+                                                               n_photons.astype(int64))
 
         num_ph = instructions['alt_s1_area'].astype(int64)
-        alt_n_photons = Helpers.get_s1_light_yield(n_photons=instructions['alt_s1_area'],
+        alt_n_photons = Helpers.get_s1_light_yield(n_photons=num_ph,
                                                    positions=xyz,
                                                    s1_light_yield_map=resource.s1_light_yield_map,
                                                    config=config) * config['dpe_fraction']
-        # instructions['alt_s1_area'] = np.sum(resource.photon_area_distribution[np.random.random(alt_n_photons)],axis=1)
-        instructions['alt_s1_area'] = alt_n_photons
+        instructions['alt_s1_area'] = Helpers.get_s1_area_with_spe(resource.photon_area_distribution,
+                                                                   alt_n_photons.astype(int64))
 
     @staticmethod
     @Helpers.assignOrder(2)
@@ -427,3 +434,4 @@ class StraxSimulator(strax.Plugin):
     def is_ready(self, chunk):
         # For this plugin we'll smash everything into 1 chunk, should be oke
         return True
+
