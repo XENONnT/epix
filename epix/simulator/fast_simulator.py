@@ -6,6 +6,7 @@ import wfsim
 from wfsim.load_resource import make_map
 
 import epix
+import pandas as pd
 import numpy as np
 from numpy import int64, float64
 from copy import deepcopy
@@ -19,9 +20,10 @@ import json
 
 
 class NVetoUtils():
+
     @staticmethod
-    def get_nv_pmt_qe(pmt_json_dict, pmt_ch, photon_eV):
-        wvl = eV_to_nm(photon_eV)
+    def get_nv_pmt_qe(pmt_json_dict, pmt_ch, photon_ev):
+        wvl = (1e9*(scp.constants.c * scp.constants.h)/(photon_ev*1.60218e-19))
 
         nv_pmt_qe_wavelength = np.array(pmt_json_dict['nv_pmt_qe_wavelength'])
         nv_pmt_qe = pmt_json_dict['nv_pmt_qe']
@@ -38,7 +40,7 @@ class NVetoUtils():
         for events_iterator in uproot.iterate(ttree,
                                               ['eventid', 'pmthitID', 'pmthitTime', 'pmthitEnergy'],
                                               step_size=batch_size,
-                                              outputtype=collections.namedtuple):
+                                              ioutputtype=collections.namedtuple):
             hits_dict = {'eventid': [], 'hits': []}
 
             for eventid_evt, pmthitID_evt, pmthitTime_evt, \
@@ -178,7 +180,7 @@ class Resource():
 
         self.photon_area_distribution = Helpers.average_spe_distribution(
             get_resource(config['photon_area_distribution'], fmt='csv'))
-        self.nveto_pmt_qe = get_resource(config['nv_pmt_qe'])
+        self.nveto_pmt_qe = json.loads(get_resource(config['nv_pmt_qe']))
 
 
 class GenerateEvents():
@@ -390,11 +392,11 @@ class StraxSimulator(strax.Plugin):
                                           self.config['epix_config']['file_name'])
         nveto_df = None
         if 'pmthitID' in file_tree.keys():
-            nVeto_hits = NVetoUtils.nVeto_get_hits(file_tree,
-                                                   self.resource.nveto_pmt_qe,
-                                                   SPE_Resolution=0.35, SPE_ResThreshold=0.5,
-                                                   max_coin_time_ns=500.0, batch_size=10000)
-            nveto_df = pd.DataFrame(nVeto_hits)
+            nv_hits = NVetoUtils.get_nv_hits(file_tree,
+                                             self.resource.nveto_pmt_qe,
+                                             SPE_Resolution=0.35, SPE_ResThreshold=0.5,
+                                             max_coin_time_ns=500.0, batch_size=10000)
+            nveto_df = pd.DataFrame(nv_hits)
         return nveto_df
 
     def get_epix_instructions(self, ):
