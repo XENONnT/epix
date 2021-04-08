@@ -1,6 +1,7 @@
 # epix
 
 [![PyPI version shields.io](https://img.shields.io/pypi/v/epix.svg)](https://pypi.python.org/pypi/epix/)
+[![CodeFactor](https://www.codefactor.io/repository/github/xenonnt/epix/badge)](https://www.codefactor.io/repository/github/xenonnt/epix)
 
 **E**lectron and **P**hoton **I**nstructions generator for **X**ENON
 
