@@ -1,16 +1,21 @@
 # epix
 
+[![PyPI version shields.io](https://img.shields.io/pypi/v/epix.svg)](https://pypi.python.org/pypi/epix/)
+
 **E**lectron and **P**hoton **I**nstructions generator for **X**ENON
 
 The job of epix is to load XENONnT Geant4 MC data and produce inputs for wfsim, using nestpy for the quanta generation and DBSCAN for the clustering of the individual steps.
 
 ## Installation
 
-Assuming you are working on top of our montecarlo_environment (`/project2/lgrandi/xenonnt/singularity-images/xenonnt-montecarlo-development.simg`):
+With all requirements fulfilled (e.g., on top of the [XENONnT montecarlo_environment](https://github.com/XENONnT/montecarlo_environment)):
+```
+pip install epix
+```
+or install in editable mode from source:
 ```
 git clone https://github.com/XENONnT/epix
-cd epix
-python3 setup.py develop --user
+pip install -e epix
 ```
 
 ## Usage
@@ -20,8 +25,9 @@ Only an input file is needed to run epix:
 bin/run_epix --InputFile <path_and_filename>
 ```
 The other keyword arguments are:
+
 | Argument | Description | Default |
-|--------------|------------------------|---|
+| :------------- | :------------- | :------------- |
 | `--Detector`  | Detector to be used. Has to be defined in epix.detectors | `XENONnT` |
 | `--DetectorConfigOverride`  | Config file to overwrite default epix.detectors settings; see examples in the `configs` folder | in epix.detectors |
 | `--CutOnEventid`  | If selected, the next two arguments act on the G4 event id, and not the entry number (default) | `false` |
