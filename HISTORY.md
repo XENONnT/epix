@@ -1,3 +1,8 @@
+0.1.1 (2021-04-09)
+==================
+  * Automatic PyPi upload (#24)
+  * PyPi and codefactor integration
+
 0.1.0 (2021-03-30)
 ==================
   * E-Field format change (#23)
