@@ -8,7 +8,7 @@ on:
     types: [created]
   # Allow manual build if tests are failing first time
   workflow_dispatch:
-    
+
 jobs:
   deploy:
 
