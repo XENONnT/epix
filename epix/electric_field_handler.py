@@ -2,22 +2,23 @@ from scipy.interpolate import RegularGridInterpolator as RGI
 import pandas as pd
 import numpy as np
 import os
+import gzip
+import json
 
 
 class MyElectricFieldHandler:
     def __init__(self, field_map=""):
         """
-        The field map should be a text file with the following
-        structure: "r z E", with length in cm and field in V/cm.
-        The elements are delimited by a white space. Header lines
-        should start with a '#'.
+        The field map, defined over a regular grid, should be
+        a .csv or .json.gz file. 
 
-        The map has to be defined over a regular grid and it has to
-        be given as follows:
-        0.0 -97.2 300
-        0.1 -97.2 305
-        0.2 -97.2 298
-        ...
+        Structure of the csv file:
+        Columns "r" "z" and "E", with lenght in cm and field in V/cm.
+        The elements are delimited by a ",". 
+
+        Structure of the json.gz file:
+        Contains the "r" and "z" coordinates in cm under the key
+        "coordinate_system" and the field in V/cm under the key "map".
         """
         self.map = field_map
         if os.path.isfile(self.map):
@@ -29,7 +30,20 @@ class MyElectricFieldHandler:
                              ' for the electirc field map.')
 
     def _load_field(self):
-        self.field = pd.read_csv(self.map)
+        file_ending = self.map.split(".")[-1]
+
+        if file_ending == "csv":
+            self.field = pd.read_csv(self.map)
+        elif file_ending == "gz":
+            with gzip.open(self.map, 'rb') as f:
+                field_map = json.load(f)
+            self.field = pd.DataFrame()
+            self.field["r"] = np.array(field_map["coordinate_system"])[:,0]
+            self.field["z"] = np.array(field_map["coordinate_system"])[:,1]
+            self.field["E"] = np.array(field_map["map"])
+        else:
+            raise ValueError(f'Cannot open "{self.map}". File extension is not valid'
+                             ' for the electric field map. Use .csv or .json.gz')
 
     def _get_coordinates(self):
         self.R = np.unique(self.field['r'])
