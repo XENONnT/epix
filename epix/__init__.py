@@ -10,3 +10,4 @@ from .ElectricFieldHandler import *
 from .event_separation import *
 from .detectors import *
 from .run_epix import *
+from .simulator import *

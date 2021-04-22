@@ -18,6 +18,8 @@ import collections
 import uproot
 import json
 
+import itertools
+from immutabledict import immutabledict
 
 class NVetoUtils():
     @staticmethod
@@ -32,16 +34,17 @@ class NVetoUtils():
         return nv_pmt_qe[str(pmt_ch)][wvl_index]
 
     @staticmethod
-    def get_nv_hits(ttree, pmt_nv_json_dict,
+    def get_nv_hits(ttree, pmt_nv_json_dict, nveto_dtype,
                     SPE_Resolution=0.35, SPE_ResThreshold=0.5,
                     max_coin_time_ns=500.0, batch_size=10000):
-
+        
+        
+        hits_dict = {'event_id': [], 'time': [],'channel': []}
+        num_hits=0
         for events_iterator in uproot.iterate(ttree,
-                                              ['eventid', 'pmthitID', 'pmthitTime', 'pmthitEnergy'],
-                                              step_size=batch_size,
-                                              ioutputtype=collections.namedtuple):
-            hits_dict = {'eventid': [], 'hits': []}
-
+                                          ['eventid', 'pmthitID', 'pmthitTime', 'pmthitEnergy'],
+                                          step_size=batch_size,
+                                          ioutputtype=collections.namedtuple):
             for eventid_evt, pmthitID_evt, pmthitTime_evt, \
                 pmthitEnergy_evt in zip(getattr(events_iterator, 'eventid'),
                                         getattr(events_iterator, 'pmthitID'),
@@ -74,11 +77,17 @@ class NVetoUtils():
                     t0 = hit_array[:, 0].min()
                     tf = t0 + max_coin_time_ns
                     hit_array_coincidence = hit_array[hit_array[:, 0] < tf]
-
-                hits_dict['eventid'].append(eventid_evt)
-                hits_dict['hits'].append(hit_array_coincidence)
-
-        return hits_dict
+                if len(hit_array_coincidence)>0:
+                    hits_dict['event_id'].append([eventid_evt]*len(hit_array_coincidence))
+                    hits_dict['time'].append(hit_array_coincidence[:,0])
+                    hits_dict['channel'].append(hit_array_coincidence[:,1])
+                    num_hits+=len(hit_array_coincidence)
+                    
+        result = np.zeros(num_hits,dtype=nveto_dtype)
+        result['event_id']=list(itertools.chain.from_iterable(hits_dict['event_id']))
+        result['channel']=list(itertools.chain.from_iterable(hits_dict['channel']))
+        result['time']=list(itertools.chain.from_iterable(hits_dict['time']))
+        result['endtime']=result['time']+1
 
 
 class Helpers():
@@ -312,7 +321,7 @@ class Simulator():
 
         event_numbers = np.unique(self.instructions_epix['event_number'])
         ins_size = len(event_numbers)
-        instructions = np.zeros(ins_size, dtype=StraxSimulator.dtype)
+        instructions = np.zeros(ins_size, dtype=StraxSimulator.dtype['events_tpc'])
 
         for ix in range(ins_size):
             i = instructions[ix]
@@ -364,14 +373,21 @@ class Simulator():
     strax.Option('g4_file', help='G4 file to simulate'),
     strax.Option('epix_config', default=dict(), help='Configuration file for epix', ),
     strax.Option('configuration_files', default=dict(), help='Files required for simulating'),
-    strax.Option('fax_config', default='fax_config_nt_design.json', help='Fax configuration to load'),
+    strax.Option('fax_config', help='Fax configuration to load'),
     strax.Option('xy_resolution', default=5, help='xy position resolution (cm)'),
     strax.Option('z_resolution', default=1, help='xy position resolution (cm)'),
+    strax.Option('dpe_fraction', default=1, help="double photo electron emission probabilty. \
+                                                 Should be 1 since it's included in the LCE maps"),
+    strax.Option('nv_spe_resolution', default=0.35, help='nveto something?'),
+    strax.Option('nv_spe_res_threshold', default=0.5, help='some nveto threshold?'),
+    strax.Option('nv_max_coin_time_ns', default=500.0, help='maximum coincidence time'),
+    
 )
 class StraxSimulator(strax.Plugin):
-    provides = 'events_full_simmed'
+    provides = ('events_tpc','events_nveto')
     depends_on = ()
-    dtype = [('time', np.int64),
+    data_kind = immutabledict(zip(provides, provides))
+    dtype=dict(events_tpc=[('time', np.int64),
              ('endtime', np.int64),
              ('s1_area', np.float),
              ('s2_area', np.float),
@@ -388,50 +404,81 @@ class StraxSimulator(strax.Plugin):
              ('alt_s2_y', np.float),
              ('alt_s2_z', np.float),
              ('drift_time', np.float),
-             ('alt_s2_drift_time', np.float)]
+             ('alt_s2_drift_time', np.float)],
+          events_nveto=[('time',np.float),
+                               ('endtime',np.float),
+                               ('event_id',np.int),
+                               ('channel',np.int),])
 
     def setup(self, ):
         self.resource = Resource(self.config)
-        # self.config.update(get_resource(self.config['fax_config']))
 
     def get_nveto_data(self, ):
         file_tree, _ = epix.io._get_ttree(self.config['epix_config']['path'],
                                           self.config['epix_config']['file_name'])
         nveto_df = None
         if 'pmthitID' in file_tree.keys():
-            nv_hits = NVetoUtils.get_nv_hits(file_tree,
-                                             self.resource.nveto_pmt_qe,
-                                             SPE_Resolution=0.35, SPE_ResThreshold=0.5,
-                                             max_coin_time_ns=500.0, batch_size=10000)
-            nveto_df = pd.DataFrame(nv_hits)
-        return nveto_df
+            nv_hits = NVetoUtils.get_nv_hits(ttree=file_tree,
+                                             pmt_nv_json_dict=self.resource.nveto_pmt_qe,
+                                             nveto_dtype=self.dtype['events_nveto'],
+                                             SPE_Resolution=self.config['nv_spe_resolution'], 
+                                             SPE_ResThreshold=self.config['nv_spe_res_threshold'],
+                                             max_coin_time_ns=self.config['nv_max_coin_time_ns'], 
+                                             batch_size=10000)
+        return nv_hits
 
     def get_epix_instructions(self, ):
         detector = epix.init_detector('xenonnt', '')
-        self.config['epix_config']['detector_config'] = detector
+        epix_config=deepcopy(self.config['epix_config'])
+        epix_config['detector_config'] = detector
 
         outer_cylinder = getattr(epix.detectors, 'xenonnt')
         _, outer_cylinder = outer_cylinder()
-        self.config['epix_config']['outer_cylinder'] = outer_cylinder
+        epix_config['outer_cylinder'] = outer_cylinder
 
-        epix_ins = epix.run_epix.main(self.config['epix_config'], return_wfsim_instructions=True)
+        epix_ins = epix.run_epix.main(epix_config, return_wfsim_instructions=True)
         return epix_ins
 
-    def compute(self, ):
-        nveto_df = self.get_nveto_data()
+    def compute(self):
+        simulated_data_nveto = self.get_nveto_data()
         epix_instructions = self.get_epix_instructions()
         self.config['fax_config']['detector'] = self.config['detector']
-        self.config['fax_config']['dpe_fraction'] = 1.0
+        self.config['fax_config']['dpe_fraction'] = self.config['dpe_fraction']
         self.config['fax_config']['xy_resolution'] = self.config['xy_resolution']
         self.config['fax_config']['z_resolution'] = self.config['z_resolution']
         self.Simulator = Simulator(instructions_epix=epix_instructions,
                                    config=self.config['fax_config'],
                                    resource=self.resource)
         simulated_data = self.Simulator.run_simulator()
-
-        return simulated_data, nveto_df
-
+        
+        simulated_data_chunk=self.chunk(
+                           start=simulated_data['time'][0],
+                           end=simulated_data['endtime'][-1],
+                           data=simulated_data,
+                           data_type='events_tpc')
+        
+        #write empty chunk if nveto data is there
+        if simulated_data_nveto==None:
+            simulated_data_nveto_chunk=self.chunk(
+                           start=0,
+                           end=1,
+                           data=simulated_data_nveto,
+                           data_type='events_nveto')
+        else:
+            simulated_data_nveto_chunk=self.chunk(
+                           start=simulated_data_nveto['time'][0],
+                           end=np.max(simulated_data_nveto['endtime']),
+                           data=simulated_data_nveto,
+                           data_type='events_nveto')
+        
+        
+        return {'events_tpc':simulated_data_chunk,
+                'events_nveto':simulated_data_nveto_chunk}
+    
     def is_ready(self, chunk):
         # For this plugin we'll smash everything into 1 chunk, should be oke
+        return True if chunk==0 else False
+    
+    def source_finished(self):
         return True
 
