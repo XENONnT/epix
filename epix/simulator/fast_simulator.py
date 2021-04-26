@@ -3,7 +3,7 @@ import straxen
 from straxen import pax_file, InterpolatingMap, get_resource, get_config_from_cmt
 
 import wfsim
-from wfsim.load_resource import make_map
+from wfsim.load_resource import Resource
 
 import epix
 import pandas as pd
@@ -131,40 +131,28 @@ class Helpers():
 
     @staticmethod
     def get_s1_light_yield(n_photons, positions, s1_light_yield_map, config):
-        if config['detector'] == 'XENONnT':
-            ly = np.squeeze(s1_light_yield_map(positions),
-                            axis=-1) / (1 + config['p_double_pe_emision'])
-        elif config['detector'] == 'XENON1T':
-            ly = s1_light_yield_map(positions)
-            ly *= config['s1_detection_efficiency']
-
-        n_photons = np.random.binomial(n=n_photons.astype(int64), p=ly)
-        return n_photons
+        return wfsim.S1.get_n_photons(n_photons=n_photons,
+                                           positions=positions,
+                                           s1_light_yield_map=s1_light_yield_map,
+                                           config=config)
 
     @staticmethod
     def get_s2_light_yield(positions, config, resource):
-        if config['detector'] == 'XENONnT':
-            sc_gain = np.squeeze(resource.s2_light_yield_map(positions), axis=-1) \
-                      * config['s2_secondary_sc_gain']
-        elif config['detector'] == 'XENON1T':
-            sc_gain = resource.s2_light_yield_map(positions) \
-                      * config['s2_secondary_sc_gain']
-        return sc_gain
+        return wfsim.S2.get_s2_light_yield(positions=positions,
+                                           config=config,
+                                           resource=resource)
+
+
 
     @staticmethod
-    def get_s2_charge_yield(n_electron, z_obs, config):
-        # Average drift time of the electrons
-        drift_time_mean = -z_obs / config['drift_velocity_liquid'] + config['drift_time_gate']
-
-        # Absorb electrons during the drift
-        electron_lifetime_correction = np.exp(- 1 * drift_time_mean / config['electron_lifetime_liquid'])
-        cy = config['electron_extraction_yield'] * electron_lifetime_correction
-        # why are there cy greater than 1? We should check this
-        cy = np.clip(cy, a_min=0, a_max=1)
-        n_electron = np.random.binomial(n=n_electron, p=cy)
-        return n_electron
-
-
+    def get_s2_charge_yield(n_electron, positions, z_obs, config, resource):
+        return wfsim.S2.get_electron_yield(n_electron=n_electron,
+                                           positions=positions,
+                                           z_obs=z_obs,
+                                           config=config,
+                                           resource=resource)
+    
+    
 class Resource():
     def __init__(self, config) -> None:
         self._load_resource(config['configuration_files'])
@@ -243,17 +231,22 @@ class GenerateEvents():
     def make_s2(instructions, config, resource):
         '''Call functions from wfsim to drift electrons. Since the s2 light yield implementation is a little bad how to do that?
         Make sc_gain factor 11 to large to correct for this? Also whats the se gain variation? Lets take sqrt for now'''
-        xy = np.vstack([instructions['x'], instructions['y']]).T
+        xy = np.array([instructions['x'], instructions['y']]).T
+        alt_xy = np.array([instructions['alt_s2_x'], instructions['alt_s2_y']]).T
 
         n_el = instructions['s2_area'].astype(int64)
         n_electron = Helpers.get_s2_charge_yield(n_electron=n_el,
+                                                 positions=xy,
                                                  z_obs=instructions['z'],
-                                                 config=config)
+                                                 config=config,
+                                                 resource=resource)
 
         n_el = instructions['alt_s2_area'].astype(int64)
         alt_n_electron = Helpers.get_s2_charge_yield(n_electron=n_el,
+                                                     positions=alt_xy,
                                                      z_obs=instructions['z'],
-                                                     config=config)
+                                                     config=config,
+                                                     resource=resource)
 
         sc_gain = Helpers.get_s2_light_yield(positions=xy,
                                              config=config,
@@ -374,6 +367,7 @@ class Simulator():
     strax.Option('epix_config', default=dict(), help='Configuration file for epix', ),
     strax.Option('configuration_files', default=dict(), help='Files required for simulating'),
     strax.Option('fax_config', help='Fax configuration to load'),
+    strax.Option('fax_config_overrides', help='Fax configuration to override',default=None),
     strax.Option('xy_resolution', default=5, help='xy position resolution (cm)'),
     strax.Option('z_resolution', default=1, help='xy position resolution (cm)'),
     strax.Option('dpe_fraction', default=1, help="double photo electron emission probabilty. \
@@ -412,7 +406,10 @@ class StraxSimulator(strax.Plugin):
 
     def setup(self, ):
         self.resource = Resource(self.config)
-
+        overrides=self.config['fax_config_overrides']
+        if overrides is not None:
+            self.config['fax_config'].update(overrides)
+        
     def get_nveto_data(self, ):
         file_tree, _ = epix.io._get_ttree(self.config['epix_config']['path'],
                                           self.config['epix_config']['file_name'])
