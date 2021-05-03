@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from numpy import int64, float64
 from copy import deepcopy
+import numba
 
 import scipy as scp
 from scipy.interpolate import interp1d
@@ -20,6 +21,26 @@ import json
 
 import itertools
 from immutabledict import immutabledict
+
+#Numba and classes still are not a match made in heaven
+@numba.njit
+def _merge_these_clusters(s2_area1, z1, s2_area2, z2):
+    sensitive_volume_ztop=0 #it's the ground mesh, the top liquid level is at 2.7; // mm
+    max_s2_area = max(s2_area1,s2_area2)
+    if max_s2_area>5000:
+        SeparationDistanceIntercept = 0.00024787 * 5000. + 3.4056346550312973
+        SeparationDistanceSlope = 5.5869678412887262e-07 * 5000. + 0.0044792968
+    else:
+        SeparationDistanceIntercept = \
+          0.00024787 * max_s2_area + 3.4056346550312973
+        SeparationDistanceSlope = \
+          5.5869678412887262e-07 * max_s2_area + 0.0044792968
+    SeparationDistance = \
+        SeparationDistanceIntercept - \
+        SeparationDistanceSlope * (-sensitive_volume_ztop +\
+            (z1 + z2) * 0.5)
+    return z1-z2<SeparationDistance
+    
 
 class NVetoUtils():
     @staticmethod
@@ -120,6 +141,25 @@ class Helpers():
             uniform_to_pe_arr.append(grid_scale)
         spe_distribution = np.mean(uniform_to_pe_arr, axis=0)
         return spe_distribution
+    
+    @staticmethod
+    @numba.njit
+    def macro_cluster_events(instructions):
+        for ix1 in range(len(instructions)):
+            if instructions[ix1]['type']!=2:
+                continue
+            for ix2 in range(1,len(instructions[ix1:])+1):
+                if instructions[ix1+ix2]['type']!=2:
+                    continue
+                if instructions[ix1]['event_number']!=instructions[ix1+ix2]['event_number']:
+                    break
+                if _merge_these_clusters(instructions[ix1]['amp'],instructions[ix1]['z'],
+                                         instructions[ix1+ix2]['amp'],instructions[ix1+ix2]['z']):
+                    instructions[ix1+ix2]['x'] = (instructions[ix1]['x']+instructions[ix1+ix2]['x'])*0.5
+                    instructions[ix1+ix2]['y'] = (instructions[ix1]['y']+instructions[ix1+ix2]['y'])*0.5
+                    instructions[ix1+ix2]['z'] = (instructions[ix1]['z']+instructions[ix1+ix2]['z'])*0.5
+                    instructions[ix1+ix2]['amp'] = int((instructions[ix1]['amp']+instructions[ix1+ix2]['amp'])*0.5)
+                    instructions[ix1]['amp']=-1 #flag to throw this instruction away later
 
     @staticmethod
     def get_s1_area_with_spe(spe_distribution, num_photons):
@@ -306,12 +346,20 @@ class Simulator():
             key=(lambda field: field.order)
         )
         self.instructions_epix = instructions_epix
+        
+        
 
+        
     def cluster_events(self, ):
         # Events have more than 1 s1/s2. Here we throw away all of them except the largest 2
         # Take the position to be that of the main s2
         # And strax wants some start and endtime, so we make something up
-
+        
+        #First do the macro clustering. Clustered instructions will be flagged with amp=-1
+        #so we can safely through those out
+        Helpers.macro_cluster_events(self.instructions_epix)
+        self.instructions_epix=self.instructions_epix[self.instructions_epix['amp']!=-1]
+        
         event_numbers = np.unique(self.instructions_epix['event_number'])
         ins_size = len(event_numbers)
         instructions = np.zeros(ins_size, dtype=StraxSimulator.dtype['events_tpc'])
