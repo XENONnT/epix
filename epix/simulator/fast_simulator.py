@@ -147,7 +147,7 @@ class Helpers():
     def macro_cluster_events(instructions):
         """Loops over all instructions, checks if it's an s2 and if there is another s2 within the same event
             within the macro cluster distance, if it is they are merged."""
-        for ix1 in range(len(instructions)):
+        for ix1,_ in enumerate(instructions):
             if instructions[ix1]['type']!=2:
                 continue
             for ix2 in range(1,len(instructions[ix1:])+1):
@@ -509,7 +509,7 @@ class StraxSimulator(strax.Plugin):
                            data_type='events_tpc')
         
         #write empty chunk if nveto data isn't there
-        if simulated_data_nveto==None:
+        if simulated_data_nveto is None:
             simulated_data_nveto_chunk=self.chunk(
                            start=0,
                            end=1,
@@ -532,4 +532,3 @@ class StraxSimulator(strax.Plugin):
     
     def source_finished(self):
         return True
-
