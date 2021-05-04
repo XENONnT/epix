@@ -1,14 +1,13 @@
 import strax
 import straxen
-from straxen import pax_file, InterpolatingMap, get_resource, get_config_from_cmt
+from straxen import InterpolatingMap, get_resource
 
 import wfsim
 from wfsim.load_resource import load_config
 
 import epix
-import pandas as pd
 import numpy as np
-from numpy import int64, float64
+from numpy import int64
 from copy import deepcopy
 import numba
 
@@ -17,7 +16,6 @@ from scipy.interpolate import interp1d
 
 import collections
 import uproot
-import json
 
 import itertools
 from immutabledict import immutabledict
@@ -114,6 +112,7 @@ class NVetoUtils():
 class Helpers():
     @staticmethod
     def assignOrder(order):
+        """This is a trick to have the calculation function be executed in a particular order"""
         def do_assignment(to_func):
             to_func.order = order
             return to_func
@@ -122,6 +121,7 @@ class Helpers():
 
     @staticmethod
     def average_spe_distribution(spe_shapes):
+        """We take the spe distribution from all channels and take the average to be our spe distribution to draw photon areas from"""
         uniform_to_pe_arr = []
         for ch in spe_shapes.columns[1:]:  # skip the first element which is the 'charge' header
             if spe_shapes[ch].sum() > 0:
@@ -145,6 +145,8 @@ class Helpers():
     @staticmethod
     @numba.njit
     def macro_cluster_events(instructions):
+        """Loops over all instructions, checks if it's an s2 and if there is another s2 within the same event
+            within the macro cluster distance, if it is they are merged."""
         for ix1 in range(len(instructions)):
             if instructions[ix1]['type']!=2:
                 continue
@@ -163,6 +165,11 @@ class Helpers():
 
     @staticmethod
     def get_s1_area_with_spe(spe_distribution, num_photons):
+        """
+
+            :params: spe_distribution, the spe distribution to draw photon areas from
+            :params: num_photons, number of photons to draw from spe distribution
+        """
         s1_area_spe = []
         for n_ph in num_photons:
             s1_area_spe.append(np.sum(spe_distribution[
@@ -171,6 +178,7 @@ class Helpers():
 
     @staticmethod
     def get_s1_light_yield(n_photons, positions, s1_light_yield_map, config):
+        """See WFsim.s1.get_n_photons"""
         return wfsim.S1.get_n_photons(n_photons=n_photons,
                                            positions=positions,
                                            s1_light_yield_map=s1_light_yield_map,
@@ -178,6 +186,7 @@ class Helpers():
 
     @staticmethod
     def get_s2_light_yield(positions, config, resource):
+        """See WFsim.s2.get_s2_light_yield"""
         return wfsim.S2.get_s2_light_yield(positions=positions,
                                            config=config,
                                            resource=resource)
@@ -186,58 +195,25 @@ class Helpers():
 
     @staticmethod
     def get_s2_charge_yield(n_electron, positions, z_obs, config, resource):
+        """See wfsim.s2.get_electron_yield"""
         return wfsim.S2.get_electron_yield(n_electron=n_electron,
                                            positions=positions,
                                            z_obs=z_obs,
                                            config=config,
                                            resource=resource)
-    
-    
-# class Resource():
-#     def __init__(self, config) -> None:
-#         self.resource=load_resource(config)
-#         self._update_resource(self,config)
-
-#     def _update_resource(self, config):
-#         '''Loads needed configs to call wfsim. We need s1/s2 light yield maps,
-#         spe distibutions and corrections maps'''
-#         self.run_id = '1000'  # ? I just put this to something for the cmt
-#         self.s1_map = InterpolatingMap(
-#             get_resource(config['s1_relative_lce_map']))
-#         self.s2_map = InterpolatingMap(
-#             get_resource(get_config_from_cmt(self.run_id, config['s2_xy_correction_map'])))
-
-#         map_data = straxen.get_resource(config['s1_pattern_map'], fmt='pkl')
-#         self.s1_pattern_map = straxen.InterpolatingMap(map_data)
-#         # self.s1_pattern_map = make_mapf(config['s1_pattern_map'], fmt='pkl')
-#         lymap = deepcopy(self.s1_pattern_map)
-#         lymap.data['map'] = np.sum(lymap.data['map'][:][:][:], axis=3, keepdims=True)
-#         lymap.__init__(lymap.data)
-#         self.s1_light_yield_map = lymap
-
-#         map_data = straxen.get_resource(config['s2_pattern_map'], fmt='pkl')
-#         self.s2_pattern_map = straxen.InterpolatingMap(map_data)
-#         # self.s2_pattern_map = make_map(config['s2_pattern_map'], fmt='pkl')
-#         lymap = deepcopy(self.s2_pattern_map)
-#         lymap.data['map'] = np.sum(lymap.data['map'][:][:], axis=2, keepdims=True)
-#         lymap.__init__(lymap.data)
-#         self.s2_light_yield_map = lymap
-
-#         self.photon_area_distribution = Helpers.average_spe_distribution(
-#             get_resource(config['photon_area_distribution'], fmt='csv'))
-#         self.nveto_pmt_qe = json.loads(get_resource(config['nv_pmt_qe']))
 
 
 class GenerateEvents():
     '''Class to hold all the stuff to be applied to data.
     The functions will be grouped together and executed by Simulator'''
 
-    def __init__(self) -> None:
-        pass
-
     @staticmethod
     @Helpers.assignOrder(0)
     def smear_positions(instructions, config, **kwargs):
+        """Take initial positions and apply gaussian smearing with some resolution to get the measured position
+            :params: instructions, numpy array with instructions of events_tpc dtype
+            :params: config, dict with configuration values for resolution
+        """
         instructions['x'] = np.random.normal(instructions['x'], config['xy_resolution'])
         instructions['y'] = np.random.normal(instructions['y'], config['xy_resolution'])
         instructions['z'] = np.random.normal(instructions['z'], config['z_resolution'])
@@ -249,6 +225,11 @@ class GenerateEvents():
     @staticmethod
     @Helpers.assignOrder(1)
     def make_s1(instructions, config, resource):
+        """Build the s1s. Takes number of quanta and calcultes the (alt) s1 area using wfsim
+            :params: instructions, numpy array with instructions of events_tpc dtype
+            :params: config, dict with configuration values for resolution
+            :params: resource, instance of wfsim Resource class
+        """
         xyz = np.vstack([instructions['x'], instructions['y'], instructions['z']]).T
 
         num_ph = instructions['s1_area'].astype(int64)
@@ -270,8 +251,12 @@ class GenerateEvents():
     @staticmethod
     @Helpers.assignOrder(2)
     def make_s2(instructions, config, resource):
-        '''Call functions from wfsim to drift electrons. Since the s2 light yield implementation is a little bad how to do that?
-        Make sc_gain factor 11 to large to correct for this? Also whats the se gain variation? Lets take sqrt for now'''
+        """Call functions from wfsim to drift electrons. Since the s2 light yield implementation is a little bad how to do that?
+            Make sc_gain factor 11 to large to correct for this? Also whats the se gain variation? Lets take sqrt for now
+            :params: instructions, numpy array with instructions of events_tpc dtype
+            :params: config, dict with configuration values for resolution
+            :params: resource, instance of wfsim Resource class
+        """
         xy = np.array([instructions['x'], instructions['y']]).T
         alt_xy = np.array([instructions['alt_s2_x'], instructions['alt_s2_y']]).T
 
@@ -303,6 +288,12 @@ class GenerateEvents():
     @staticmethod
     @Helpers.assignOrder(3)
     def correction_s1(instructions, resource, **kwargs):
+        """"
+            Calculates (alt)cs1. Method taken from CorrectedAreas in straxen
+            :params: instructions, numpy array with instructions of events_tpc dtype
+            :params: config, dict with configuration values for resolution
+            :params: resource, instance of wfsim Resource class
+        """
         event_positions = np.vstack([instructions['x'], instructions['y'], instructions['z']]).T
         instructions['cs1'] = instructions['s1_area'] / resource.s1_map(event_positions)
 
@@ -312,6 +303,12 @@ class GenerateEvents():
     @staticmethod
     @Helpers.assignOrder(4)
     def correction_s2(instructions, config, resource):
+        """"
+            Calculates (alt)cs2. Method taken from CorrectedAreas in straxen
+            :params: instructions, numpy array with instructions of events_tpc dtype
+            :params: config, dict with configuration values for resolution
+            :params: resource, instance of wfsim Resource class
+        """
         lifetime_corr = np.exp(instructions['drift_time'] / config['electron_lifetime_liquid'])
 
         alt_lifetime_corr = (np.exp((instructions['alt_s2_drift_time']) / config['electron_lifetime_liquid']))
@@ -349,12 +346,12 @@ class Simulator():
         self.instructions_epix = instructions_epix
          
     def cluster_events(self, ):
-        # Events have more than 1 s1/s2. Here we throw away all of them except the largest 2
-        # Take the position to be that of the main s2
-        # And strax wants some start and endtime, so we make something up
+        """Events have more than 1 s1/s2. Here we throw away all of them except the largest 2
+         Take the position to be that of the main s2
+         And strax wants some start and endtime, so we make something up
         
-        #First do the macro clustering. Clustered instructions will be flagged with amp=-1
-        #so we can safely through those out
+        First do the macro clustering. Clustered instructions will be flagged with amp=-1
+        so we can safely through those out"""
         Helpers.macro_cluster_events(self.instructions_epix)
         self.instructions_epix=self.instructions_epix[self.instructions_epix['amp']!=-1]
         
