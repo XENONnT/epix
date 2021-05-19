@@ -152,18 +152,21 @@ def loader(directory,
 
     if np.any(interactions['ed'] < 0):
         warnings.warn('At least one of the energy deposits is negative!')
+    
+
+    ##### No Cuts when using track reconstruction ####
 
     # Removing all events with zero energy deposit
-    m = interactions['ed'] > 0
-    if cut_by_eventid:
+    #m = interactions['ed'] > 0
+    #if cut_by_eventid:
         # ufunc does not work here...
-        m2 = (interactions['evtid'] >= start) & (interactions['evtid'] < stop)
-        m = m & m2
-    interactions = interactions[m]
+    #    m2 = (interactions['evtid'] >= start) & (interactions['evtid'] < stop)
+    #    m = m & m2
+    #interactions = interactions[m]
 
     # Removing all events with no interactions:
-    m = ak.num(interactions['ed']) > 0
-    interactions = interactions[m]
+    #m = ak.num(interactions['ed']) > 0
+    #interactions = interactions[m]
 
     return interactions, n_simulated_events
 
