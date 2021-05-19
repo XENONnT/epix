@@ -165,8 +165,8 @@ def loader(directory,
     #interactions = interactions[m]
 
     # Removing all events with no interactions:
-    #m = ak.num(interactions['ed']) > 0
-    #interactions = interactions[m]
+    m = ak.num(interactions['ed']) > 0
+    interactions = interactions[m]
 
     return interactions, n_simulated_events
 
