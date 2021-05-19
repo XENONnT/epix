@@ -110,7 +110,10 @@ def build_lineage(trackid, types, parentid, x, y, z, distance_threshold):
         own_lineage = lineage[trackid==trackid[idx]]
         if own_lineage.size > 0:
             lineage[idx] = own_lineage[0]
-        
+    
+    #for some reason we need to have a cluster 0 for _cluster to work
+    lineage -= np.min(lineage)
+
     return lineage
 
 def check_inheritance(particle_parent_type, distance, distance_threshold):
