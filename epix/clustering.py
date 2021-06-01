@@ -268,7 +268,7 @@ def classify(types, parenttype, creaproc, edproc):
 
     # If our data does not match any classification make it a nest None type
     # TODO: fix me
-    return 0, 0, 12
+    return np.inf, np.inf, 12
 
 
 @numba.njit
