@@ -241,7 +241,7 @@ classifier = np.zeros(7, dtype=[(('Interaction type', 'types'), np.dtype('<U30')
                                 (('Interaction type of the parent', 'parenttype'), np.dtype('<U30')),
                                 (('Creation process', 'creaproc'), np.dtype('<U30')),
                                 (('Energy deposit process', 'edproc'), np.dtype('<U30')),
-                                (('Atomic mass number', 'A'), np.int16),
+                                (('Atomic mass number', 'A'), np.float16),
                                 (('Atomic number', 'Z'), np.int16),
                                 (('Nest Id for qunata generation', 'nestid'), np.int16)]
                       )
@@ -249,7 +249,7 @@ classifier['types'] = ['None', 'neutron', 'alpha', 'None','None', 'gamma', 'e-']
 classifier['parenttype'] = ['None', 'None', 'None', 'Kr83[9.405]','Kr83[41.557]', 'None', 'None']
 classifier['creaproc'] = ['None', 'None', 'None', 'None', 'None','None', 'None']
 classifier['edproc'] = ['ionIoni', 'hadElastic', 'None', 'None','None', 'None', 'None']
-classifier['A'] = [0, 0, 4, 0, 0, 0, 0]
+classifier['A'] = [np.inf, np.inf, 4, np.inf, np.inf, np.inf, np.inf]
 classifier['Z'] = [0, 0, 2, 0, 0, 0, 0]
 classifier['nestid'] = [0, 0, 6, 11, 11, 7, 8]
 
