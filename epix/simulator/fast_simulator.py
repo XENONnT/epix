@@ -8,6 +8,8 @@ from copy import deepcopy
 from immutabledict import immutabledict
 from .GenerateEvents import GenerateEvents
 from .GenerateNveto import NVetoUtils
+from .helpers import Helpers
+
 
 class Simulator():
     '''Simulator class for epix to go from  epix instructions to fully processed data'''
@@ -140,12 +142,8 @@ class StraxSimulator(strax.Plugin):
             get_resource(self.config['configuration_files']['s2_xy_correction_map']))
         
         self.resource.nv_pmt_qe=straxen.get_resource(self.config['configuration_files']['nv_pmt_qe'], fmt='json')
-        self.resource.photon_area_distribution = Helpers.average_spe_distribution(
+        self.resource.photon_area_distribution = epix.Helpers.average_spe_distribution(
             get_resource(self.config['configuration_files']['photon_area_distribution'], fmt='csv'))
-        
-        self.resource=dict()
-        for map in self.config['resource_maps']:
-            self.resourec[map]=straxen.get_resource(map)
         
 
     def setup(self, ):
