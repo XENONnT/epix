@@ -32,6 +32,17 @@ def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
     nc = nestpy.NESTcalc(nestpy.VDetector())
     density = 2.862  # g/cm^3
 
+    # Fix for Kr83m events.
+    # Energies have to be very close to 32.1 keV or 9.4 keV
+    # See: https://github.com/NESTCollaboration/nest/blob/master/src/NEST.cpp#L567
+    # and: https://github.com/NESTCollaboration/nest/blob/master/src/NEST.cpp#L585
+    max_allowed_energy_difference = 1  # keV
+    if model == 11:
+        if abs(en - 32.1) > max_allowed_energy_difference:
+            en = 32.1
+        if abs(en - 9.4) > max_allowed_energy_difference:
+            en = 9.4
+
     # Some addition taken from
     # https://github.com/NESTCollaboration/nestpy/blob/e82c71f864d7362fee87989ed642cd875845ae3e/src/nestpy/helpers.py#L94-L100
     if model == 0 and en > 2e2:
