@@ -237,6 +237,8 @@ def _cluster(x, y, z, ed, time, ci,
         res.end_list()
 
 
+infinity = np.iinfo(np.int16).max
+
 classifier = np.zeros(7, dtype=[(('Interaction type', 'types'), np.dtype('<U30')),
                                 (('Interaction type of the parent', 'parenttype'), np.dtype('<U30')),
                                 (('Creation process', 'creaproc'), np.dtype('<U30')),
@@ -249,8 +251,7 @@ classifier['types'] = ['None', 'neutron', 'alpha', 'None','None', 'gamma', 'e-']
 classifier['parenttype'] = ['None', 'None', 'None', 'Kr83[9.405]','Kr83[41.557]', 'None', 'None']
 classifier['creaproc'] = ['None', 'None', 'None', 'None', 'None','None', 'None']
 classifier['edproc'] = ['ionIoni', 'hadElastic', 'None', 'None','None', 'None', 'None']
-classifier['A'] = [np.iinfo(np.int16).max, np.iinfo(np.int16).max, 4, np.iinfo(np.int16).max,\
-    np.iinfo(np.int16).max, np.iinfo(np.int16).max, np.iinfo(np.int16).max]
+classifier['A'] = [infinity, infinity, 4, infinity,infinity, infinity, infinity]
 classifier['Z'] = [0, 0, 2, 0, 0, 0, 0]
 classifier['nestid'] = [0, 0, 6, 11, 11, 7, 8]
 
@@ -269,7 +270,7 @@ def classify(types, parenttype, creaproc, edproc):
 
     # If our data does not match any classification make it a nest None type
     # TODO: fix me
-    return np.iinfo(np.int16).max, np.iinfo(np.int16).max, 12
+    return infinity, infinity, 12
 
 
 @numba.njit
