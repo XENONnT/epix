@@ -1,3 +1,8 @@
+0.1.2 (2021-06-09)
+==================
+  * Add sklearn to requirements (#31)
+  * Fix Kr83m NEST-related issues (#30)
+
 0.1.1 (2021-04-09)
 ==================
   * Automatic PyPi upload (#24)
