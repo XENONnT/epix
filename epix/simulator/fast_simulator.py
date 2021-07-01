@@ -35,6 +35,14 @@ class Simulator():
         
         First do the macro clustering. Clustered instructions will be flagged with amp=-1
         so we can safely through those out"""
+        
+        print(f"Min. S2 amp BEFORE MACRO-CLUSTERING: {self.instructions_epix[self.instructions_epix['type']==2]['amp'].min()}")
+
+        Helpers.macro_cluster_events(self.instructions_epix)
+        self.instructions_epix=self.instructions_epix[self.instructions_epix['amp']!=-1]
+        
+        print(f"Min. S2 amp AFTER MACRO-CLUSTERING: {self.instructions_epix[self.instructions_epix['type']==2]['amp'].min()}")
+
         Helpers.macro_cluster_events(self.instructions_epix)
         self.instructions_epix=self.instructions_epix[self.instructions_epix['amp']!=-1]
         
