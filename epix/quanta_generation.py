@@ -67,8 +67,10 @@ def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
 
     photons = event_quanta.photons
 
+    excitons = event_quanta.excitons
+
     electrons = 0
     if create_s2:
         electrons = event_quanta.electrons
 
-    return photons, electrons
+    return photons, electrons, excitons
