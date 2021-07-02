@@ -56,10 +56,11 @@ class Helpers():
         return spe_distribution
     
     @staticmethod
-    @numba.njit
+#     @numba.njit
     def macro_cluster_events(instructions):
         """Loops over all instructions, checks if it's an s2 and if there is another s2 within the same event
             within the macro cluster distance, if it is they are merged."""
+        np.save('instructions.npy',instructions)
         for ix1,_ in enumerate(instructions):
             if instructions[ix1]['type']!=2:
                 continue
@@ -75,6 +76,7 @@ class Helpers():
                     instructions[ix1+ix2]['z'] = (instructions[ix1]['z']+instructions[ix1+ix2]['z'])*0.5
                     instructions[ix1+ix2]['amp'] = int((instructions[ix1]['amp']+instructions[ix1+ix2]['amp']))
                     instructions[ix1]['amp']=-1 #flag to throw this instruction away later
+                    break
 
     @staticmethod
     def get_s1_area_with_spe(spe_distribution, num_photons):
