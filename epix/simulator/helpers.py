@@ -60,7 +60,6 @@ class Helpers():
     def macro_cluster_events(instructions):
         """Loops over all instructions, checks if it's an s2 and if there is another s2 within the same event
             within the macro cluster distance, if it is they are merged."""
-        np.save('instructions.npy',instructions)
         for ix1,_ in enumerate(instructions):
             if instructions[ix1]['type']!=2:
                 continue
