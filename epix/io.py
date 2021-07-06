@@ -230,7 +230,9 @@ def awkward_to_wfsim_row_style(interactions):
         res['g4id'][i::2] = awkward_to_flat_numpy(interactions['evtid'])
         res['vol_id'][i::2] = awkward_to_flat_numpy(interactions['vol_id'])
         res['e_dep'][i::2] = awkward_to_flat_numpy(interactions['ed'])
-        
+        if 'local_field' in res.dtype.names:
+            res['local_field'][i::2] = awkward_to_flat_numpy(interactions['e_field'])
+
         recoil = awkward_to_flat_numpy(interactions['nestid'])
         res['recoil'][i::2] = np.where(np.isin(recoil, [0,6,7,8,11]), recoil, 8)
 
@@ -238,7 +240,8 @@ def awkward_to_wfsim_row_style(interactions):
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['electrons'])
         else:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['photons'])
-
+            if 'n_excitons' in res.dtype.names:
+                res['n_excitons'][i::2] = awkward_to_flat_numpy(interactions['excitons'])
     # Remove entries with no quanta
     res = res[res['amp'] > 0]
     return res

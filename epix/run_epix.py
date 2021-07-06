@@ -124,15 +124,17 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     if args['debug']:
         print('Generating photons and electrons for events')
     # Generate quanta:
-    photons, electrons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
-                                               epix.awkward_to_flat_numpy(result['nestid']),
-                                               epix.awkward_to_flat_numpy(result['e_field']),
-                                               epix.awkward_to_flat_numpy(result['A']),
-                                               epix.awkward_to_flat_numpy(result['Z']),
-                                               epix.awkward_to_flat_numpy(result['create_S2']),
-                                               density=epix.awkward_to_flat_numpy(result['xe_density']))
+    photons, electrons, excitons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
+                                                         epix.awkward_to_flat_numpy(result['nestid']),
+                                                         epix.awkward_to_flat_numpy(result['e_field']),
+                                                         epix.awkward_to_flat_numpy(result['A']),
+                                                         epix.awkward_to_flat_numpy(result['Z']),
+                                                         epix.awkward_to_flat_numpy(result['create_S2']),
+                                                         density=epix.awkward_to_flat_numpy(result['xe_density']))
     result['photons'] = epix.reshape_awkward(photons, ak.num(result['ed']))
     result['electrons'] = epix.reshape_awkward(electrons, ak.num(result['ed']))
+    result['excitons'] = epix.reshape_awkward(excitons, ak.num(result['ed']))
+
     if args['debug']:
         _ = monitor_time(tnow, 'get quanta.')
 
