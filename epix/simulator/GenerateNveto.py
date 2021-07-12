@@ -69,3 +69,6 @@ class NVetoUtils():
         result['time']=list(itertools.chain.from_iterable(hits_dict['time']))
         result['endtime']=result['time']+1
 
+        return result
+
+

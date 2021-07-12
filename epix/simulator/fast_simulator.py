@@ -35,13 +35,9 @@ class Simulator():
         
         First do the macro clustering. Clustered instructions will be flagged with amp=-1
         so we can safely through those out"""
-        
-        print(f"Min. S2 amp BEFORE MACRO-CLUSTERING: {self.instructions_epix[self.instructions_epix['type']==2]['amp'].min()}")
 
         Helpers.macro_cluster_events(self.instructions_epix)
         self.instructions_epix=self.instructions_epix[self.instructions_epix['amp']!=-1]
-        
-        print(f"Min. S2 amp AFTER MACRO-CLUSTERING: {self.instructions_epix[self.instructions_epix['type']==2]['amp'].min()}")
 
         Helpers.macro_cluster_events(self.instructions_epix)
         self.instructions_epix=self.instructions_epix[self.instructions_epix['amp']!=-1]
@@ -164,7 +160,6 @@ class StraxSimulator(strax.Plugin):
     def get_nveto_data(self, ):
         file_tree, _ = epix.io._get_ttree(self.config['epix_config']['path'],
                                           self.config['epix_config']['file_name'])
-        nveto_df = None
         if 'pmthitID' in file_tree.keys():
             nv_hits = NVetoUtils.get_nv_hits(ttree=file_tree,
                                              pmt_nv_json_dict=self.resource.nv_pmt_qe,
@@ -210,12 +205,11 @@ class StraxSimulator(strax.Plugin):
                            data_type='events_nveto')
         else:
             simulated_data_nveto_chunk=self.chunk(
-                           start=simulated_data_nveto['time'][0],
-                           end=np.max(simulated_data_nveto['endtime']),
+                           start=int(simulated_data_nveto['time'][0]),
+                           end=int(np.max(simulated_data_nveto['endtime'])),
                            data=simulated_data_nveto,
                            data_type='events_nveto')
-        
-        
+
         return {'events_tpc':simulated_data_chunk,
                 'events_nveto':simulated_data_nveto_chunk}
     
