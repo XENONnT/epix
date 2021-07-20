@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import warnings
 
+import wfsim
 import epix
 
 
@@ -35,6 +36,8 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     # Cluster finding and clustering (convert micro_separation mm -> cm):
     inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
+    if len(inter) == 0 and return_wfsim_instructions:
+        return np.array([], dtype=wfsim.instruction_dtype) # empty
 
     if args['debug']:
         tnow = monitor_time(tnow, 'find clusters.')

@@ -28,6 +28,11 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
 
     # Splitting into individual events and apply time clustering:
     groups = df.groupby('entry')
+    if len(groups.count()) == 0:
+        # TPC interaction is empty
+        #interactions = []
+        return  interactions
+
     df["time_cluster"] = np.concatenate(groups.apply(lambda x: simple_1d_clustering(x.t.values, cluster_size_time)))
 
     # Splitting into individual events and time cluster and apply space clustering space:
@@ -39,7 +44,6 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
         for j in range(len(groups[i])):
             groups[i][j]+=add_to_cluster
             add_to_cluster = np.max(groups[i][j])+1
-
     df['cluster_id'] = np.concatenate(groups.values)
 
     ci = df.loc[:, 'cluster_id'].values
