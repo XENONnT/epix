@@ -34,7 +34,19 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
                f" and dt = {args['micro_separation_time']} ns")
 
     # Cluster finding and clustering (convert micro_separation mm -> cm):
-    inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
+    #inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
+    inter = epix.event_lineage(inter, args['micro_separation']/10)
+    
+    #now bring back the cuts that were removed from the loader 
+    #To Do: - What if we now remove the interaction that is the one we want to base the classification on???
+    m = inter['ed'] > 0
+    inter = inter[m]
+
+    # Removing all events with no interactions:
+    m = ak.num(inter['ed']) > 0
+    inter = inter[m]
+
+
 
     if args['debug']:
         tnow = monitor_time(tnow, 'find clusters.')

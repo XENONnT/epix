@@ -124,7 +124,7 @@ def cluster(inter, classify_by_energy=False):
             classification.
     """
     # Sort interactions by cluster_ids to simplify looping
-    inds = ak.argsort(inter['cluster_ids'])
+    inds = ak.argsort(inter['lineage_ids'])
     inter = inter[inds]
 
     # TODO: Better way to do this with awkward?
@@ -133,7 +133,7 @@ def cluster(inter, classify_by_energy=False):
     z = inter['z']
     ed = inter['ed']
     time = inter['t']
-    ci = inter['cluster_ids']
+    ci = inter['lineage_ids']
     types = inter['type']
     parenttype = inter['parenttype']
     creaproc = inter['creaproc']
