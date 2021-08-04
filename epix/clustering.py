@@ -26,12 +26,12 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
         df.append(ak.to_pandas(interactions[key], anonymous=key))
     df = pd.concat(df, axis=1)
 
+    if df.empty:
+        # TPC interaction is empty
+        return interactions
+
     # Splitting into individual events and apply time clustering:
     groups = df.groupby('entry')
-    if len(groups.count()) == 0:
-        # TPC interaction is empty
-        #interactions = []
-        return  interactions
 
     df["time_cluster"] = np.concatenate(groups.apply(lambda x: simple_1d_clustering(x.t.values, cluster_size_time)))
 
