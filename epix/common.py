@@ -35,6 +35,8 @@ def _reshape_awkward(array, offsets, res):
 
 
 def awkward_to_flat_numpy(array):
+    if len(array) <= 0:
+        return np.array([])
     return (ak.to_numpy(ak.flatten(array)))
 
 
@@ -65,3 +67,40 @@ def offset_range(offsets):
         res[i:i+o] = ind
         i += o
     return res
+
+
+def ak_num(array, **kwargs):
+    """
+    awkward.num() wrapper also for work in empty array
+    :param array: Data containing nested lists to count.
+    :param kwargs: keywords arguments for awkward.num().
+    :return: an array of integers specifying the number of elements
+        at a particular level. If array is empty, return empty.
+    """
+    if len(array) <= 0:
+        return ak.from_numpy(np.array([], dtype='int64'))
+    return ak.num(array, **kwargs)
+
+def calc_dt(result):
+    """
+    Calculate dt, the time difference from the initial data in the event
+    With empty check
+    :param result: Including `t` field
+    :return dt: Array like
+    """
+    if len(result) <= 0:  # Empty
+        return np.array([])
+    dt = result['t'] - result['t'][:, 0]  # if result is empty, Error
+    return dt
+
+
+def apply_time_offset(result, dt):
+    """
+    Apply time offset with empty check
+    :param result: np.structured_array
+    :param dt: Array timing offset for each events
+    :return: result with timing offsets for each events
+    """
+    if len(result) <= 0:
+        return result
+    return result['t'][:, :] + dt

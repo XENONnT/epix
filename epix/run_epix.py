@@ -8,6 +8,7 @@ import warnings
 import wfsim
 import epix
 
+from .common import ak_num, calc_dt, apply_time_offset
 
 def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     """Call this function from the run_epix script"""
@@ -37,8 +38,8 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     # Cluster finding and clustering (convert micro_separation mm -> cm):
     inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
 
-    if len(inter) == 0:  # Earlier return if TPC interactions are empty.
-        return np.array([], dtype=wfsim.instruction_dtype)  # empty
+#    if len(inter) == 0:  # Earlier return if TPC interactions are empty.
+#        return np.array([], dtype=wfsim.instruction_dtype)  # empty
 
     if args['debug']:
         tnow = monitor_time(tnow, 'find clusters.')
@@ -54,7 +55,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     # Sort detector volumes and keep interactions in selected ones:
     if args['debug']:
         print('Removing clusters not in volumes:', *[v.name for v in args['detector_config']])
-        print(f'Number of clusters before: {np.sum(ak.num(result["ed"]))}')
+        print(f'Number of clusters before: {np.sum(ak_num(result["ed"]))}')
 
     # Returns all interactions which are inside in one of the volumes,
     # Checks for volume overlap, assigns Xe density and create_S2 to
@@ -69,29 +70,15 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     result = result[m]
 
     # Removing now empty events as a result of the selection above:
-    m = ak.num(result['ed']) > 0
+    m = ak_num(result['ed']) > 0
     result = result[m]
 
     if args['debug']:
-        print(f'Number of clusters after: {np.sum(ak.num(result["ed"]))}')
+        print(f'Number of clusters after: {np.sum(ak_num(result["ed"]))}')
         print('Assigning electric field to clusters')
 
-    if not ak.any(m):
-        # There are not any events left so return empty array:
-        #TODO: Add option for WFSim
-        warnings.warn('No interactions left, return empty DataFrame.')
-        if return_df:
-            if args.output_path and not os.path.isdir(args.output_path):
-                os.makedirs(args.output_path)
-
-            output_path_and_name = os.path.join(args.output_path,
-                                                args['file_name'][:-5] + "_wfsim_instructions.csv")
-            df = pd.DataFrame()
-            df.to_csv(output_path_and_name, index=False)
-            return
-
     # Add electric field to array:
-    efields = np.zeros(np.sum(ak.num(result)), np.float32)
+    efields = np.zeros(np.sum(ak_num(result)), np.float32)
     # Loop over volume and assign values:
     for volume in args['detector_config']:
         if isinstance(volume.electric_field, (float, int)):
@@ -104,28 +91,31 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
                                             epix.awkward_to_flat_numpy(result.z)
                                             )
 
-    result['e_field'] = epix.reshape_awkward(efields, ak.num(result))
+    result['e_field'] = epix.reshape_awkward(efields, ak_num(result))
 
     # Sort entries (in an event) by in time, then chop all delayed
     # events which are too far away from the rest.
     # (This is a requirement of WFSim)
     result = result[ak.argsort(result['t'])]
-    dt = result['t'] - result['t'][:, 0]
+    dt = calc_dt(result)
     result = result[dt <= args['max_delay']]
 
     if args['debug']:
         print('Generating photons and electrons for events')
     # Generate quanta:
-    photons, electrons, excitons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
-                                                         epix.awkward_to_flat_numpy(result['nestid']),
-                                                         epix.awkward_to_flat_numpy(result['e_field']),
-                                                         epix.awkward_to_flat_numpy(result['A']),
-                                                         epix.awkward_to_flat_numpy(result['Z']),
-                                                         epix.awkward_to_flat_numpy(result['create_S2']),
-                                                         density=epix.awkward_to_flat_numpy(result['xe_density']))
-    result['photons'] = epix.reshape_awkward(photons, ak.num(result['ed']))
-    result['electrons'] = epix.reshape_awkward(electrons, ak.num(result['ed']))
-    result['excitons'] = epix.reshape_awkward(excitons, ak.num(result['ed']))
+    if len(result) > 0:
+        photons, electrons, excitons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
+                                                             epix.awkward_to_flat_numpy(result['nestid']),
+                                                             epix.awkward_to_flat_numpy(result['e_field']),
+                                                             epix.awkward_to_flat_numpy(result['A']),
+                                                             epix.awkward_to_flat_numpy(result['Z']),
+                                                             epix.awkward_to_flat_numpy(result['create_S2']),
+                                                             density=epix.awkward_to_flat_numpy(result['xe_density']))
+        result['photons'] = epix.reshape_awkward(photons, ak_num(result['ed']))
+        result['electrons'] = epix.reshape_awkward(electrons, ak_num(result['ed']))
+        result['excitons'] = epix.reshape_awkward(excitons, ak_num(result['ed']))
+    else:  # Empty case: `epix.quanta_from_NEST()` is a vectorized function, thus escape like that
+        result['photons'], result['electrons'], result['excitons'] = np.array([]), np.array([]), np.array([])
 
     if args['debug']:
         _ = monitor_time(tnow, 'get quanta.')
@@ -134,7 +124,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     number_of_events = len(result["t"])
     if args['source_rate'] == -1:
         # Only needed for a clean separation:
-        result['t'] = result['t'] - result['t'][:, 0]
+        result['t'] = calc_dt(result)
 
         dt = epix.times_for_clean_separation(number_of_events, args['max_delay'])
         if args['debug']:
@@ -154,9 +144,11 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         if args['debug']:
             print(f"Fixed event rate of {args['source_rate']} Hz")
 
-    result['t'] = result['t'][:, :] + dt
+    result['t'] = apply_time_offset(result, dt)
 
     # Reshape instructions:
+    if args['debug'] & (len(result) <= 0):
+        warnings.warn('No interactions left, return empty DataFrame.')
     instructions = epix.awkward_to_wfsim_row_style(result)
     if args['source_rate'] != 0:
         # Only sort by time again if source rates were applied, otherwise

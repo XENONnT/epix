@@ -102,6 +102,15 @@ def _find_cluster(x, cluster_size_space):
     return db_cluster.fit_predict(xprime)
 
 
+result_cluster_dtype = [('x', 'float64'),
+                        ('y', 'float64'),
+                        ('z', 'float64'),
+                        ('t', 'float64'),
+                        ('ed', 'float64'),
+                        ('nestid', 'int64'),
+                        ('A', 'int64'),
+                        ('Z', 'int64')]
+
 def cluster(inter, classify_by_energy=False):
     """
     Function which clusters the found clusters together.
@@ -127,6 +136,9 @@ def cluster(inter, classify_by_energy=False):
         awkward.Array: Clustered events with nest conform
             classification.
     """
+
+    if len(inter) <= 0:  # Earlier return if TPC interactions are empty.
+        return ak.from_numpy(np.array([], dtype=result_cluster_dtype))
     # Sort interactions by cluster_ids to simplify looping
     inds = ak.argsort(inter['cluster_ids'])
     inter = inter[inds]
@@ -242,15 +254,14 @@ def _cluster(x, y, z, ed, time, ci,
 
 
 infinity = np.iinfo(np.int16).max
-
-classifier = np.zeros(7, dtype=[(('Interaction type', 'types'), np.dtype('<U30')),
-                                (('Interaction type of the parent', 'parenttype'), np.dtype('<U30')),
-                                (('Creation process', 'creaproc'), np.dtype('<U30')),
-                                (('Energy deposit process', 'edproc'), np.dtype('<U30')),
-                                (('Atomic mass number', 'A'), np.int16),
-                                (('Atomic number', 'Z'), np.int16),
-                                (('Nest Id for qunata generation', 'nestid'), np.int16)]
-                      )
+classifier_dtype = [(('Interaction type', 'types'), np.dtype('<U30')),
+                    (('Interaction type of the parent', 'parenttype'), np.dtype('<U30')),
+                    (('Creation process', 'creaproc'), np.dtype('<U30')),
+                    (('Energy deposit process', 'edproc'), np.dtype('<U30')),
+                    (('Atomic mass number', 'A'), np.int16),
+                    (('Atomic number', 'Z'), np.int16),
+                    (('Nest Id for qunata generation', 'nestid'), np.int16)]
+classifier = np.zeros(7, dtype=classifier_dtype)
 classifier['types'] = ['None', 'neutron', 'alpha', 'None','None', 'gamma', 'e-']
 classifier['parenttype'] = ['None', 'None', 'None', 'Kr83[9.405]','Kr83[41.557]', 'None', 'None']
 classifier['creaproc'] = ['None', 'None', 'None', 'None', 'None','None', 'None']
@@ -258,7 +269,6 @@ classifier['edproc'] = ['ionIoni', 'hadElastic', 'None', 'None','None', 'None', 
 classifier['A'] = [infinity, infinity, 4, infinity,infinity, infinity, infinity]
 classifier['Z'] = [0, 0, 2, 0, 0, 0, 0]
 classifier['nestid'] = [0, 0, 6, 11, 11, 7, 8]
-
 
 @numba.njit
 def classify(types, parenttype, creaproc, edproc):
@@ -301,3 +311,5 @@ def _write_result(res, x_mean, y_mean, z_mean,
     res.field('Z')
     res.integer(Z)
     res.end_record()
+
+

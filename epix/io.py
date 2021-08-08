@@ -212,6 +212,9 @@ def awkward_to_wfsim_row_style(interactions):
     :return: Structured numpy.array. Each row represents either a S1 or
         S2
     """
+    if len(interactions) <= 0:
+        return np.array([], dtype=int_dtype)
+
     ninteractions = np.sum(ak.num(interactions['ed']))
     res = np.zeros(2 * ninteractions, dtype=int_dtype)
 
@@ -242,3 +245,4 @@ def awkward_to_wfsim_row_style(interactions):
     # Remove entries with no quanta
     res = res[res['amp'] > 0]
     return res
+

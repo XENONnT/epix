@@ -145,11 +145,14 @@ def in_cylinder(x, y, z, min_z, max_z, max_r):
         max_z: Exclusive upper z boundary
         max_r: Exclusive radial boundary
     """
-    r = np.sqrt(x**2 + y**2)
+    r = np.sqrt(x ** 2 + y ** 2)
     m = r < max_r
     m = m & (z < max_z)
     m = m & (z >= min_z)
     return m
+
+
+res_det_dtype = [('xe_density', 'float64'), ('vol_id', 'int64'), ('create_S2', 'bool')]
 
 
 def in_sensitive_volume(events, sensitive_volumes):
@@ -167,6 +170,8 @@ def in_sensitive_volume(events, sensitive_volumes):
     Returns:
         ak.array: Awkward array containing the event ids.
     """
+    if len(events) <= 0:  # Input empty
+        return ak.from_numpy(np.array([], dtype=res_det_dtype))
     for ind, vol in enumerate(sensitive_volumes):
         res = ak.ArrayBuilder()
         res = _inside_sens_vol(events['x'],
