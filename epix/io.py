@@ -245,4 +245,3 @@ def awkward_to_wfsim_row_style(interactions):
     # Remove entries with no quanta
     res = res[res['amp'] > 0]
     return res
-

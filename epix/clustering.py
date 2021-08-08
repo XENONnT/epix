@@ -311,5 +311,3 @@ def _write_result(res, x_mean, y_mean, z_mean,
     res.field('Z')
     res.integer(Z)
     res.end_record()
-
-
