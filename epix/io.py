@@ -276,7 +276,7 @@ def csv_loader(directory,
     # Removing all events with no interactions:
     m = ak.num(interactions['ed']) > 0
     interactions = interactions[m]
-    
+
     return interactions, n_simulated_events
 
 
@@ -296,7 +296,7 @@ def awkwardify_df(df):
                   "parentid": reshape_awkward(df["parentid"].values , evt_offsets),
                   "creaproc": reshape_awkward(np.array(df["creaproc"], dtype="<U5") , evt_offsets),
                   "edproc": reshape_awkward(np.array(df["edproc"], dtype="<U5") , evt_offsets),
-                  "eventid": reshape_awkward(df["eventid"].values , evt_offsets),
+                  "evtid": reshape_awkward(df["eventid"].values , evt_offsets),
                  }
     
     return ak.Array(dictionary)
