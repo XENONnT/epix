@@ -1,6 +1,7 @@
 import numpy as np
 import uproot
 import awkward as ak
+import pandas as pd
 
 import os
 import warnings
@@ -194,6 +195,137 @@ def _get_ttree(directory, file_name):
                          'I tried to search in events and events/events.'
                          f'Found a ttree in {ttrees}?')
     return ttree, n_simulated_events
+
+
+def csv_loader(directory,
+              file_name,
+              arg_debug=False,
+              outer_cylinder=None,
+              kwargs={},
+              cut_by_eventid=False,
+              ):
+    """
+    Function which loads handcrafted instructions from a csv file unsing pandas.
+
+    Args:
+        directory (str): Directory in which the data is stored.
+        file_name (str): File name
+        arg_debug (bool): If true, print out loading information.
+        kwargs (dict): Keyword arguments similar to kwargs_uproot_arrays in loader function
+        cut_by_eventid (bool): If true event start/stop are applied to
+            eventids, instead of rows.
+        
+    Returns:
+        awkward1.records: Interactions (eventids, parameters, types).
+        integer: Number of events simulated.
+    """
+    instr_df =  pd.read_csv(os.path.join(directory, file_name))
+    instr_df["r"] = np.sqrt(instr_df["x"]**2 + instr_df["y"]**2) 
+    
+    n_simulated_events = len(np.unique(instr_df.eventid))
+    
+    if arg_debug:
+        print(f'Total entries in input file = {len(instr_df)}')
+        cutby_string='output file entry'
+        if cut_by_eventid:
+            cutby_string='g4 eventid'
+
+        if kwargs['entry_start'] is not None:
+            print(f'Starting to read from {cutby_string} {kwargs["entry_start"]}')
+        if kwargs['entry_stop'] is not None:
+            print(f'Ending read in at {cutby_string} {kwargs["entry_stop"]}')
+
+    # If user specified entry start/stop we have to update number of
+    # events for source rate computation:
+    if kwargs['entry_start'] is not None:
+        start = kwargs['entry_start']
+    else:
+        start = 0
+
+    if kwargs['entry_stop'] is not None:
+        stop = kwargs['entry_stop']
+    else:
+        stop = n_simulated_events
+    n_simulated_events = stop - start
+
+    if cut_by_eventid:
+        # Start/stop refers to eventid so drop start drop from kwargs
+        # dict if specified, otherwise we cut again on rows.
+        kwargs.pop('entry_start', None)
+        kwargs.pop('entry_stop', None)
+
+
+    if outer_cylinder:
+        cut_string = (f'(r < {outer_cylinder["max_r"]})'
+                      f' & ((z >= {outer_cylinder["min_z"] * 10}) & (z < {outer_cylinder["max_z"] * 10}))')
+        instr_df = instr_df.query(cut_string)
+    
+    interactions = awkwardify_df(instr_df)
+
+    if np.any(interactions['ed'] < 0):
+        warnings.warn('At least one of the energy deposits is negative!')
+    
+    # Removing all events with zero energy deposit
+    m = interactions['ed'] > 0
+    if cut_by_eventid:
+        # ufunc does not work here...
+        m2 = (interactions['evtid'] >= start) & (interactions['evtid'] < stop)
+        m = m & m2
+    interactions = interactions[m]
+
+    # Removing all events with no interactions:
+    m = ak.num(interactions['ed']) > 0
+    interactions = interactions[m]
+
+
+def awkwardify_df(df):
+    
+    _, evt_offsets = np.unique(df["eventid"], return_counts = True)
+    
+    dictionary = {"x": reshape_awkward(df["x"].values , evt_offsets),
+                  "y": reshape_awkward(df["y"].values , evt_offsets),
+                  "z": reshape_awkward(df["z"].values , evt_offsets),
+                  "r": reshape_awkward(df["r"].values , evt_offsets),
+                  "t": reshape_awkward(df["t"].values , evt_offsets),
+                  "ed": reshape_awkward(df["ed"].values , evt_offsets),
+                  "type":reshape_awkward(np.array(df["type"], dtype="<U5") , evt_offsets),
+                  "trackid": reshape_awkward(df["trackid"].values , evt_offsets),
+                  "parenttype": reshape_awkward(np.array(df["parenttype"], dtype="<U5") , evt_offsets),
+                  "parentid": reshape_awkward(df["parentid"].values , evt_offsets),
+                  "creaproc": reshape_awkward(np.array(df["creaproc"], dtype="<U5") , evt_offsets),
+                  "edproc": reshape_awkward(np.array(df["edproc"], dtype="<U5") , evt_offsets),
+                  "eventid": reshape_awkward(df["eventid"].values , evt_offsets),
+                 }
+    
+    return ak.Array(dictionary)
+
+#In principle these function are already in common.py 
+#i needed to change res.real to res.append but this is not numba compatible
+#find a good solution in the PR!
+def reshape_awkward(array, offset):
+    """
+    Function which reshapes array according to a list of offsets. Only
+    works for a single jagged layer.
+    Args:
+        array: Flatt array which should be jagged.
+        offset: Length of subintervals
+    Returns:
+        res: awkward1.ArrayBuilder object.
+    """
+    res = ak.ArrayBuilder()
+    _reshape_awkward(array, offset, res)
+    return res.snapshot()
+
+def _reshape_awkward(array, offsets, res):
+    start = 0
+    end = 0
+    for o in offsets:
+        end += o
+        res.begin_list()
+        for value in array[start:end]:
+            res.append(value)
+        res.end_list()
+        start = end
 
 
 # ----------------------
