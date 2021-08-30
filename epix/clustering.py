@@ -23,8 +23,7 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
     """
     # TODO is there a better way to get the df?
     df = []
-    for key in ['x', 'y', 'z', 'ed', 't', 'evtid',
-                'trackid', 'parentid', 'type', 'creaproc', 'edproc']:
+    for key in ['x', 'y', 'z', 'ed', 't']:
         df.append(ak.to_pandas(interactions[key], anonymous=key))
     df = pd.concat(df, axis=1)
 
@@ -44,7 +43,7 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
             add_to_cluster = max(_cl) + add_to_cluster + 1
 
     # TEMPORARY -- SAVE INTERMEDIATE RESULT:
-    df.to_csv('/home/pkavrigin/tmp/df.csv')
+    ## df.to_csv('/home/pkavrigin/tmp/df.csv')
 
     ci = df.loc[:, 'cluster_id'].values
     offsets = ak.num(interactions['x'])
