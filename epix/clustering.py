@@ -3,7 +3,9 @@ import pandas as pd
 import numba
 import awkward as ak
 from .common import reshape_awkward
+from .lineage import find_NRs
 from sklearn.cluster import DBSCAN
+
 
 def find_cluster(interactions, cluster_size_space, cluster_size_time):
     """
@@ -22,7 +24,8 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
     """
     # TODO is there a better way to get the df?
     df = []
-    for key in ['x', 'y', 'z', 'ed', 't']:
+    for key in ['x', 'y', 'z', 'ed', 't', 'evtid',
+                'trackid', 'parentid', 'type', 'creaproc', 'edproc']:
         df.append(ak.to_pandas(interactions[key], anonymous=key))
     df = pd.concat(df, axis=1)
 
@@ -41,11 +44,16 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
             _df_evt.loc[_df_evt.time_cluster == _t, 'cluster_id'] = _cl + add_to_cluster
             add_to_cluster = max(_cl) + add_to_cluster + 1
 
+    #find_NRs(df)
+    # TEMPORARY -- SAVE INTERMEDIATE RESULT:
+    df.to_csv('/home/pkavrigin/tmp/df.csv')
+
     ci = df.loc[:, 'cluster_id'].values
     offsets = ak.num(interactions['x'])
     interactions['cluster_ids'] = reshape_awkward(ci, offsets)
-    
+
     return interactions
+
 
 @numba.jit(nopython=True)
 def simple_1d_clustering(data, scale):
@@ -60,26 +68,27 @@ def simple_1d_clustering(data, scale):
     Returns:
         clusters_undo_sort (np.array): Cluster Labels
     """
-    
+
     idx_sort = np.argsort(data)
     idx_undo_sort = np.argsort(idx_sort)
 
     data_sorted = data[idx_sort]
 
     diff = data_sorted[1:] - data_sorted[:-1]
-    
+
     clusters = [0]
     c = 0
     for value in diff:
         if value <= scale:
             clusters.append(c)
         elif value > scale:
-            c=c+1
+            c = c + 1
             clusters.append(c)
 
     clusters_undo_sort = np.array(clusters)[idx_undo_sort]
-    
+
     return clusters_undo_sort
+
 
 def _find_cluster(x, cluster_size_space):
     """
@@ -93,7 +102,7 @@ def _find_cluster(x, cluster_size_space):
         functon: to be used in groupby.apply.
     """
     db_cluster = DBSCAN(eps=cluster_size_space, min_samples=1)
-    xprime = x[['x', 'y', 'z']].values 
+    xprime = x[['x', 'y', 'z']].values
     return db_cluster.fit_predict(xprime)
 
 
@@ -246,11 +255,11 @@ classifier = np.zeros(7, dtype=[(('Interaction type', 'types'), np.dtype('<U30')
                                 (('Atomic number', 'Z'), np.int16),
                                 (('Nest Id for qunata generation', 'nestid'), np.int16)]
                       )
-classifier['types'] = ['None', 'neutron', 'alpha', 'None','None', 'gamma', 'e-']
-classifier['parenttype'] = ['None', 'None', 'None', 'Kr83[9.405]','Kr83[41.557]', 'None', 'None']
-classifier['creaproc'] = ['None', 'None', 'None', 'None', 'None','None', 'None']
-classifier['edproc'] = ['ionIoni', 'hadElastic', 'None', 'None','None', 'None', 'None']
-classifier['A'] = [infinity, infinity, 4, infinity,infinity, infinity, infinity]
+classifier['types'] = ['None', 'neutron', 'alpha', 'None', 'None', 'gamma', 'e-']
+classifier['parenttype'] = ['None', 'None', 'None', 'Kr83[9.405]', 'Kr83[41.557]', 'None', 'None']
+classifier['creaproc'] = ['None', 'None', 'None', 'None', 'None', 'None', 'None']
+classifier['edproc'] = ['ionIoni', 'hadElastic', 'None', 'None', 'None', 'None', 'None']
+classifier['A'] = [infinity, infinity, 4, infinity, infinity, infinity, infinity]
 classifier['Z'] = [0, 0, 2, 0, 0, 0, 0]
 classifier['nestid'] = [0, 0, 6, 11, 11, 7, 8]
 
