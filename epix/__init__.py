@@ -1,4 +1,4 @@
-__version__ = '0.1.3.b'
+__version__ = '0.1.3.c'
 
 from .common import *
 from .io import *
