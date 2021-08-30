@@ -3,7 +3,6 @@ import pandas as pd
 import numba
 import awkward as ak
 from .common import reshape_awkward
-from .lineage import find_NRs
 from sklearn.cluster import DBSCAN
 
 
@@ -44,7 +43,6 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
             _df_evt.loc[_df_evt.time_cluster == _t, 'cluster_id'] = _cl + add_to_cluster
             add_to_cluster = max(_cl) + add_to_cluster + 1
 
-    #find_NRs(df)
     # TEMPORARY -- SAVE INTERMEDIATE RESULT:
     df.to_csv('/home/pkavrigin/tmp/df.csv')
 
