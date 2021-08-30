@@ -32,6 +32,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
                                                 )
     elif args["file_name"].endswith(".csv"):
         #the case of manualy crafted instructions 
+        print("Load instructions from a csv file!")
         inter, n_simulated_events = epix.csv_loader(args['path'],
                                                     args['file_name'],
                                                     args['debug'])
