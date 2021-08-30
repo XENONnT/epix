@@ -35,7 +35,11 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         print("Load instructions from a csv file!")
         inter, n_simulated_events = epix.csv_loader(args['path'],
                                                     args['file_name'],
-                                                    args['debug'])
+                                                    args['debug'],
+                                                    outer_cylinder=args['outer_cylinder'],
+                                                    kwargs={'entry_start': args['entry_start'],
+                                                            'entry_stop': args['entry_stop']},
+                                                    cut_by_eventid=args['cut_by_eventid'])
 
 
     if args['debug']:
