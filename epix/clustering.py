@@ -6,7 +6,7 @@ from .common import reshape_awkward
 from sklearn.cluster import DBSCAN
 
 
-def find_cluster(interactions, cluster_size_space, cluster_size_time):
+def find_cluster(interactions, cluster_size_space, cluster_size_time, clustering_mode='master'):
     """
     Function which finds cluster within a event.
 
@@ -17,6 +17,7 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
             be inside a cluster [cm].
         cluster_size_time (float): Max time distance between two points to be 
             inside a cluster [ns].
+        clustering_mode (string): 'master' is the master version, 'fix' is the indexing bug fix.
     
     Returns:
         awkward.array: Adds to interaction a cluster_ids record.
@@ -30,17 +31,30 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
     # Splitting into individual events and apply time clustering:
     groups = df.groupby('entry')
     df["time_cluster"] = np.concatenate(groups.apply(lambda x: simple_1d_clustering(x.t.values, cluster_size_time)))
+    
+    if clustering_mode == 'master':
+        # Splitting into individual events and time cluster and apply space clustering space:
+        groups = df.groupby(['entry', 'time_cluster'])
+        groups = groups.apply(lambda x: _find_cluster(x, cluster_size_space))
 
-    df['cluster_id'] = np.zeros(len(df.index), dtype=np.int)
+        for i in np.unique(groups.index.get_level_values(0)):
+            add_to_cluster = 0
+            for j in range(len(groups[i])):
+                groups[i][j]+=add_to_cluster
+                add_to_cluster = np.max(groups[i][j])+1
 
-    for evt in df.index.get_level_values(0).unique():
-        _df_evt = df.loc[evt]
-        _t_clusters = _df_evt.time_cluster.unique()
-        add_to_cluster = 0
-        for _t in _t_clusters:
-            _cl = _find_cluster(_df_evt[_df_evt.time_cluster == _t], cluster_size_space=cluster_size_space)
-            _df_evt.loc[_df_evt.time_cluster == _t, 'cluster_id'] = _cl + add_to_cluster
-            add_to_cluster = max(_cl) + add_to_cluster + 1
+        df['cluster_id'] = np.concatenate(groups.values)
+    
+    elif clustering_mode == 'fix':
+        df['cluster_id'] = np.zeros(len(df.index), dtype=np.int)
+        for evt in df.index.get_level_values(0).unique():
+            _df_evt = df.loc[evt]
+            _t_clusters = _df_evt.time_cluster.unique()
+            add_to_cluster = 0
+            for _t in _t_clusters:
+                _cl = _find_cluster(_df_evt[_df_evt.time_cluster == _t], cluster_size_space=cluster_size_space)
+                _df_evt.loc[_df_evt.time_cluster == _t, 'cluster_id'] = _cl + add_to_cluster
+                add_to_cluster = max(_cl) + add_to_cluster + 1
 
     # TEMPORARY -- SAVE INTERMEDIATE RESULT:
     ## df.to_csv('/home/pkavrigin/tmp/df.csv')
