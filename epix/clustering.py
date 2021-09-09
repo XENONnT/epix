@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import numba
 import awkward as ak
+import pickle
 from .common import reshape_awkward
 from sklearn.cluster import DBSCAN
 
@@ -60,14 +61,15 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time,
                 _df_evt.loc[_df_evt.time_cluster == _t, 'cluster_id'] = _cl + add_to_cluster
                 add_to_cluster = max(_cl) + add_to_cluster + 1
 
-    # TEMPORARY -- SAVE INTERMEDIATE RESULT:
-    if save_cluster_id>0.5:
-        df.to_csv(save_cluster_id_path)
-
     ci = df.loc[:, 'cluster_id'].values
     offsets = ak.num(interactions['x'])
     interactions['cluster_ids'] = reshape_awkward(ci, offsets)
 
+    # TEMPORARY -- SAVE INTERMEDIATE RESULT:
+    if save_cluster_id>0.5:
+        with open(save_cluster_id_path, 'wb') as f:
+            pickle.dump(interactions, f)
+        
     return interactions
 
 
