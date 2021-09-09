@@ -23,6 +23,9 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time,
     Returns:
         awkward.array: Adds to interaction a cluster_ids record.
     """
+    
+    print(f'find_cluster : save_cluster_id {} , save_cluster_id_path [ {} ] . . . ')
+    
     # TODO is there a better way to get the df?
     df = []
     for key in ['x', 'y', 'z', 'ed', 't']:
