@@ -6,7 +6,8 @@ from .common import reshape_awkward
 from sklearn.cluster import DBSCAN
 
 
-def find_cluster(interactions, cluster_size_space, cluster_size_time, clustering_mode='master'):
+def find_cluster(interactions, cluster_size_space, cluster_size_time,
+                 clustering_mode='master', save_cluster_id=0, save_cluster_id_path='/home/pkavrigin/tmp/cluster_df.csv'):
     """
     Function which finds cluster within a event.
 
@@ -57,7 +58,8 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time, clustering
                 add_to_cluster = max(_cl) + add_to_cluster + 1
 
     # TEMPORARY -- SAVE INTERMEDIATE RESULT:
-    ## df.to_csv('/home/pkavrigin/tmp/df.csv')
+    if save_cluster_id>0.5:
+        df.to_csv(save_cluster_id_path)
 
     ci = df.loc[:, 'cluster_id'].values
     offsets = ak.num(interactions['x'])

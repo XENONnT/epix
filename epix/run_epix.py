@@ -10,7 +10,8 @@ import epix
 pd.options.mode.chained_assignment = None  # default='warn'
 
 def main(args, return_df=False, return_wfsim_instructions=False, strax=False,
-         clustering_mode='master'):
+         clustering_mode='master', save_cluster_id=0,
+         save_cluster_id_path='/home/pkavrigin/tmp/cluster_df.csv'):
     """Call this function from the run_epix script"""
 
     if args['debug']:
@@ -37,7 +38,8 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False,
 
     # Cluster finding and clustering (convert micro_separation mm -> cm):
     inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'],
-                              clustering_mode=clustering_mode)
+                              clustering_mode=clustering_mode, save_cluster_id=save_cluster_id,
+                              save_cluster_id_path=save_cluster_id_path)
 
     if args['debug']:
         tnow = monitor_time(tnow, 'find clusters.')
