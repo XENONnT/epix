@@ -144,7 +144,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     result['t'] = apply_time_offset(result, dt)
 
     # Reshape instructions:
-    if args['debug'] & (len(result) <= 0):
+    if args['debug'] & (len(result) == 0):
         warnings.warn('No interactions left, return empty DataFrame.')
     instructions = epix.awkward_to_wfsim_row_style(result)
     if args['source_rate'] != 0:

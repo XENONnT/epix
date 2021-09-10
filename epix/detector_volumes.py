@@ -170,7 +170,7 @@ def in_sensitive_volume(events, sensitive_volumes):
     Returns:
         ak.array: Awkward array containing the event ids.
     """
-    if len(events) <= 0:  # Input empty
+    if len(events) == 0:  # Input empty
         return ak.from_numpy(np.array([], dtype=res_det_dtype))
     for ind, vol in enumerate(sensitive_volumes):
         res = ak.ArrayBuilder()

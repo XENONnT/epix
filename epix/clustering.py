@@ -137,7 +137,7 @@ def cluster(inter, classify_by_energy=False):
             classification.
     """
 
-    if len(inter) <= 0:  # Earlier return if TPC interactions are empty.
+    if len(inter) == 0:  # Earlier return if TPC interactions are empty.
         return ak.from_numpy(np.array([], dtype=result_cluster_dtype))
     # Sort interactions by cluster_ids to simplify looping
     inds = ak.argsort(inter['cluster_ids'])

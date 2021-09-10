@@ -212,7 +212,7 @@ def awkward_to_wfsim_row_style(interactions):
     :return: Structured numpy.array. Each row represents either a S1 or
         S2
     """
-    if len(interactions) <= 0:
+    if len(interactions) == 0:
         return np.array([], dtype=int_dtype)
 
     ninteractions = np.sum(ak.num(interactions['ed']))
