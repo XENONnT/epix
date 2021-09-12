@@ -228,6 +228,8 @@ def _cluster(x, y, z, ed, time, ci,
 
                 nr_check = 0
 
+                inter_in_cluster = np.array(inter_in_cluster)
+
                 if nestid < 0.5:
                     if not (('ionIoni' in inter_in_cluster[:, 5]) or ('hadElastic' in inter_in_cluster[:, 5])):
                         nr_check = 1
