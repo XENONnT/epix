@@ -8,7 +8,8 @@ from sklearn.cluster import DBSCAN
 
 
 def find_cluster(interactions, cluster_size_space, cluster_size_time,
-                 clustering_mode='master', save_cluster_id=0, save_cluster_id_path='/home/pkavrigin/tmp/cluster_df.csv'):
+                 clustering_mode='master',
+                 save_cluster_id=0, save_cluster_id_path='/home/pkavrigin/tmp/cluster_df.csv'):
     """
     Function which finds cluster within a event.
 
@@ -24,9 +25,9 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time,
     Returns:
         awkward.array: Adds to interaction a cluster_ids record.
     """
-    
+
     print(f'find_cluster : save_cluster_id {save_cluster_id} , save_cluster_id_path [ {save_cluster_id_path} ] . . . ')
-    
+
     # TODO is there a better way to get the df?
     df = []
     for key in ['x', 'y', 'z', 'ed', 't']:
@@ -36,7 +37,7 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time,
     # Splitting into individual events and apply time clustering:
     groups = df.groupby('entry')
     df["time_cluster"] = np.concatenate(groups.apply(lambda x: simple_1d_clustering(x.t.values, cluster_size_time)))
-    
+
     if clustering_mode == 'master':
         # Splitting into individual events and time cluster and apply space clustering space:
         groups = df.groupby(['entry', 'time_cluster'])
@@ -45,11 +46,11 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time,
         for i in np.unique(groups.index.get_level_values(0)):
             add_to_cluster = 0
             for j in range(len(groups[i])):
-                groups[i][j]+=add_to_cluster
-                add_to_cluster = np.max(groups[i][j])+1
+                groups[i][j] += add_to_cluster
+                add_to_cluster = np.max(groups[i][j]) + 1
 
         df['cluster_id'] = np.concatenate(groups.values)
-    
+
     elif clustering_mode == 'fix':
         df['cluster_id'] = np.zeros(len(df.index), dtype=np.int)
         for evt in df.index.get_level_values(0).unique():
@@ -66,10 +67,10 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time,
     interactions['cluster_ids'] = reshape_awkward(ci, offsets)
 
     # TEMPORARY -- SAVE INTERMEDIATE RESULT:
-    if save_cluster_id>0.5:
+    if save_cluster_id > 0.5:
         with open(save_cluster_id_path, 'wb') as f:
             pickle.dump(interactions, f)
-        
+
     return interactions
 
 
@@ -124,7 +125,9 @@ def _find_cluster(x, cluster_size_space):
     return db_cluster.fit_predict(xprime)
 
 
-def cluster(inter, classify_by_energy=False):
+def cluster(inter, classify_by_energy=False,
+            save_NR_info=0,
+            save_NR_info_path='/home/pkavrigin/tmp/nr_df.pkl'):
     """
     Function which clusters the found clusters together.
 
@@ -167,18 +170,26 @@ def cluster(inter, classify_by_energy=False):
 
     # Init result and cluster:
     res = ak.ArrayBuilder()
-    _cluster(x, y, z, ed, time, ci,
-             types, parenttype, creaproc, edproc,
-             classify_by_energy, res)
+    nr_info = _cluster(x, y, z, ed, time, ci,
+                       types, parenttype, creaproc, edproc,
+                       classify_by_energy, res)
+
+    if save_NR_info:
+        with open(save_NR_info_path, 'wb') as f:
+            pickle.dump(nr_info, f)
+
     return res.snapshot()
 
 
-@numba.njit
+# @numba.njit
 def _cluster(x, y, z, ed, time, ci,
              types, parenttype, creaproc, edproc,
              classify_by_energy, res):
     # Loop over each event
     nevents = len(ed)
+
+    nr_info = []
+
     for ei in range(nevents):
         # Init a new list for clustered interactions within event:
         res.begin_list()
@@ -202,6 +213,8 @@ def _cluster(x, y, z, ed, time, ci,
             # First interaction
             classifier_max = np.inf
 
+        inter_in_cluster = []
+
         # Loop over all interactions within event:
         for ii in range(ninteractions):
             if current_ci != ci[ei][ii]:
@@ -212,6 +225,18 @@ def _cluster(x, y, z, ed, time, ci,
                                         parenttype[ei][i_class],
                                         creaproc[ei][i_class],
                                         edproc[ei][i_class])
+
+                nr_check = 0
+
+                if nestid < 0.5:
+                    if not (('ionIoni' in inter_in_cluster[:, 5]) or ('hadElastic' in inter_in_cluster[:, 5])):
+                        nr_check = 1
+
+                nr_info.append([nestid, ei, current_ci,
+                                types[ei][i_class],
+                                parenttype[ei][i_class],
+                                creaproc[ei][i_class],
+                                edproc[ei][i_class], ed_tot, nr_check])
 
                 # Write result, simple but extensive with awkward...
                 _write_result(res, x_mean, y_mean, z_mean,
@@ -224,6 +249,8 @@ def _cluster(x, y, z, ed, time, ci,
                 z_mean = 0
                 t_mean = 0
                 ed_tot = 0
+
+                inter_in_cluster = []
 
                 # Reset classifier:
                 if classify_by_energy:
@@ -239,6 +266,12 @@ def _cluster(x, y, z, ed, time, ci,
             z_mean += z[ei][ii] * e
             t_mean += t * e
             ed_tot += e
+
+            inter_in_cluster.append([ei, ci[ei][ii],
+                                     parenttype[ei][ii],
+                                     creaproc[ei][ii],
+                                     types[ei][ii],
+                                     edproc[ei][ii]])
 
             if classify_by_energy:
                 # In case we want to classify the event by energy.
@@ -257,10 +290,24 @@ def _cluster(x, y, z, ed, time, ci,
                                 parenttype[ei][i_class],
                                 creaproc[ei][i_class],
                                 edproc[ei][i_class])
+
+        nr_check = 0
+
+        if nestid < 0.5:
+            if not (('ionIoni' in inter_in_cluster[:, 5]) or ('hadElastic' in inter_in_cluster[:, 5])):
+                nr_check = 1
+
+        nr_info.append([nestid, ei, current_ci,
+                        types[ei][i_class],
+                        parenttype[ei][i_class],
+                        creaproc[ei][i_class],
+                        edproc[ei][i_class], ed_tot, nr_check])
+
         _write_result(res, x_mean, y_mean, z_mean,
                       ed_tot, t_mean, A, Z, nestid)
 
         res.end_list()
+    return nr_info
 
 
 infinity = np.iinfo(np.int16).max

@@ -11,7 +11,9 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 def main(args, return_df=False, return_wfsim_instructions=False, strax=False,
          clustering_mode='master', save_cluster_id=0,
-         save_cluster_id_path='/home/pkavrigin/tmp/cluster_df.csv'):
+         save_cluster_id_path='/home/pkavrigin/tmp/cluster_df.csv',
+         save_NR_info=0,
+         save_NR_info_path='/home/pkavrigin/tmp/nr_df.pkl'):
     """Call this function from the run_epix script"""
 
     if args['debug']:
@@ -38,13 +40,16 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False,
 
     # Cluster finding and clustering (convert micro_separation mm -> cm):
     inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'],
-                              clustering_mode=clustering_mode, save_cluster_id=save_cluster_id,
+                              clustering_mode=clustering_mode,
+                              save_cluster_id=save_cluster_id,
                               save_cluster_id_path=save_cluster_id_path)
 
     if args['debug']:
         tnow = monitor_time(tnow, 'find clusters.')
 
-    result = epix.cluster(inter, args['tag_cluster_by'] == 'energy')
+    result = epix.cluster(inter, args['tag_cluster_by'] == 'energy',
+                          save_NR_info=save_NR_info,
+                          save_NR_info_path=save_NR_info_path)
 
     if args['debug']:
         tnow = monitor_time(tnow, 'merge clusters.')
