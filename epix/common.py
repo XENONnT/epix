@@ -17,9 +17,9 @@ def reshape_awkward(array, offset):
         res: awkward1.ArrayBuilder object.
     """
     res = ak.ArrayBuilder()
-    if (array.dtype == np.int) or (array.dtype == np.float):
+    if (array.dtype == np.int) or (array.dtype == np.float64) or (array.dtype == np.float32):
         _reshape_awkward_number(array, offset, res)
-    elif array.dtype.type == np.str_:
+    else:
         _reshape_awkward_string(array, offset, res)
     return res.snapshot()
 
