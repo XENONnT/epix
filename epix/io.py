@@ -8,7 +8,7 @@ import warnings
 import wfsim
 import configparser
 
-from .common import awkward_to_flat_numpy, offset_range
+from .common import awkward_to_flat_numpy, offset_range, reshape_awkward
 
 SUPPORTED_OPTION = {'to_be_stored': 'getboolean',
                     'electric_field': ('getfloat', 'get'),
@@ -233,45 +233,16 @@ def awkwardify_df(df):
                   "r": reshape_awkward(df["r"].values , evt_offsets),
                   "t": reshape_awkward(df["t"].values , evt_offsets),
                   "ed": reshape_awkward(df["ed"].values , evt_offsets),
-                  "type":reshape_awkward(np.array(df["type"], dtype="<U5") , evt_offsets),
+                  "type":reshape_awkward(np.array(df["type"], dtype=str) , evt_offsets),
                   "trackid": reshape_awkward(df["trackid"].values , evt_offsets),
-                  "parenttype": reshape_awkward(np.array(df["parenttype"], dtype="<U5") , evt_offsets),
+                  "parenttype": reshape_awkward(np.array(df["parenttype"], dtype=str) , evt_offsets),
                   "parentid": reshape_awkward(df["parentid"].values , evt_offsets),
-                  "creaproc": reshape_awkward(np.array(df["creaproc"], dtype="<U5") , evt_offsets),
-                  "edproc": reshape_awkward(np.array(df["edproc"], dtype="<U5") , evt_offsets),
+                  "creaproc": reshape_awkward(np.array(df["creaproc"], dtype=str) , evt_offsets),
+                  "edproc": reshape_awkward(np.array(df["edproc"], dtype=str) , evt_offsets),
                   "evtid": reshape_awkward(df["eventid"].values , evt_offsets),
                  }
     
     return ak.Array(dictionary)
-
-#In principle these function are already in common.py 
-#i needed to change res.real to res.append but this is not numba compatible
-#find a good solution in the PR!
-def reshape_awkward(array, offset):
-    """
-    Function which reshapes array according to a list of offsets. Only
-    works for a single jagged layer.
-    Args:
-        array: Flatt array which should be jagged.
-        offset: Length of subintervals
-    Returns:
-        res: awkward1.ArrayBuilder object.
-    """
-    res = ak.ArrayBuilder()
-    _reshape_awkward(array, offset, res)
-    return res.snapshot()
-
-def _reshape_awkward(array, offsets, res):
-    start = 0
-    end = 0
-    for o in offsets:
-        end += o
-        res.begin_list()
-        for value in array[start:end]:
-            res.append(value)
-        res.end_list()
-        start = end
-
 
 # ----------------------
 # Outputing wfsim instructions:

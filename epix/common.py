@@ -17,12 +17,15 @@ def reshape_awkward(array, offset):
         res: awkward1.ArrayBuilder object.
     """
     res = ak.ArrayBuilder()
-    _reshape_awkward(array, offset, res)
+    if (array.dtype == np.int) or (array.dtype == np.float):
+        _reshape_awkward_number(array, offset, res)
+    elif array.dtype.type == np.str_:
+        _reshape_awkward_string(array, offset, res)
     return res.snapshot()
 
 
 @numba.njit
-def _reshape_awkward(array, offsets, res):
+def _reshape_awkward_number(array, offsets, res):
     start = 0
     end = 0
     for o in offsets:
@@ -33,6 +36,16 @@ def _reshape_awkward(array, offsets, res):
         res.end_list()
         start = end
 
+def _reshape_awkward_string(array, offsets, res):
+    start = 0
+    end = 0
+    for o in offsets:
+        end += o
+        res.begin_list()
+        for value in array[start:end]:
+            res.string(value)
+        res.end_list()
+        start = end
 
 def awkward_to_flat_numpy(array):
     return (ak.to_numpy(ak.flatten(array)))
