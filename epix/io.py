@@ -65,12 +65,12 @@ def loader(directory,
            file_name,
            arg_debug=False,
            outer_cylinder=None,
-           kwargs_uproot_arrays={},
+           kwargs={},
            cut_by_eventid=False,
            ):
     """
     Function which loads geant4 interactions from a root file via
-    uproot4.
+    uproot4 or handmade interactions from a csv file. 
 
     Besides loading, a simple data selection is performed. Units are
     already converted into strax conform values. mm -> cm and s -> ns.
@@ -81,8 +81,7 @@ def loader(directory,
         arg_debug (bool): If true, print out loading information.
         outer_cylinder (dict): If specified will cut all events outside of the
             given cylinder.
-        kwargs_uproot_arrays (dict): Keyword arguments passed to .arrays of
-            uproot4.
+        kwargs (dict): Keyword arguments passed to .arrays of uproot4.
         cut_by_eventid (bool): If true event start/stop are applied to
             eventids, instead of rows.
 
@@ -90,66 +89,93 @@ def loader(directory,
         awkward1.records: Interactions (eventids, parameters, types).
         integer: Number of events simulated.
     """
-    ttree, n_simulated_events = _get_ttree(directory, file_name)
+    file = os.path.join(directory, file_name)
 
-    if arg_debug:
-        print(f'Total entries in input file = {ttree.num_entries}')
-        cutby_string='output file entry'
+    if not os.path.isfile(file):
+        print("File does not exist!")
+        #cancel epix execution here
+
+    if file.endswith(".root"):
+        ttree, n_simulated_events = _get_ttree(directory, file_name)
+
+        if arg_debug:
+            print(f'Total entries in input file = {ttree.num_entries}')
+            cutby_string='output file entry'
+            if cut_by_eventid:
+                cutby_string='g4 eventid'
+
+            if kwargs['entry_start'] is not None:
+                print(f'Starting to read from {cutby_string} {kwargs["entry_start"]}')
+            if kwargs['entry_stop'] is not None:
+                print(f'Ending read in at {cutby_string} {kwargs["entry_stop"]}')
+
+        # If user specified entry start/stop we have to update number of
+        # events for source rate computation:
+        if kwargs['entry_start'] is not None:
+            start = kwargs['entry_start']
+        else:
+            start = 0
+
+        if kwargs['entry_stop'] is not None:
+            stop = kwargs['entry_stop']
+        else:
+            stop = n_simulated_events
+        n_simulated_events = stop - start
+
         if cut_by_eventid:
-            cutby_string='g4 eventid'
+            # Start/stop refers to eventid so drop start drop from kwargs
+            # dict if specified, otherwise we cut again on rows.
+            kwargs.pop('entry_start', None)
+            kwargs.pop('entry_stop', None)
 
-        if kwargs_uproot_arrays['entry_start'] is not None:
-            print(f'Starting to read from {cutby_string} {kwargs_uproot_arrays["entry_start"]}')
-        if kwargs_uproot_arrays['entry_stop'] is not None:
-            print(f'Ending read in at {cutby_string} {kwargs_uproot_arrays["entry_stop"]}')
+        # Columns to be read from the root_file:
+        column_names = ["x", "y", "z", "t", "ed",
+                        "type", "trackid",
+                        "parenttype", "parentid",
+                        "creaproc", "edproc"]
 
-    # If user specified entry start/stop we have to update number of
-    # events for source rate computation:
-    if kwargs_uproot_arrays['entry_start'] is not None:
-        start = kwargs_uproot_arrays['entry_start']
-    else:
+        # Conversions and parameters to be computed:
+        alias = {'x': 'xp/10',  # converting "geant4" mm to "straxen" cm
+                'y': 'yp/10',
+                'z': 'zp/10',
+                'r': 'sqrt(x**2 + y**2)',
+                't': 'time*10**9'
+                }
+
+        if outer_cylinder:
+            cut_string = (f'(r < {outer_cylinder["max_r"]})'
+                        f' & ((zp >= {outer_cylinder["min_z"] * 10}) & (zp < {outer_cylinder["max_z"] * 10}))')
+        else:
+            cut_string = None
+
+        # Read in data, convert mm to cm and perform a first cut if specified:
+        interactions = ttree.arrays(column_names,
+                                    cut_string,
+                                    aliases=alias,
+                                    **kwargs)
+        eventids = ttree.arrays('eventid', **kwargs)
+        eventids = ak.broadcast_arrays(eventids['eventid'], interactions['x'])[0]
+        interactions['evtid'] = eventids
+
+    elif file.endswith(".csv"):
+
+        print("Load instructions from a csv file!")
+
+        instr_df =  pd.read_csv(file)
+        instr_df["r"] = np.sqrt(instr_df["x"]**2 + instr_df["y"]**2) 
+
+        n_simulated_events = len(np.unique(instr_df.eventid))
+
+        if outer_cylinder:
+            cut_string = (f'(r < {outer_cylinder["max_r"]})'
+                        f' & ((z >= {outer_cylinder["min_z"] * 10}) & (z < {outer_cylinder["max_z"] * 10}))')
+            instr_df = instr_df.query(cut_string)
+
+        interactions = awkwardify_df(instr_df)
+
+        #Use always all events in the csv file
         start = 0
-
-    if kwargs_uproot_arrays['entry_stop'] is not None:
-        stop = kwargs_uproot_arrays['entry_stop']
-    else:
         stop = n_simulated_events
-    n_simulated_events = stop - start
-
-    if cut_by_eventid:
-        # Start/stop refers to eventid so drop start drop from kwargs
-        # dict if specified, otherwise we cut again on rows.
-        kwargs_uproot_arrays.pop('entry_start', None)
-        kwargs_uproot_arrays.pop('entry_stop', None)
-
-    # Columns to be read from the root_file:
-    column_names = ["x", "y", "z", "t", "ed",
-                    "type", "trackid",
-                    "parenttype", "parentid",
-                    "creaproc", "edproc"]
-
-    # Conversions and parameters to be computed:
-    alias = {'x': 'xp/10',  # converting "geant4" mm to "straxen" cm
-             'y': 'yp/10',
-             'z': 'zp/10',
-             'r': 'sqrt(x**2 + y**2)',
-             't': 'time*10**9'
-             }
-
-    if outer_cylinder:
-        cut_string = (f'(r < {outer_cylinder["max_r"]})'
-                      f' & ((zp >= {outer_cylinder["min_z"] * 10}) & (zp < {outer_cylinder["max_z"] * 10}))')
-    else:
-        cut_string = None
-
-    # Read in data, convert mm to cm and perform a first cut if specified:
-    interactions = ttree.arrays(column_names,
-                                cut_string,
-                                aliases=alias,
-                                **kwargs_uproot_arrays)
-    eventids = ttree.arrays('eventid', **kwargs_uproot_arrays)
-    eventids = ak.broadcast_arrays(eventids['eventid'], interactions['x'])[0]
-    interactions['evtid'] = eventids
 
     if np.any(interactions['ed'] < 0):
         warnings.warn('At least one of the energy deposits is negative!')
@@ -195,89 +221,6 @@ def _get_ttree(directory, file_name):
                          'I tried to search in events and events/events.'
                          f'Found a ttree in {ttrees}?')
     return ttree, n_simulated_events
-
-
-def csv_loader(directory,
-              file_name,
-              arg_debug=False,
-              outer_cylinder=None,
-              kwargs={},
-              cut_by_eventid=False,
-              ):
-    """
-    Function which loads handcrafted instructions from a csv file unsing pandas.
-
-    Args:
-        directory (str): Directory in which the data is stored.
-        file_name (str): File name
-        arg_debug (bool): If true, print out loading information.
-        kwargs (dict): Keyword arguments similar to kwargs_uproot_arrays in loader function
-        cut_by_eventid (bool): If true event start/stop are applied to
-            eventids, instead of rows.
-        
-    Returns:
-        awkward1.records: Interactions (eventids, parameters, types).
-        integer: Number of events simulated.
-    """
-    instr_df =  pd.read_csv(os.path.join(directory, file_name))
-    instr_df["r"] = np.sqrt(instr_df["x"]**2 + instr_df["y"]**2) 
-    
-    n_simulated_events = len(np.unique(instr_df.eventid))
-    
-    if arg_debug:
-        print(f'Total entries in input file = {len(instr_df)}')
-        cutby_string='output file entry'
-        if cut_by_eventid:
-            cutby_string='g4 eventid'
-
-        if kwargs['entry_start'] is not None:
-            print(f'Starting to read from {cutby_string} {kwargs["entry_start"]}')
-        if kwargs['entry_stop'] is not None:
-            print(f'Ending read in at {cutby_string} {kwargs["entry_stop"]}')
-
-    # If user specified entry start/stop we have to update number of
-    # events for source rate computation:
-    if kwargs['entry_start'] is not None:
-        start = kwargs['entry_start']
-    else:
-        start = 0
-
-    if kwargs['entry_stop'] is not None:
-        stop = kwargs['entry_stop']
-    else:
-        stop = n_simulated_events
-    n_simulated_events = stop - start
-
-    if cut_by_eventid:
-        # Start/stop refers to eventid so drop start drop from kwargs
-        # dict if specified, otherwise we cut again on rows.
-        kwargs.pop('entry_start', None)
-        kwargs.pop('entry_stop', None)
-
-
-    if outer_cylinder:
-        cut_string = (f'(r < {outer_cylinder["max_r"]})'
-                      f' & ((z >= {outer_cylinder["min_z"] * 10}) & (z < {outer_cylinder["max_z"] * 10}))')
-        instr_df = instr_df.query(cut_string)
-    
-    interactions = awkwardify_df(instr_df)
-
-    if np.any(interactions['ed'] < 0):
-        warnings.warn('At least one of the energy deposits is negative!')
-    
-    # Removing all events with zero energy deposit
-    m = interactions['ed'] > 0
-    if cut_by_eventid:
-        # ufunc does not work here...
-        m2 = (interactions['evtid'] >= start) & (interactions['evtid'] < stop)
-        m = m & m2
-    interactions = interactions[m]
-
-    # Removing all events with no interactions:
-    m = ak.num(interactions['ed']) > 0
-    interactions = interactions[m]
-
-    return interactions, n_simulated_events
 
 
 def awkwardify_df(df):

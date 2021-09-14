@@ -19,27 +19,13 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         tnow = starttime
 
     # Loading data:
-
-    if args["file_name"].endswith(".root"):
-        #the usual case: root files:
-        inter, n_simulated_events = epix.loader(args['path'],
-                                                args['file_name'],
-                                                args['debug'],
-                                                outer_cylinder=args['outer_cylinder'],
-                                                kwargs_uproot_arrays={'entry_start': args['entry_start'],
-                                                                    'entry_stop': args['entry_stop']},
-                                                cut_by_eventid=args['cut_by_eventid']
-                                                )
-    elif args["file_name"].endswith(".csv"):
-        #the case of manualy crafted instructions 
-        print("Load instructions from a csv file!")
-        inter, n_simulated_events = epix.csv_loader(args['path'],
-                                                    args['file_name'],
-                                                    args['debug'],
-                                                    outer_cylinder=args['outer_cylinder'],
-                                                    kwargs={'entry_start': args['entry_start'],
-                                                            'entry_stop': args['entry_stop']},
-                                                    cut_by_eventid=args['cut_by_eventid'])
+    inter, n_simulated_events = epix.loader(args['path'],
+                                            args['file_name'],
+                                            args['debug'],
+                                            outer_cylinder=args['outer_cylinder'],
+                                            kwargs={'entry_start': args['entry_start'],
+                                                    'entry_stop': args['entry_stop']},
+                                            cut_by_eventid=args['cut_by_eventid'])
 
 
     if args['debug']:
