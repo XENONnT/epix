@@ -10,7 +10,7 @@ import epix
 pd.options.mode.chained_assignment = None  # default='warn'
 
 def main(args, return_df=False, return_wfsim_instructions=False, strax=False,
-         clustering_mode='master', save_cluster_id=0,
+         clustering_mode='fix', save_cluster_id=0,
          save_cluster_id_path='/home/pkavrigin/tmp/cluster_df.csv',
          save_NR_info=0,
          save_NR_info_path='/home/pkavrigin/tmp/nr_df.pkl'):
