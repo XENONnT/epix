@@ -95,6 +95,14 @@ def loader(directory,
         print("File does not exist!")
         #cancel epix execution here
 
+    #Prepare cut for root and csv case
+    if outer_cylinder:
+        cut_string = (f'(r < {outer_cylinder["max_r"]})'
+                    f' & ((zp >= {outer_cylinder["min_z"] * 10}) & (zp < {outer_cylinder["max_z"] * 10}))')
+    else:
+        cut_string = None
+
+
     if file.endswith(".root"):
         ttree, n_simulated_events = _get_ttree(directory, file_name)
 
@@ -142,12 +150,6 @@ def loader(directory,
                 't': 'time*10**9'
                 }
 
-        if outer_cylinder:
-            cut_string = (f'(r < {outer_cylinder["max_r"]})'
-                        f' & ((zp >= {outer_cylinder["min_z"] * 10}) & (zp < {outer_cylinder["max_z"] * 10}))')
-        else:
-            cut_string = None
-
         # Read in data, convert mm to cm and perform a first cut if specified:
         interactions = ttree.arrays(column_names,
                                     cut_string,
@@ -162,13 +164,16 @@ def loader(directory,
         print("Load instructions from a csv file!")
 
         instr_df =  pd.read_csv(file)
-        instr_df["r"] = np.sqrt(instr_df["x"]**2 + instr_df["y"]**2) 
+        #unit conversion similar to root case
+        instr_df["x"] = instr_df["xp"]/10 
+        instr_df["y"] = instr_df["yp"]/10 
+        instr_df["z"] = instr_df["zp"]/10 
+        instr_df["r"] = np.sqrt(instr_df["x"]**2 + instr_df["y"]**2)
+        instr_df["t"] = instr_df["time"]*10**9
 
         n_simulated_events = len(np.unique(instr_df.eventid))
 
         if outer_cylinder:
-            cut_string = (f'(r < {outer_cylinder["max_r"]})'
-                        f' & ((z >= {outer_cylinder["min_z"] * 10}) & (z < {outer_cylinder["max_z"] * 10}))')
             instr_df = instr_df.query(cut_string)
 
         interactions = awkwardify_df(instr_df)
