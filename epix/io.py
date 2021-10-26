@@ -62,6 +62,26 @@ def load_config(config_file_path):
 
 
 class file_loader():
+    """
+    Class which contains functions to load geant4 interactions from
+    a root file via uproot4 or interactions from a csv file via pandas.
+    
+    Besides loading, a simple data selection is performed. Units are
+    already converted into strax conform values. mm -> cm and s -> ns.
+    Args:
+        directory (str): Directory in which the data is stored.
+        file_name (str): File name
+        arg_debug (bool): If true, print out loading information.
+        outer_cylinder (dict): If specified will cut all events outside of the
+            given cylinder.
+        kwargs (dict): Keyword arguments passed to .arrays of
+            uproot4.
+        cut_by_eventid (bool): If true event start/stop are applied to
+            eventids, instead of rows.
+    Returns:
+        awkward1.records: Interactions (eventids, parameters, types).
+        integer: Number of events simulated.
+    """
 
     def __init__(self,
                 directory,
@@ -94,6 +114,14 @@ class file_loader():
             self.cut_string = None
     
     def load_file(self):
+        """ 
+        Function which reads a root or csv file and removes 
+        interactions and events without energy depositions. 
+
+        Returns:
+            interactions: awkward array
+            n_simulated_events: Total number of simulated events
+        """
 
         if self.file.endswith(".root"):
             interactions, n_simulated_events, start, stop = self._load_root_file()
@@ -118,6 +146,16 @@ class file_loader():
         return interactions, n_simulated_events
 
     def _load_root_file(self):
+        """ 
+        Function which reads a root file using uproot, 
+        performs a simple cut and builds an awkward array.
+
+        Returns:
+            interactions: awkward array
+            n_simulated_events: Total number of simulated events
+            start: Index of the first loaded interaction
+            stop: Index of the last loaded interaction
+        """
         
         ttree, n_simulated_events = self._get_ttree()
 
@@ -171,6 +209,16 @@ class file_loader():
         return interactions, n_simulated_events, start, stop 
 
     def _load_csv_file(self):
+        """ 
+        Function which reads a csv file using pandas, 
+        performs a simple cut and builds an awkward array.
+
+        Returns:
+            interactions: awkward array
+            n_simulated_events: Total number of simulated events
+            start: Index of the first loaded interaction
+            stop: Index of the last loaded interaction
+        """
 
         print("Load instructions from a csv file!")
         
@@ -227,6 +275,16 @@ class file_loader():
         return ttree, n_simulated_events
 
     def _awkwardify_df(self, df):
+        """
+        Function which builds an jagged awkward array from pandas dataframe.
+
+        Args:
+            df: Pandas Dataframe
+
+        Returns:
+            ak.Array(dictionary): awkward array
+
+        """
 
         _, evt_offsets = np.unique(df["eventid"], return_counts = True)
     
