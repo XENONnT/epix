@@ -91,10 +91,6 @@ def loader(directory,
     """
     file = os.path.join(directory, file_name)
 
-    if not os.path.isfile(file):
-        print("File does not exist!")
-        #cancel epix execution here
-
     #Prepare cut for root and csv case
     if outer_cylinder:
         cut_string = (f'(r < {outer_cylinder["max_r"]})'
