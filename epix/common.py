@@ -5,8 +5,8 @@ import awkward as ak
 
 def reshape_awkward(array, offset):
     """
-    Function which reshapes array according to a list of offsets. Only
-    works for a single jagged layer.
+    Function which reshapes an array of strings or numbers according
+    to a list of offsets. Only works for a single jagged layer.
 
     Args:
         array: Flatt array which should be jagged.
@@ -26,6 +26,18 @@ def reshape_awkward(array, offset):
 
 @numba.njit
 def _reshape_awkward_number(array, offsets, res):
+    """
+    Function which reshapes an array of numbers according
+    to a list of offsets. Only works for a single jagged layer.
+
+    Args:
+        array: Flatt array which should be jagged.
+        offsets: Length of subintervals
+        res: awkward1.ArrayBuilder object
+
+    Returns: 
+        res: awkward1.ArrayBuilder object
+    """
     start = 0
     end = 0
     for o in offsets:
@@ -37,6 +49,18 @@ def _reshape_awkward_number(array, offsets, res):
         start = end
 
 def _reshape_awkward_string(array, offsets, res):
+    """
+    Function which reshapes an array of strings according
+    to a list of offsets. Only works for a single jagged layer.
+
+    Args:
+        array: Flatt array which should be jagged.
+        offsets: Length of subintervals
+        res: awkward1.ArrayBuilder object
+
+    Returns: 
+        res: awkward1.ArrayBuilder object
+    """
     start = 0
     end = 0
     for o in offsets:
