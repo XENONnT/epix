@@ -61,82 +61,93 @@ def load_config(config_file_path):
     return settings
 
 
-def loader(directory,
-           file_name,
-           arg_debug=False,
-           outer_cylinder=None,
-           kwargs={},
-           cut_by_eventid=False,
-           ):
-    """
-    Function which loads geant4 interactions from a root file via
-    uproot4 or handmade interactions from a csv file. 
+class loader():
 
-    Besides loading, a simple data selection is performed. Units are
-    already converted into strax conform values. mm -> cm and s -> ns.
+    def __init__(self,
+                directory,
+                file_name, 
+                arg_debug=False,
+                outer_cylinder=None,
+                kwargs={},
+                cut_by_eventid=False,
+                ):
 
-    Args:
-        directory (str): Directory in which the data is stored.
-        file_name (str): File name
-        arg_debug (bool): If true, print out loading information.
-        outer_cylinder (dict): If specified will cut all events outside of the
-            given cylinder.
-        kwargs (dict): Keyword arguments passed to .arrays of uproot4.
-        cut_by_eventid (bool): If true event start/stop are applied to
-            eventids, instead of rows.
+        self.directory = directory
+        self.file_name = file_name
+        self.arg_debug = arg_debug
+        self.outer_cylinder = outer_cylinder
+        self.kwargs = kwargs
+        self.cut_by_eventid = cut_by_eventid
 
-    Returns:
-        awkward1.records: Interactions (eventids, parameters, types).
-        integer: Number of events simulated.
-    """
-    file = os.path.join(directory, file_name)
+        self.file = os.path.join(self.directory, self.file_name)
 
-    #Prepare cut for root and csv case
-    if outer_cylinder:
-        cut_string = (f'(r < {outer_cylinder["max_r"]})'
-                    f' & ((zp >= {outer_cylinder["min_z"] * 10}) & (zp < {outer_cylinder["max_z"] * 10}))')
-    else:
-        cut_string = None
+        self.column_names = ["x", "y", "z", "t", "ed",
+                             "type", "trackid",
+                             "parenttype", "parentid",
+                             "creaproc", "edproc"]
 
+        #Prepare cut for root and csv case
+        if self.outer_cylinder:
+            self.cut_string = (f'(r < {self.outer_cylinder["max_r"]})'
+                               f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')
+        else:
+            self.cut_string = None
+        
+        if self.file.endswith(".root"):
+            interactions, n_simulated_events, start, stop = self._load_root_file()
+        elif self.file.endswith(".csv"):
+            interactions, n_simulated_events, start, stop = self._load_csv_file()
 
-    if file.endswith(".root"):
-        ttree, n_simulated_events = _get_ttree(directory, file_name)
+        if np.any(interactions['ed'] < 0):
+            warnings.warn('At least one of the energy deposits is negative!')
 
-        if arg_debug:
+        # Removing all events with zero energy deposit
+        m = interactions['ed'] > 0
+        if self.cut_by_eventid:
+            # ufunc does not work here...
+            m2 = (interactions['evtid'] >= start) & (interactions['evtid'] < stop)
+            m = m & m2
+        interactions = interactions[m]
+
+        # Removing all events with no interactions:
+        m = ak.num(interactions['ed']) > 0
+        interactions = interactions[m]
+
+        return interactions, n_simulated_events
+
+    def _load_root_file(self):
+        
+        ttree, n_simulated_events = self._get_ttree()
+
+        if self.arg_debug:
             print(f'Total entries in input file = {ttree.num_entries}')
             cutby_string='output file entry'
-            if cut_by_eventid:
+            if self.cut_by_eventid:
                 cutby_string='g4 eventid'
 
-            if kwargs['entry_start'] is not None:
-                print(f'Starting to read from {cutby_string} {kwargs["entry_start"]}')
-            if kwargs['entry_stop'] is not None:
-                print(f'Ending read in at {cutby_string} {kwargs["entry_stop"]}')
+            if self.kwargs['entry_start'] is not None:
+                print(f'Starting to read from {cutby_string} {self.kwargs["entry_start"]}')
+            if self.kwargs['entry_stop'] is not None:
+                print(f'Ending read in at {cutby_string} {self.kwargs["entry_stop"]}')
 
         # If user specified entry start/stop we have to update number of
         # events for source rate computation:
-        if kwargs['entry_start'] is not None:
-            start = kwargs['entry_start']
+        if self.kwargs['entry_start'] is not None:
+            start = self.kwargs['entry_start']
         else:
             start = 0
 
-        if kwargs['entry_stop'] is not None:
-            stop = kwargs['entry_stop']
+        if self.kwargs['entry_stop'] is not None:
+            stop = self.kwargs['entry_stop']
         else:
             stop = n_simulated_events
         n_simulated_events = stop - start
 
-        if cut_by_eventid:
+        if self.cut_by_eventid:
             # Start/stop refers to eventid so drop start drop from kwargs
             # dict if specified, otherwise we cut again on rows.
-            kwargs.pop('entry_start', None)
-            kwargs.pop('entry_stop', None)
-
-        # Columns to be read from the root_file:
-        column_names = ["x", "y", "z", "t", "ed",
-                        "type", "trackid",
-                        "parenttype", "parentid",
-                        "creaproc", "edproc"]
+            self.kwargs.pop('entry_start', None)
+            self.kwargs.pop('entry_stop', None)
 
         # Conversions and parameters to be computed:
         alias = {'x': 'xp/10',  # converting "geant4" mm to "straxen" cm
@@ -147,19 +158,25 @@ def loader(directory,
                 }
 
         # Read in data, convert mm to cm and perform a first cut if specified:
-        interactions = ttree.arrays(column_names,
-                                    cut_string,
+        interactions = ttree.arrays(self.column_names,
+                                    self.cut_string,
                                     aliases=alias,
-                                    **kwargs)
-        eventids = ttree.arrays('eventid', **kwargs)
+                                    **self.kwargs)
+        eventids = ttree.arrays('eventid', **self.kwargs)
         eventids = ak.broadcast_arrays(eventids['eventid'], interactions['x'])[0]
         interactions['evtid'] = eventids
 
-    elif file.endswith(".csv"):
+        return interactions, n_simulated_events, start, stop 
+
+    def _load_csv_file(self):
 
         print("Load instructions from a csv file!")
+        
+        instr_df =  pd.read_csv(self.file)
+        #Check if all needed columns are in place:
+        if not set(self.column_names).issubset(instr_df.columns):
+            warnings.warn("Not all needed columns provided!")
 
-        instr_df =  pd.read_csv(file)
         #unit conversion similar to root case
         instr_df["x"] = instr_df["xp"]/10 
         instr_df["y"] = instr_df["yp"]/10 
@@ -169,81 +186,64 @@ def loader(directory,
 
         n_simulated_events = len(np.unique(instr_df.eventid))
 
-        if outer_cylinder:
-            instr_df = instr_df.query(cut_string)
+        if self.outer_cylinder:
+            instr_df = instr_df.query(self.cut_string)
 
-        interactions = awkwardify_df(instr_df)
+        interactions = self._awkwardify_df(instr_df)
 
         #Use always all events in the csv file
         start = 0
         stop = n_simulated_events
 
-    if np.any(interactions['ed'] < 0):
-        warnings.warn('At least one of the energy deposits is negative!')
+        return interactions, n_simulated_events, start, stop 
 
-    # Removing all events with zero energy deposit
-    m = interactions['ed'] > 0
-    if cut_by_eventid:
-        # ufunc does not work here...
-        m2 = (interactions['evtid'] >= start) & (interactions['evtid'] < stop)
-        m = m & m2
-    interactions = interactions[m]
+    def _get_ttree(self):
+        """
+        Function which searches for the correct ttree in MC root file.
 
-    # Removing all events with no interactions:
-    m = ak.num(interactions['ed']) > 0
-    interactions = interactions[m]
+        :param directory: Directory where file is
+        :param file_name: Name of the file
+        :return: root ttree and number of simulated events
+        """
+        root_dir = uproot.open(self.file)
 
-    return interactions, n_simulated_events
+        # Searching for TTree according to old/new MC file structure:
+        if root_dir.classname_of('events') == 'TTree':
+            ttree = root_dir['events']
+            n_simulated_events = root_dir['nEVENTS'].members['fVal']
+        elif root_dir.classname_of('events/events') == 'TTree':
+            ttree = root_dir['events/events']
+            n_simulated_events = root_dir['events/nbevents'].members['fVal']
+        else:
+            ttrees = []
+            for k, v in root_dir.classnames().items():
+                if v == 'TTree':
+                    ttrees.append(k)
+            raise ValueError(f'Cannot find ttree object of "{file_name}".'
+                            'I tried to search in events and events/events.'
+                            f'Found a ttree in {ttrees}?')
+        return ttree, n_simulated_events
 
+    def _awkwardify_df(self, df):
 
-def _get_ttree(directory, file_name):
-    """
-    Function which searches for the correct ttree in MC root file.
-
-    :param directory: Directory where file is
-    :param file_name: Name of the file
-    :return: root ttree and number of simulated events
-    """
-    root_dir = uproot.open(os.path.join(directory, file_name))
-
-    # Searching for TTree according to old/new MC file structure:
-    if root_dir.classname_of('events') == 'TTree':
-        ttree = root_dir['events']
-        n_simulated_events = root_dir['nEVENTS'].members['fVal']
-    elif root_dir.classname_of('events/events') == 'TTree':
-        ttree = root_dir['events/events']
-        n_simulated_events = root_dir['events/nbevents'].members['fVal']
-    else:
-        ttrees = []
-        for k, v in root_dir.classnames().items():
-            if v == 'TTree':
-                ttrees.append(k)
-        raise ValueError(f'Cannot find ttree object of "{file_name}".'
-                         'I tried to search in events and events/events.'
-                         f'Found a ttree in {ttrees}?')
-    return ttree, n_simulated_events
-
-
-def awkwardify_df(df):
+        _, evt_offsets = np.unique(df["eventid"], return_counts = True)
     
-    _, evt_offsets = np.unique(df["eventid"], return_counts = True)
-    
-    dictionary = {"x": reshape_awkward(df["x"].values , evt_offsets),
-                  "y": reshape_awkward(df["y"].values , evt_offsets),
-                  "z": reshape_awkward(df["z"].values , evt_offsets),
-                  "r": reshape_awkward(df["r"].values , evt_offsets),
-                  "t": reshape_awkward(df["t"].values , evt_offsets),
-                  "ed": reshape_awkward(df["ed"].values , evt_offsets),
-                  "type":reshape_awkward(np.array(df["type"], dtype=str) , evt_offsets),
-                  "trackid": reshape_awkward(df["trackid"].values , evt_offsets),
-                  "parenttype": reshape_awkward(np.array(df["parenttype"], dtype=str) , evt_offsets),
-                  "parentid": reshape_awkward(df["parentid"].values , evt_offsets),
-                  "creaproc": reshape_awkward(np.array(df["creaproc"], dtype=str) , evt_offsets),
-                  "edproc": reshape_awkward(np.array(df["edproc"], dtype=str) , evt_offsets),
-                  "evtid": reshape_awkward(df["eventid"].values , evt_offsets),
-                 }
-    
-    return ak.Array(dictionary)
+        dictionary = {"x": reshape_awkward(df["x"].values , evt_offsets),
+                    "y": reshape_awkward(df["y"].values , evt_offsets),
+                    "z": reshape_awkward(df["z"].values , evt_offsets),
+                    "r": reshape_awkward(df["r"].values , evt_offsets),
+                    "t": reshape_awkward(df["t"].values , evt_offsets),
+                    "ed": reshape_awkward(df["ed"].values , evt_offsets),
+                    "type":reshape_awkward(np.array(df["type"], dtype=str) , evt_offsets),
+                    "trackid": reshape_awkward(df["trackid"].values , evt_offsets),
+                    "parenttype": reshape_awkward(np.array(df["parenttype"], dtype=str) , evt_offsets),
+                    "parentid": reshape_awkward(df["parentid"].values , evt_offsets),
+                    "creaproc": reshape_awkward(np.array(df["creaproc"], dtype=str) , evt_offsets),
+                    "edproc": reshape_awkward(np.array(df["edproc"], dtype=str) , evt_offsets),
+                    "evtid": reshape_awkward(df["eventid"].values , evt_offsets),
+                    }
+        
+        return ak.Array(dictionary)
 
 # ----------------------
 # Outputing wfsim instructions:
