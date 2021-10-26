@@ -223,9 +223,6 @@ class file_loader():
         print("Load instructions from a csv file!")
         
         instr_df =  pd.read_csv(self.file)
-        #Check if all needed columns are in place:
-        if not set(self.column_names).issubset(instr_df.columns):
-            warnings.warn("Not all needed columns provided!")
 
         #unit conversion similar to root case
         instr_df["x"] = instr_df["xp"]/10 
@@ -233,6 +230,10 @@ class file_loader():
         instr_df["z"] = instr_df["zp"]/10 
         instr_df["r"] = np.sqrt(instr_df["x"]**2 + instr_df["y"]**2)
         instr_df["t"] = instr_df["time"]*10**9
+
+        #Check if all needed columns are in place:
+        if not set(self.column_names).issubset(instr_df.columns):
+            warnings.warn("Not all needed columns provided!")
 
         n_simulated_events = len(np.unique(instr_df.eventid))
 
