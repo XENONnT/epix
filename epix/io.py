@@ -120,7 +120,8 @@ class file_loader():
 
         Returns:
             interactions: awkward array
-            n_simulated_events: Total number of simulated events
+            n_simulated_events: Total number of simulated events in the 
+                                opened file. (This includes events removed by cuts)
         """
 
         if self.file.endswith(".root"):
