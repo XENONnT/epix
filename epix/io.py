@@ -61,7 +61,7 @@ def load_config(config_file_path):
     return settings
 
 
-class loader():
+class file_loader():
 
     def __init__(self,
                 directory,
@@ -92,7 +92,9 @@ class loader():
                                f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')
         else:
             self.cut_string = None
-        
+    
+    def load_file(self):
+
         if self.file.endswith(".root"):
             interactions, n_simulated_events, start, stop = self._load_root_file()
         elif self.file.endswith(".csv"):
