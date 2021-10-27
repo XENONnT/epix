@@ -199,9 +199,6 @@ def _get_ttree(directory, file_name):
 # ----------------------
 # Outputing wfsim instructions:
 # ----------------------
-int_dtype = wfsim.instruction_dtype
-
-
 def awkward_to_wfsim_row_style(interactions):
     """
     Converts awkward array instructions into instructions required by
@@ -213,10 +210,10 @@ def awkward_to_wfsim_row_style(interactions):
         S2
     """
     if len(interactions) == 0:
-        return np.array([], dtype=int_dtype)
+        return np.array([], dtype=wfsim.instruction_dtype)
 
     ninteractions = np.sum(ak.num(interactions['ed']))
-    res = np.zeros(2 * ninteractions, dtype=int_dtype)
+    res = np.zeros(2 * ninteractions, dtype=wfsim.instruction_dtype)
 
     # TODO: Currently not supported rows with only electrons or photons due to
     # this super odd shape
@@ -234,7 +231,7 @@ def awkward_to_wfsim_row_style(interactions):
             res['local_field'][i::2] = awkward_to_flat_numpy(interactions['e_field'])
 
         recoil = awkward_to_flat_numpy(interactions['nestid'])
-        res['recoil'][i::2] = np.where(np.isin(recoil, [0,6,7,8,11]), recoil, 8)
+        res['recoil'][i::2] = np.where(np.isin(recoil, [0, 6, 7, 8, 11]), recoil, 8)
 
         if i:
             res['amp'][i::2] = awkward_to_flat_numpy(interactions['electrons'])
