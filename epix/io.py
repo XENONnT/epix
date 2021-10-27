@@ -210,7 +210,7 @@ def awkward_to_wfsim_row_style(interactions):
         S2
     """
     if len(interactions) == 0:
-        return np.array([], dtype=wfsim.instruction_dtype)
+        return np.empty(0, dtype=wfsim.instruction_dtype)
 
     ninteractions = np.sum(ak.num(interactions['ed']))
     res = np.zeros(2 * ninteractions, dtype=wfsim.instruction_dtype)

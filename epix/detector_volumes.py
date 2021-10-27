@@ -152,9 +152,6 @@ def in_cylinder(x, y, z, min_z, max_z, max_r):
     return m
 
 
-res_det_dtype = [('xe_density', 'float64'), ('vol_id', 'int64'), ('create_S2', 'bool')]
-
-
 def in_sensitive_volume(events, sensitive_volumes):
     """
     Function which identifies which events are inside sensitive volumes.
@@ -170,8 +167,13 @@ def in_sensitive_volume(events, sensitive_volumes):
     Returns:
         ak.array: Awkward array containing the event ids.
     """
-    if len(events) == 0:  # Input empty
-        return ak.from_numpy(np.array([], dtype=res_det_dtype))
+    if len(events) == 0:
+        res_det_dtype = [('xe_density', 'float64'),
+                         ('vol_id', 'int64'),
+                         ('create_S2', 'bool'),
+                         ]
+        return ak.from_numpy(np.empty(0, dtype=res_det_dtype))
+
     for ind, vol in enumerate(sensitive_volumes):
         res = ak.ArrayBuilder()
         res = _inside_sens_vol(events['x'],
