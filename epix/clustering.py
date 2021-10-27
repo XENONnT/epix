@@ -81,7 +81,7 @@ def simple_1d_clustering(data, scale):
         if value <= scale:
             clusters.append(c)
         elif value > scale:
-            c=c+1
+            c = c + 1
             clusters.append(c)
 
     clusters_undo_sort = np.array(clusters)[idx_undo_sort]
@@ -103,16 +103,6 @@ def _find_cluster(x, cluster_size_space):
     db_cluster = DBSCAN(eps=cluster_size_space, min_samples=1)
     xprime = x[['x', 'y', 'z']].values 
     return db_cluster.fit_predict(xprime)
-
-
-result_cluster_dtype = [('x', 'float64'),
-                        ('y', 'float64'),
-                        ('z', 'float64'),
-                        ('t', 'float64'),
-                        ('ed', 'float64'),
-                        ('nestid', 'int64'),
-                        ('A', 'int64'),
-                        ('Z', 'int64')]
 
 
 def cluster(inter, classify_by_energy=False):
@@ -141,8 +131,16 @@ def cluster(inter, classify_by_energy=False):
             classification.
     """
 
-    if len(inter) == 0:  # Earlier return if TPC interactions are empty.
-        return ak.from_numpy(np.array([], dtype=result_cluster_dtype))
+    if len(inter) == 0:
+        result_cluster_dtype = [('x', 'float64'),
+                                ('y', 'float64'),
+                                ('z', 'float64'),
+                                ('t', 'float64'),
+                                ('ed', 'float64'),
+                                ('nestid', 'int64'),
+                                ('A', 'int64'),
+                                ('Z', 'int64')]
+        return ak.from_numpy(np.empty(0, dtype=result_cluster_dtype))
     # Sort interactions by cluster_ids to simplify looping
     inds = ak.argsort(inter['cluster_ids'])
     inter = inter[inds]
