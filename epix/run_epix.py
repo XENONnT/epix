@@ -110,8 +110,10 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         result['photons'] = epix.reshape_awkward(photons, ak_num(result['ed']))
         result['electrons'] = epix.reshape_awkward(electrons, ak_num(result['ed']))
         result['excitons'] = epix.reshape_awkward(excitons, ak_num(result['ed']))
-    else:  # Empty case: `epix.quanta_from_NEST()` is a vectorized function, thus escape like that
-        result['photons'], result['electrons'], result['excitons'] = np.array([]), np.array([]), np.array([])
+    else:
+        result['photons'] = np.empty()
+        result['electrons'] = np.empty()
+        result['excitons'] = np.empty()
 
     if args['debug']:
         _ = monitor_time(tnow, 'get quanta.')
