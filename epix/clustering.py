@@ -251,11 +251,8 @@ classifier['types'] = ['None', 'neutron', 'alpha', 'None','None', 'gamma', 'e-']
 classifier['parenttype'] = ['None', 'None', 'None', 'Kr83[9.405]','Kr83[41.557]', 'None', 'None']
 classifier['creaproc'] = ['None', 'None', 'None', 'None', 'None','None', 'None']
 classifier['edproc'] = ['ionIoni', 'hadElastic', 'None', 'None','None', 'None', 'None']
-
-Xe_A = 131.293
-Xe_Z = 54.0
-classifier['A'] = [Xe_A, Xe_A, 4, infinity, infinity, infinity, infinity]
-classifier['Z'] = [Xe_Z, Xe_Z, 2, 0, 0, 0, 0]
+classifier['A'] = [0, 0, 4, infinity, infinity, 0, 0]
+classifier['Z'] = [0, 0, 2, 0, 0, 0, 0]
 classifier['nestid'] = [0, 0, 6, 11, 11, 7, 8]
 
 
