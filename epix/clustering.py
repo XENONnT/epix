@@ -5,6 +5,7 @@ import awkward as ak
 from .common import reshape_awkward
 from sklearn.cluster import DBSCAN
 
+
 def find_cluster(interactions, cluster_size_space, cluster_size_time):
     """
     Function which finds cluster within a event.
@@ -52,6 +53,7 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
     
     return interactions
 
+
 @numba.jit(nopython=True)
 def simple_1d_clustering(data, scale):
     """
@@ -86,6 +88,7 @@ def simple_1d_clustering(data, scale):
     
     return clusters_undo_sort
 
+
 def _find_cluster(x, cluster_size_space):
     """
     Function which finds cluster within a event.
@@ -110,6 +113,7 @@ result_cluster_dtype = [('x', 'float64'),
                         ('nestid', 'int64'),
                         ('A', 'int64'),
                         ('Z', 'int64')]
+
 
 def cluster(inter, classify_by_energy=False):
     """
@@ -269,6 +273,7 @@ classifier['edproc'] = ['ionIoni', 'hadElastic', 'None', 'None','None', 'None', 
 classifier['A'] = [infinity, infinity, 4, infinity,infinity, infinity, infinity]
 classifier['Z'] = [0, 0, 2, 0, 0, 0, 0]
 classifier['nestid'] = [0, 0, 6, 11, 11, 7, 8]
+
 
 @numba.njit
 def classify(types, parenttype, creaproc, edproc):
