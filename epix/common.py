@@ -36,7 +36,7 @@ def _reshape_awkward(array, offsets, res):
 
 def awkward_to_flat_numpy(array):
     if len(array) == 0:
-        return np.array([])
+        return ak.to_numpy(array)
     return (ak.to_numpy(ak.flatten(array)))
 
 
