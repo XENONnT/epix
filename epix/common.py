@@ -78,8 +78,9 @@ def ak_num(array, **kwargs):
         at a particular level. If array is empty, return empty.
     """
     if len(array) == 0:
-        return ak.from_numpy(np.array([], dtype='int64'))
+        return ak.from_numpy(np.empty(0, dtype='int64'))
     return ak.num(array, **kwargs)
+
 
 def calc_dt(result):
     """
@@ -88,9 +89,9 @@ def calc_dt(result):
     :param result: Including `t` field
     :return dt: Array like
     """
-    if len(result) == 0:  # Empty
-        return np.array([])
-    dt = result['t'] - result['t'][:, 0]  # if result is empty, Error
+    if len(result) == 0:
+        return np.empty(0)
+    dt = result['t'] - result['t'][:, 0]
     return dt
 
 
