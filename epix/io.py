@@ -262,10 +262,17 @@ class file_loader():
         # Searching for TTree according to old/new MC file structure:
         if root_dir.classname_of('events') == 'TTree':
             ttree = root_dir['events']
-            n_simulated_events = root_dir['nEVENTS'].members['fVal']
+            # Check existance of TParameter 'nEVENTS'
+            if [True for root_ls in root_dir.items() if root_ls[0].find('nEVENTS') >= 0]:
+                n_simulated_events = root_dir['nEVENTS'].members['fVal']
+            else:
+                n_simulated_events = ttree['eventid'].array(library='np').max()
         elif root_dir.classname_of('events/events') == 'TTree':
             ttree = root_dir['events/events']
-            n_simulated_events = root_dir['events/nbevents'].members['fVal']
+            if [True for root_ls in root_dir['events'].items() if root_ls[0].find('nbevents') >= 0]:
+                n_simulated_events = root_dir['events/nbevents'].members['fVal']
+            else:
+                n_simulated_events = ttree['eventid'].array(library='np').max()
         else:
             ttrees = []
             for k, v in root_dir.classnames().items():
