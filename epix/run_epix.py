@@ -4,11 +4,10 @@ import awkward as ak
 import numpy as np
 import pandas as pd
 import warnings
-
-import wfsim
 import epix
 
 from .common import ak_num, calc_dt, apply_time_offset
+
 
 def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     """Call this function from the run_epix script"""
