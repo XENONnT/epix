@@ -181,7 +181,11 @@ def _get_ttree(directory, file_name):
     # Searching for TTree according to old/new MC file structure:
     if root_dir.classname_of('events') == 'TTree':
         ttree = root_dir['events']
-        n_simulated_events = root_dir['nEVENTS'].members['fVal']
+        # Check existance of TParameter nEVENTS in ROOT file
+        if [True for root_ls in root_dir.items() if root_ls[0].find('nEVENTS') >= 0]:
+            n_simulated_events = root_dir['nEVENTS'].members['fVal']
+        else:
+            n_simulated_events = root_dir['events']['eventid'].array(library='np').max()
     elif root_dir.classname_of('events/events') == 'TTree':
         ttree = root_dir['events/events']
         n_simulated_events = root_dir['events/nbevents'].members['fVal']
