@@ -111,9 +111,9 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         result['electrons'] = epix.reshape_awkward(electrons, ak_num(result['ed']))
         result['excitons'] = epix.reshape_awkward(excitons, ak_num(result['ed']))
     else:
-        result['photons'] = np.empty()
-        result['electrons'] = np.empty()
-        result['excitons'] = np.empty()
+        result['photons'] = np.empty(0)
+        result['electrons'] = np.empty(0)
+        result['excitons'] = np.empty(0)
 
     if args['debug']:
         _ = monitor_time(tnow, 'get quanta.')
