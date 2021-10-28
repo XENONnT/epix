@@ -1,3 +1,9 @@
+0.1.3 (2021-07-27)
+==================
+  * Tuning clustering defaults (#39)
+  * Return statement for removed excitons (#38)
+  * Added local field and number of excitons (#34)
+
 0.1.2 (2021-06-09)
 ==================
   * Add sklearn to requirements (#31)
@@ -37,3 +43,4 @@
 0.0.1 (2020-01-21)
 ==================
   * Initial working release as python package
+
