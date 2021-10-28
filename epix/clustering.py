@@ -5,6 +5,7 @@ import awkward as ak
 from .common import reshape_awkward
 from sklearn.cluster import DBSCAN
 
+
 def find_cluster(interactions, cluster_size_space, cluster_size_time):
     """
     Function which finds cluster within a event.
@@ -26,8 +27,13 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
         df.append(ak.to_pandas(interactions[key], anonymous=key))
     df = pd.concat(df, axis=1)
 
+    if df.empty:
+        # TPC interaction is empty
+        return interactions
+
     # Splitting into individual events and apply time clustering:
     groups = df.groupby('entry')
+
     df["time_cluster"] = np.concatenate(groups.apply(lambda x: simple_1d_clustering(x.t.values, cluster_size_time)))
 
     # Splitting into individual events and time cluster and apply space clustering space:
@@ -39,7 +45,6 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
         for j in range(len(groups[i])):
             groups[i][j]+=add_to_cluster
             add_to_cluster = np.max(groups[i][j])+1
-
     df['cluster_id'] = np.concatenate(groups.values)
 
     ci = df.loc[:, 'cluster_id'].values
@@ -47,6 +52,7 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
     interactions['cluster_ids'] = reshape_awkward(ci, offsets)
     
     return interactions
+
 
 @numba.jit(nopython=True)
 def simple_1d_clustering(data, scale):
@@ -75,12 +81,13 @@ def simple_1d_clustering(data, scale):
         if value <= scale:
             clusters.append(c)
         elif value > scale:
-            c=c+1
+            c = c + 1
             clusters.append(c)
 
     clusters_undo_sort = np.array(clusters)[idx_undo_sort]
     
     return clusters_undo_sort
+
 
 def _find_cluster(x, cluster_size_space):
     """
@@ -123,6 +130,17 @@ def cluster(inter, classify_by_energy=False):
         awkward.Array: Clustered events with nest conform
             classification.
     """
+
+    if len(inter) == 0:
+        result_cluster_dtype = [('x', 'float64'),
+                                ('y', 'float64'),
+                                ('z', 'float64'),
+                                ('t', 'float64'),
+                                ('ed', 'float64'),
+                                ('nestid', 'int64'),
+                                ('A', 'int64'),
+                                ('Z', 'int64')]
+        return ak.from_numpy(np.empty(0, dtype=result_cluster_dtype))
     # Sort interactions by cluster_ids to simplify looping
     inds = ak.argsort(inter['cluster_ids'])
     inter = inter[inds]
@@ -238,15 +256,14 @@ def _cluster(x, y, z, ed, time, ci,
 
 
 infinity = np.iinfo(np.int16).max
-
-classifier = np.zeros(7, dtype=[(('Interaction type', 'types'), np.dtype('<U30')),
-                                (('Interaction type of the parent', 'parenttype'), np.dtype('<U30')),
-                                (('Creation process', 'creaproc'), np.dtype('<U30')),
-                                (('Energy deposit process', 'edproc'), np.dtype('<U30')),
-                                (('Atomic mass number', 'A'), np.int16),
-                                (('Atomic number', 'Z'), np.int16),
-                                (('Nest Id for qunata generation', 'nestid'), np.int16)]
-                      )
+classifier_dtype = [(('Interaction type', 'types'), np.dtype('<U30')),
+                    (('Interaction type of the parent', 'parenttype'), np.dtype('<U30')),
+                    (('Creation process', 'creaproc'), np.dtype('<U30')),
+                    (('Energy deposit process', 'edproc'), np.dtype('<U30')),
+                    (('Atomic mass number', 'A'), np.int16),
+                    (('Atomic number', 'Z'), np.int16),
+                    (('Nest Id for qunata generation', 'nestid'), np.int16)]
+classifier = np.zeros(7, dtype=classifier_dtype)
 classifier['types'] = ['None', 'neutron', 'alpha', 'None','None', 'gamma', 'e-']
 classifier['parenttype'] = ['None', 'None', 'None', 'Kr83[9.405]','Kr83[41.557]', 'None', 'None']
 classifier['creaproc'] = ['None', 'None', 'None', 'None', 'None','None', 'None']
