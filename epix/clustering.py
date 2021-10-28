@@ -39,7 +39,7 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
         add_to_cluster = 0
         for _t in _t_clusters:
             _cl = _find_cluster(_df_evt[_df_evt.time_cluster == _t], cluster_size_space=cluster_size_space)
-            _df_evt.loc[_df_evt.time_cluster == _t, 'cluster_id'] = _cl + add_to_cluster
+            df.loc[(df.time_cluster == _t)&(df.index.get_level_values(0)==evt), 'cluster_id'] = _cl + add_to_cluster            
             add_to_cluster = max(_cl) + add_to_cluster + 1
 
     ci = df.loc[:, 'cluster_id'].values
