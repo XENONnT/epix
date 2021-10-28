@@ -1,3 +1,10 @@
+0.2.0 (2021-10-28)
+==================
+  * Fix clustering indexing (#45)
+  * Treatment for empty data (#40)
+  * Fix for NEST interaction classification parameters (#44)
+  * Enable CSV input (#42) 
+
 0.1.3 (2021-07-27)
 ==================
   * Tuning clustering defaults (#39)
