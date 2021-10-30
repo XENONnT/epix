@@ -1,3 +1,7 @@
+0.2.1 (2021-10-30)
+==================
+  * Update efield handler to maps format (#49)
+
 0.2.0 (2021-10-28)
 ==================
   * Fix clustering indexing (#45)
