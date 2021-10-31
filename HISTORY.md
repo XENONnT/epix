@@ -1,3 +1,7 @@
+0.2.2 (2021-10-31)
+==================
+  * Fixed field map loading (#50)
+
 0.2.1 (2021-10-30)
 ==================
   * Update efield handler to maps format (#49)
