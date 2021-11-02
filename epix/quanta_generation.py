@@ -39,9 +39,9 @@ def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
     # and: https://github.com/NESTCollaboration/nest/blob/master/src/NEST.cpp#L585
     max_allowed_energy_difference = 1  # keV
     if model == 11:
-        if abs(en - 32.1) > max_allowed_energy_difference:
+        if abs(en - 32.1) < max_allowed_energy_difference:
             en = 32.1
-        if abs(en - 9.4) > max_allowed_energy_difference:
+        if abs(en - 9.4) < max_allowed_energy_difference:
             en = 9.4
 
     # Some addition taken from
