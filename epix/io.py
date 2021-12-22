@@ -99,6 +99,7 @@ class file_loader():
         self.outer_cylinder = outer_cylinder
         self.kwargs = kwargs
         self.cut_by_eventid = cut_by_eventid
+        self.cut_nr_only = cut_nr_only
 
         self.file = os.path.join(self.directory, self.file_name)
 
