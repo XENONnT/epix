@@ -90,6 +90,7 @@ class file_loader():
                 outer_cylinder=None,
                 kwargs={},
                 cut_by_eventid=False,
+                cut_nr_only=False,
                 ):
 
         self.directory = directory
@@ -109,9 +110,17 @@ class file_loader():
         #Prepare cut for root and csv case
         if self.outer_cylinder:
             self.cut_string = (f'(r < {self.outer_cylinder["max_r"]})'
-                               f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')
+                               f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')            
         else:
             self.cut_string = None
+            
+        if self.cut_nr_only:
+            if self.cut_string == None:
+                self.cut_string = ''
+            else:
+                self.cut_string = self.cut_string + f' & '
+                
+            self.cut_string = self.cut_string + f'( ( (type == "neutron") & (edproc == "hadElastic") ) | (edproc == "ionIoni") )'
     
     def load_file(self):
         """ 
