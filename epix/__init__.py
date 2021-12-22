@@ -1,4 +1,4 @@
-__version__ = '0.2.2.NRCUT'
+__version__ = '0.2.2'
 
 from .common import *
 from .io import *
