@@ -26,13 +26,13 @@ def pars_args():
                         action='store',
                         help='Number of entries to read from first. Defaulted to all.')
     parser.add_argument('--MicroSeparation', dest='micro_separation', type=float,
-                        action='store', default=0.05,
+                        action='store', default=0.005,
                         help='Spatial resolution for DBSCAN micro-clustering [mm].')
     parser.add_argument('--MicroSeparationTime', dest='micro_separation_time', type=float,
                         action='store', default=10,
                         help='Time resolution for DBSCAN micro-clustering [ns].')
     parser.add_argument('--TagClusterBy', dest='tag_cluster_by', type=str,
-                        action='store', default='time',
+                        action='store', default='energy',
                         help=('Classification of the type of particle of a cluster, '
                               'based on most energetic contributor ("energy") or first '
                               'depositing particle ("time").'),
