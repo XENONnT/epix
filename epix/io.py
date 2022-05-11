@@ -114,15 +114,7 @@ class file_loader():
                                f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')            
         else:
             self.cut_string = None
-            
-        if self.cut_nr_only:
-            if self.cut_string == None:
-                self.cut_string = ''
-            else:
-                self.cut_string = self.cut_string + f' & '
-                
-            self.cut_string = self.cut_string + f'( ( (type == "neutron") & (edproc == "hadElastic") ) | (edproc == "ionIoni") )'
-    
+
     def load_file(self):
         """ 
         Function which reads a root or csv file and removes 
@@ -149,6 +141,12 @@ class file_loader():
             m2 = (interactions['evtid'] >= start) & (interactions['evtid'] < stop)
             m = m & m2
         interactions = interactions[m]
+
+        if self.cut_nr_only:
+            m = ((interactions['type'] == "neutron")&(interactions['edproc'] == "hadElastic")) | (interactions['edproc'] == "ionIoni")
+            e_dep_er = ak.sum(interactions[~m]['ed'], axis=1)
+            e_dep_nr = ak.sum(interactions[m]['ed'], axis=1)
+            interactions = interactions[(e_dep_er<32) & (e_dep_nr>0)]
 
         # Removing all events with no interactions:
         m = ak.num(interactions['ed']) > 0
