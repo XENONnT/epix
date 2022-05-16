@@ -95,6 +95,7 @@ class GenerateEvents():
         """
 
         event_positions = np.vstack([instructions['x'], instructions['y'], instructions['z']]).T
+
         instructions['cs1'] = instructions['s1_area'] / resource.s1_map(event_positions)[:, 0]
         instructions['alt_cs1'] = instructions['alt_s1_area'] / resource.s1_map(event_positions)[:, 0]
 
@@ -107,6 +108,7 @@ class GenerateEvents():
             :params: config, dict with configuration values for resolution
             :params: resource, instance of wfsim Resource class
         """
+
         lifetime_corr = np.exp(instructions['drift_time'] / config['electron_lifetime_liquid'])
 
         alt_lifetime_corr = (np.exp((instructions['alt_s2_drift_time']) / config['electron_lifetime_liquid']))

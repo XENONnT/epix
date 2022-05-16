@@ -125,7 +125,10 @@ class StraxSimulator(strax.Plugin):
                              ('alt_cs2', np.float),
                              ('x', np.float),
                              ('y', np.float),
-                             ('z', np.float),
+
+        print(event_positions[:10])
+        print(resource.s1_map(event_positions)[:10,:])
+         ('z', np.float),
                              ('alt_s2_x', np.float),
                              ('alt_s2_y', np.float),
                              ('alt_s2_z', np.float),
@@ -139,11 +142,6 @@ class StraxSimulator(strax.Plugin):
     def load_config(self):
         """First load the config through wfsim, then we add some things we'd like to have"""
         self.resource = load_config(self.config)
-
-        ## self.resource.s1_map = InterpolatingMap(
-        ##    get_resource(self.config['configuration_files']['s1_relative_lce_map']))
-        ## self.resource.s2_map = InterpolatingMap(
-        ##    get_resource(self.config['configuration_files']['s2_xy_correction_map']))
 
         self.resource.s1_map = self.resource.s1_lce_correction_map
         self.resource.s2_map = self.resource.s2_correction_map
