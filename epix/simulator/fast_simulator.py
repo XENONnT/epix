@@ -125,10 +125,7 @@ class StraxSimulator(strax.Plugin):
                              ('alt_cs2', np.float),
                              ('x', np.float),
                              ('y', np.float),
-
-        print(event_positions[:10])
-        print(resource.s1_map(event_positions)[:10,:])
-         ('z', np.float),
+                             ('z', np.float),
                              ('alt_s2_x', np.float),
                              ('alt_s2_y', np.float),
                              ('alt_s2_z', np.float),
@@ -199,7 +196,7 @@ class StraxSimulator(strax.Plugin):
             data_type='events_tpc')
 
         # write empty chunk if nveto data isn't there
-        if simulated_data_nveto is None or len(simulated_data_nveto['time'])<1:
+        if simulated_data_nveto is None or len(simulated_data_nveto['time']) < 1:
             simulated_data_nveto_chunk = self.chunk(
                 start=0,
                 end=1,
