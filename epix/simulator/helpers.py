@@ -24,6 +24,13 @@ def _merge_these_clusters(s2_area1, z1, s2_area2, z2):
     return z1 - z2 < SeparationDistance
 
 
+@numba.njit
+def _merge_these_clusters_nt_res(s2_area1, z1, s2_area2, z2):
+    sensitive_volume_ztop = 0  # [mm]
+    SeparationDistance = 16.0  # [mm], maximum from [[weiss:analysis:he:zresoultion_zdependence]]
+    return np.abs(z1 - z2) < SeparationDistance
+
+
 class Helpers():
     @staticmethod
     def assignOrder(order):
@@ -71,8 +78,8 @@ class Helpers():
                     continue
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
                     break
-                if _merge_these_clusters(instructions[ix1]['amp'], instructions[ix1]['z'],
-                                         instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z']):
+                if _merge_these_clusters_nt_res(instructions[ix1]['amp'], instructions[ix1]['z'],
+                                                instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z']):
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5
                     instructions[ix1 + ix2]['z'] = (instructions[ix1]['z'] + instructions[ix1 + ix2]['z']) * 0.5
