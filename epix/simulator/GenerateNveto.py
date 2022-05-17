@@ -4,6 +4,7 @@ import uproot
 import itertools
 import numpy as np
 
+
 class NVetoUtils():
     @staticmethod
     def get_nv_pmt_qe(pmt_json_dict, pmt_ch, photon_ev):
@@ -18,16 +19,15 @@ class NVetoUtils():
 
     @staticmethod
     def get_nv_hits(ttree, pmt_nv_json_dict, nveto_dtype,
-                    SPE_Resolution=0.35, SPE_ResThreshold=0.5,
-                    max_coin_time_ns=500.0, batch_size=10000):
-        
-        
-        hits_dict = {'event_id': [], 'time': [],'channel': []}
-        num_hits=0
+                    SPE_Resolution=0.40, SPE_ResThreshold=0.50,
+                    max_time_ns=1e7, batch_size=10000):
+
+        hits_dict = {'event_id': [], 'time': [], 'channel': []}
+        num_hits = 0
         for events_iterator in uproot.iterate(ttree,
-                                          ['eventid', 'pmthitID', 'pmthitTime', 'pmthitEnergy'],
-                                          step_size=batch_size,
-                                          ioutputtype=collections.namedtuple):
+                                              ['eventid', 'pmthitID', 'pmthitTime', 'pmthitEnergy'],
+                                              step_size=batch_size,
+                                              ioutputtype=collections.namedtuple):
             for eventid_evt, pmthitID_evt, pmthitTime_evt, \
                 pmthitEnergy_evt in zip(getattr(events_iterator, 'eventid'),
                                         getattr(events_iterator, 'pmthitID'),
@@ -51,24 +51,22 @@ class NVetoUtils():
 
                 hit_array = np.array(hit_list)
                 pmt_coincidence_dict = None
-                hit_array_coincidence = np.array([])
+                hit_array_accepted = np.array([])
 
                 if hit_array.shape[0] > 0:
                     t0 = hit_array[:, 0].min()
-                    tf = t0 + max_coin_time_ns
-                    hit_array_coincidence = hit_array[hit_array[:, 0] < tf]
-                if len(hit_array_coincidence)>0:
-                    hits_dict['event_id'].append([eventid_evt]*len(hit_array_coincidence))
-                    hits_dict['time'].append(hit_array_coincidence[:,0])
-                    hits_dict['channel'].append(hit_array_coincidence[:,1])
-                    num_hits+=len(hit_array_coincidence)
-                    
-        result = np.zeros(num_hits,dtype=nveto_dtype)
-        result['event_id']=list(itertools.chain.from_iterable(hits_dict['event_id']))
-        result['channel']=list(itertools.chain.from_iterable(hits_dict['channel']))
-        result['time']=list(itertools.chain.from_iterable(hits_dict['time']))
-        result['endtime']=result['time']+1
+                    tf = t0 + max_time_ns
+                    hit_array_accepted = hit_array[hit_array[:, 0] < tf]
+                if len(hit_array_accepted) > 0:
+                    hits_dict['event_id'].append([eventid_evt] * len(hit_array_accepted))
+                    hits_dict['time'].append(hit_array_accepted[:, 0])
+                    hits_dict['channel'].append(hit_array_accepted[:, 1])
+                    num_hits += len(hit_array_accepted)
+
+        result = np.zeros(num_hits, dtype=nveto_dtype)
+        result['event_id'] = list(itertools.chain.from_iterable(hits_dict['event_id']))
+        result['channel'] = list(itertools.chain.from_iterable(hits_dict['channel']))
+        result['time'] = list(itertools.chain.from_iterable(hits_dict['time']))
+        result['endtime'] = result['time'] + 1
 
         return result
-
-

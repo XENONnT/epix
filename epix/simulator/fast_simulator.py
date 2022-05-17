@@ -102,11 +102,11 @@ class Simulator():
     strax.Option('fax_config_overrides', help='Fax configuration to override', default=None),
     strax.Option('xy_resolution', default=5, help='xy position resolution (cm)'),
     strax.Option('z_resolution', default=1, help='xy position resolution (cm)'),
-    strax.Option('dpe_fraction', default=1, help="double photo electron emission probabilty. \
+    strax.Option('dpe_fraction', default=1, help="double photo electron emission probability. \
                                                  Should be 1 since it's included in the LCE maps"),
-    strax.Option('nv_spe_resolution', default=0.40, help='nveto something?'),
-    strax.Option('nv_spe_res_threshold', default=0.50, help='some nveto threshold?'),
-    strax.Option('nv_max_coin_time_ns', default=300.0, help='maximum coincidence time'),
+    strax.Option('nv_spe_resolution', default=0.40, help='nVeto SPE resolution'),
+    strax.Option('nv_spe_res_threshold', default=0.50, help='nVeto SPE acceptance threshold'),
+    strax.Option('nv_max_time_ns', default=1e7, help='nVeto maximum time for the acceptance of PMT hits in event'),
 
 )
 class StraxSimulator(strax.Plugin):
@@ -165,7 +165,7 @@ class StraxSimulator(strax.Plugin):
                                              nveto_dtype=self.dtype['events_nveto'],
                                              SPE_Resolution=self.config['nv_spe_resolution'],
                                              SPE_ResThreshold=self.config['nv_spe_res_threshold'],
-                                             max_coin_time_ns=self.config['nv_max_coin_time_ns'],
+                                             max_time_ns=self.config['nv_max_time_ns'],
                                              batch_size=10000)
         return nv_hits
 

@@ -26,8 +26,8 @@ def _merge_these_clusters(s2_area1, z1, s2_area2, z2):
 
 @numba.njit
 def _merge_these_clusters_nt_res(s2_area1, z1, s2_area2, z2):
-    sensitive_volume_ztop = 0  # [mm]
-    SeparationDistance = 16.0  # [mm], maximum from [[weiss:analysis:he:zresoultion_zdependence]]
+    sensitive_volume_ztop = 0  # [cm]
+    SeparationDistance = 1.6  # [cm], the worst case from [[weiss:analysis:he:zresoultion_zdependence]]
     return np.abs(z1 - z2) < SeparationDistance
 
 
