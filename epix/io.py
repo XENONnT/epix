@@ -146,7 +146,7 @@ class file_loader():
             m = ((interactions['type'] == "neutron")&(interactions['edproc'] == "hadElastic")) | (interactions['edproc'] == "ionIoni")
             e_dep_er = ak.sum(interactions[~m]['ed'], axis=1)
             e_dep_nr = ak.sum(interactions[m]['ed'], axis=1)
-            interactions = interactions[(e_dep_er<32) & (e_dep_nr>0)]
+            interactions = interactions[(e_dep_er<10) & (e_dep_nr>0)]
 
         # Removing all events with no interactions:
         m = ak.num(interactions['ed']) > 0
