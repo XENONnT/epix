@@ -90,6 +90,7 @@ class file_loader():
                 outer_cylinder=None,
                 kwargs={},
                 cut_by_eventid=False,
+                cut_nr_only=False,
                 ):
 
         self.directory = directory
@@ -98,6 +99,7 @@ class file_loader():
         self.outer_cylinder = outer_cylinder
         self.kwargs = kwargs
         self.cut_by_eventid = cut_by_eventid
+        self.cut_nr_only = cut_nr_only
 
         self.file = os.path.join(self.directory, self.file_name)
 
@@ -109,10 +111,10 @@ class file_loader():
         #Prepare cut for root and csv case
         if self.outer_cylinder:
             self.cut_string = (f'(r < {self.outer_cylinder["max_r"]})'
-                               f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')
+                               f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')            
         else:
             self.cut_string = None
-    
+
     def load_file(self):
         """ 
         Function which reads a root or csv file and removes 
@@ -139,6 +141,12 @@ class file_loader():
             m2 = (interactions['evtid'] >= start) & (interactions['evtid'] < stop)
             m = m & m2
         interactions = interactions[m]
+
+        if self.cut_nr_only:
+            m = ((interactions['type'] == "neutron")&(interactions['edproc'] == "hadElastic")) | (interactions['edproc'] == "ionIoni")
+            e_dep_er = ak.sum(interactions[~m]['ed'], axis=1)
+            e_dep_nr = ak.sum(interactions[m]['ed'], axis=1)
+            interactions = interactions[(e_dep_er<10) & (e_dep_nr>0)]
 
         # Removing all events with no interactions:
         m = ak.num(interactions['ed']) > 0

@@ -19,6 +19,9 @@ def pars_args():
     parser.add_argument('--CutOnEventid', dest='cut_by_eventid',
                         action='store_true', default=False,
                         help='If true eventy start/stop acts on eventid instead of rows.'),
+    parser.add_argument('--CutNeutron', dest='nr_only',
+                        action='store_true', default=False,
+                        help='Keep NR included events with ER components smaller than 10 keV'),
     parser.add_argument('--EntryStart', dest='entry_start', type=int,
                         action='store',
                         help='First event to be read. Defaulted is zero.'),
@@ -55,8 +58,7 @@ def pars_args():
                              'in the same dir as the input file.'))
     parser.add_argument('--Debug', dest='debug',
                        action='store_true', default=False,
-                       help=('If specifed additional information is printed to the console.')
-                        )
+                       help='If specifed additional information is printed to the console.')
 
     args = parser.parse_args(sys.argv[1:])
     return args
