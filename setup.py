@@ -11,7 +11,7 @@ with open('HISTORY.md') as file:
 
 setuptools.setup(
     name='epix',
-    version='0.2.2',
+    version='0.3.0',
     description='Electron and Photon Instructions generator for XENON',
     author='epix contributors, the XENON collaboration',
     url='https://github.com/XENONnT/epix',
