@@ -130,6 +130,8 @@ class file_loader():
             interactions, n_simulated_events, start, stop = self._load_root_file()
         elif self.file.endswith(".csv"):
             interactions, n_simulated_events, start, stop = self._load_csv_file()
+        else:
+            raise ValueError(f'Cannot load events from file "{self.file}": .root or .cvs file needed.')
 
         if np.any(interactions['ed'] < 0):
             warnings.warn('At least one of the energy deposits is negative!')
