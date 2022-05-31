@@ -27,8 +27,8 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
                                         outer_cylinder=args['outer_cylinder'],
                                         kwargs={'entry_start': args['entry_start'],
                                                 'entry_stop': args['entry_stop']},
-                                        cut_by_eventid=args['cut_by_eventid'],
-                                        cut_nr_only=args['nr_only'],
+                                        cut_by_eventid=args.get('cut_by_eventid', False),
+                                        cut_nr_only=args.get('nr_only', False),
                                         )
     inter, n_simulated_events = epix_file_loader.load_file()
 
