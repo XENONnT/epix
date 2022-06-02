@@ -20,7 +20,6 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         tnow = starttime
 
     # Loading data:
-    
     epix_file_loader = epix.file_loader(args['path'],
                                         args['file_name'],
                                         args['debug'],
@@ -50,6 +49,11 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     # Add eventid again:
     result['evtid'] = ak.broadcast_arrays(inter['evtid'][:, 0], result['ed'])[0]
+
+    # Add x_pri, y_pri, z_pri again:
+    result['x_pri'] = ak.broadcast_arrays(inter['x_pri'][:, 0], result['ed'])[0]
+    result['y_pri'] = ak.broadcast_arrays(inter['y_pri'][:, 0], result['ed'])[0]
+    result['z_pri'] = ak.broadcast_arrays(inter['z_pri'][:, 0], result['ed'])[0]
 
     # Sort detector volumes and keep interactions in selected ones:
     if args['debug']:

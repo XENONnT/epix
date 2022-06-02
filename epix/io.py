@@ -103,7 +103,7 @@ class file_loader():
 
         self.file = os.path.join(self.directory, self.file_name)
 
-        self.column_names = ["x", "y", "z", "x_pri", "y_pri", "z_pri",
+        self.column_names = ["x", "y", "z",
                              "t", "ed",
                              "type", "trackid",
                              "parenttype", "parentid",
@@ -158,8 +158,8 @@ class file_loader():
         return interactions, n_simulated_events
 
     def _load_root_file(self):
-        """ 
-        Function which reads a root file using uproot, 
+        """
+        Function which reads a root file using uproot,
         performs a simple cut and builds an awkward array.
 
         Returns:
@@ -168,7 +168,7 @@ class file_loader():
             start: Index of the first loaded interaction
             stop: Index of the last loaded interaction
         """
-        
+
         ttree, n_simulated_events = self._get_ttree()
 
         if self.arg_debug:
@@ -205,9 +205,6 @@ class file_loader():
         alias = {'x': 'xp/10',  # converting "geant4" mm to "straxen" cm
                  'y': 'yp/10',
                  'z': 'zp/10',
-                 'x_pri': 'xp_pri/10',
-                 'y_pri': 'yp_pri/10',
-                 'z_pri': 'zp_pri/10',
                  'r': 'sqrt(x**2 + y**2)',
                  't': 'time*10**9'
                 }
@@ -221,7 +218,18 @@ class file_loader():
         eventids = ak.broadcast_arrays(eventids['eventid'], interactions['x'])[0]
         interactions['evtid'] = eventids
 
-        return interactions, n_simulated_events, start, stop 
+        xyz_pri = ttree.arrays(['x_pri', 'y_pri', 'z_pri'],
+                              aliases={'x_pri': 'xp_pri/10',
+                                       'y_pri': 'yp_pri/10',
+                                       'z_pri': 'zp_pri/10'
+                                      },
+                              **self.kwargs)
+
+        interactions['x_pri'] = ak.broadcast_arrays(xyz_pri['x_pri'], interactions['x'])[0]
+        interactions['y_pri'] = ak.broadcast_arrays(xyz_pri['y_pri'], interactions['x'])[0]
+        interactions['z_pri'] = ak.broadcast_arrays(xyz_pri['z_pri'], interactions['x'])[0]
+
+        return interactions, n_simulated_events, start, stop
 
     def _load_csv_file(self):
         """ 
