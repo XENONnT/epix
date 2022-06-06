@@ -103,7 +103,8 @@ class file_loader():
 
         self.file = os.path.join(self.directory, self.file_name)
 
-        self.column_names = ["x", "y", "z", "t", "ed",
+        self.column_names = ["x", "y", "z",
+                             "t", "ed",
                              "type", "trackid",
                              "parenttype", "parentid",
                              "creaproc", "edproc"]
@@ -157,8 +158,8 @@ class file_loader():
         return interactions, n_simulated_events
 
     def _load_root_file(self):
-        """ 
-        Function which reads a root file using uproot, 
+        """
+        Function which reads a root file using uproot,
         performs a simple cut and builds an awkward array.
 
         Returns:
@@ -167,7 +168,7 @@ class file_loader():
             start: Index of the first loaded interaction
             stop: Index of the last loaded interaction
         """
-        
+
         ttree, n_simulated_events = self._get_ttree()
 
         if self.arg_debug:
@@ -202,10 +203,10 @@ class file_loader():
 
         # Conversions and parameters to be computed:
         alias = {'x': 'xp/10',  # converting "geant4" mm to "straxen" cm
-                'y': 'yp/10',
-                'z': 'zp/10',
-                'r': 'sqrt(x**2 + y**2)',
-                't': 'time*10**9'
+                 'y': 'yp/10',
+                 'z': 'zp/10',
+                 'r': 'sqrt(x**2 + y**2)',
+                 't': 'time*10**9'
                 }
 
         # Read in data, convert mm to cm and perform a first cut if specified:
@@ -217,7 +218,18 @@ class file_loader():
         eventids = ak.broadcast_arrays(eventids['eventid'], interactions['x'])[0]
         interactions['evtid'] = eventids
 
-        return interactions, n_simulated_events, start, stop 
+        xyz_pri = ttree.arrays(['x_pri', 'y_pri', 'z_pri'],
+                              aliases={'x_pri': 'xp_pri/10',
+                                       'y_pri': 'yp_pri/10',
+                                       'z_pri': 'zp_pri/10'
+                                      },
+                              **self.kwargs)
+
+        interactions['x_pri'] = ak.broadcast_arrays(xyz_pri['x_pri'], interactions['x'])[0]
+        interactions['y_pri'] = ak.broadcast_arrays(xyz_pri['y_pri'], interactions['x'])[0]
+        interactions['z_pri'] = ak.broadcast_arrays(xyz_pri['z_pri'], interactions['x'])[0]
+
+        return interactions, n_simulated_events, start, stop
 
     def _load_csv_file(self):
         """ 
@@ -238,7 +250,10 @@ class file_loader():
         #unit conversion similar to root case
         instr_df["x"] = instr_df["xp"]/10 
         instr_df["y"] = instr_df["yp"]/10 
-        instr_df["z"] = instr_df["zp"]/10 
+        instr_df["z"] = instr_df["zp"]/10
+        instr_df["x_pri"] = instr_df["xp_pri"]/10
+        instr_df["y_pri"] = instr_df["yp_pri"]/10
+        instr_df["z_pri"] = instr_df["zp_pri"]/10
         instr_df["r"] = np.sqrt(instr_df["x"]**2 + instr_df["y"]**2)
         instr_df["t"] = instr_df["time"]*10**9
 
@@ -301,20 +316,23 @@ class file_loader():
         _, evt_offsets = np.unique(df["eventid"], return_counts = True)
     
         dictionary = {"x": reshape_awkward(df["x"].values , evt_offsets),
-                    "y": reshape_awkward(df["y"].values , evt_offsets),
-                    "z": reshape_awkward(df["z"].values , evt_offsets),
-                    "r": reshape_awkward(df["r"].values , evt_offsets),
-                    "t": reshape_awkward(df["t"].values , evt_offsets),
-                    "ed": reshape_awkward(df["ed"].values , evt_offsets),
-                    "type":reshape_awkward(np.array(df["type"], dtype=str) , evt_offsets),
-                    "trackid": reshape_awkward(df["trackid"].values , evt_offsets),
-                    "parenttype": reshape_awkward(np.array(df["parenttype"], dtype=str) , evt_offsets),
-                    "parentid": reshape_awkward(df["parentid"].values , evt_offsets),
-                    "creaproc": reshape_awkward(np.array(df["creaproc"], dtype=str) , evt_offsets),
-                    "edproc": reshape_awkward(np.array(df["edproc"], dtype=str) , evt_offsets),
-                    "evtid": reshape_awkward(df["eventid"].values , evt_offsets),
+                      "y": reshape_awkward(df["y"].values , evt_offsets),
+                      "z": reshape_awkward(df["z"].values , evt_offsets),
+                      "x_pri": reshape_awkward(df["x_pri"].values, evt_offsets),
+                      "y_pri": reshape_awkward(df["y_pri"].values, evt_offsets),
+                      "z_pri": reshape_awkward(df["z_pri"].values, evt_offsets),
+                      "r": reshape_awkward(df["r"].values , evt_offsets),
+                      "t": reshape_awkward(df["t"].values , evt_offsets),
+                      "ed": reshape_awkward(df["ed"].values , evt_offsets),
+                      "type":reshape_awkward(np.array(df["type"], dtype=str) , evt_offsets),
+                      "trackid": reshape_awkward(df["trackid"].values , evt_offsets),
+                      "parenttype": reshape_awkward(np.array(df["parenttype"], dtype=str) , evt_offsets),
+                      "parentid": reshape_awkward(df["parentid"].values , evt_offsets),
+                      "creaproc": reshape_awkward(np.array(df["creaproc"], dtype=str) , evt_offsets),
+                      "edproc": reshape_awkward(np.array(df["edproc"], dtype=str) , evt_offsets),
+                      "evtid": reshape_awkward(df["eventid"].values , evt_offsets),
                     }
-        
+
         return ak.Array(dictionary)
 
 # ----------------------
@@ -344,6 +362,9 @@ def awkward_to_wfsim_row_style(interactions):
         res['x'][i::2] = awkward_to_flat_numpy(interactions['x'])
         res['y'][i::2] = awkward_to_flat_numpy(interactions['y'])
         res['z'][i::2] = awkward_to_flat_numpy(interactions['z'])
+        res['x_pri'][i::2] = awkward_to_flat_numpy(interactions['x_pri'])
+        res['y_pri'][i::2] = awkward_to_flat_numpy(interactions['y_pri'])
+        res['z_pri'][i::2] = awkward_to_flat_numpy(interactions['z_pri'])
         res['time'][i::2] = awkward_to_flat_numpy(interactions['t'])
         res['g4id'][i::2] = awkward_to_flat_numpy(interactions['evtid'])
         res['vol_id'][i::2] = awkward_to_flat_numpy(interactions['vol_id'])
