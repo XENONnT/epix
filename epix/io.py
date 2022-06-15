@@ -90,6 +90,7 @@ class file_loader():
                 outer_cylinder=None,
                 kwargs={},
                 cut_by_eventid=False,
+                select_eventid_npy=None,
                 cut_nr_only=False,
                 ):
 
@@ -99,6 +100,12 @@ class file_loader():
         self.outer_cylinder = outer_cylinder
         self.kwargs = kwargs
         self.cut_by_eventid = cut_by_eventid
+
+        self.selected_eventid = None
+        if select_eventid_npy != None:
+            print(f"LOAD SELECTED EVENTID from [ {select_eventid_npy} ]")
+            self.selected_eventid = np.load(select_eventid_npy)
+
         self.cut_nr_only = cut_nr_only
 
         self.file = os.path.join(self.directory, self.file_name)
@@ -143,6 +150,11 @@ class file_loader():
             # ufunc does not work here...
             m2 = (interactions['evtid'] >= start) & (interactions['evtid'] < stop)
             m = m & m2
+
+        if self.selected_eventid != None:
+            m3 = (np.isin(interactions['evtid'], self.selected_eventid))
+            m = m & m3
+
         interactions = interactions[m]
 
         if self.cut_nr_only:
