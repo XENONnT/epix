@@ -1,3 +1,8 @@
+0.3.1 (2022-06-15)
+==================
+  * Save primary particle position (#56)
+  * Set arg defaults (#55)
+
 0.3.0 (2022-05-20)
 ==================
   * Add NR filter before quanta generation (#53)
