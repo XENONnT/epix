@@ -28,6 +28,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
                                                 'entry_stop': args['entry_stop']},
                                         cut_by_eventid=args.get('cut_by_eventid', False),
                                         cut_nr_only=args.get('nr_only', False),
+                                        cut_neutron_veto=args.get('neutron_veto', False),
                                         )
     inter, n_simulated_events = epix_file_loader.load_file()
 

@@ -107,7 +107,10 @@ class file_loader():
                              "t", "ed",
                              "type", "trackid",
                              "parenttype", "parentid",
-                             "creaproc", "edproc"]
+                             "creaproc", "edproc",
+                             "e_pri", "type_pri",
+                             "pmthitTime", "nNVpmthits"
+                             ]
 
         #Prepare cut for root and csv case
         if self.outer_cylinder:
@@ -150,6 +153,13 @@ class file_loader():
             e_dep_er = ak.sum(interactions[~m]['ed'], axis=1)
             e_dep_nr = ak.sum(interactions[m]['ed'], axis=1)
             interactions = interactions[(e_dep_er<10) & (e_dep_nr>0)]
+
+        if self.cut_neutron_veto:
+            m_gamma_accompanied = (ak.num(interactions['type_pri'], axis=1) == 2)
+            e_neutron = np.asarray(interactions['e_pri']).copy()
+            e_neutron[m_gamma_accompanied] = e_neutron[m_gamma_accompanied] - 4438
+            m = e_neutron < 6000
+            interactions = interactions[m]
 
         # Removing all events with no interactions:
         m = ak.num(interactions['ed']) > 0
