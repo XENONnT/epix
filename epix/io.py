@@ -91,6 +91,7 @@ class file_loader():
                 kwargs={},
                 cut_by_eventid=False,
                 cut_nr_only=False,
+                cut_neutron_veto=False
                 ):
 
         self.directory = directory
@@ -100,6 +101,7 @@ class file_loader():
         self.kwargs = kwargs
         self.cut_by_eventid = cut_by_eventid
         self.cut_nr_only = cut_nr_only
+        self.cut_neutron_veto = cut_neutron_veto
 
         self.file = os.path.join(self.directory, self.file_name)
 
