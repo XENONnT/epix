@@ -27,8 +27,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
                                         kwargs={'entry_start': args['entry_start'],
                                                 'entry_stop': args['entry_stop']},
                                         cut_by_eventid=args.get('cut_by_eventid', False),
-                                        cut_nr_only=args.get('nr_only', False),
-                                        cut_neutron_veto=args.get('neutron_veto', False),
+                                        cut_nr_only=args.get('nr_only', False)
                                         )
     inter, n_simulated_events = epix_file_loader.load_file()
 
@@ -56,6 +55,10 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     result['y_pri'] = ak.broadcast_arrays(inter['y_pri'][:, 0], result['ed'])[0]
     result['z_pri'] = ak.broadcast_arrays(inter['z_pri'][:, 0], result['ed'])[0]
 
+    # Add neutron again
+    result['neutron_e_pri'] = ak.broadcast_arrays(inter['neutron_e_pri'][:, 0], result['ed'])[0]
+    result['neutron_veto'] = ak.broadcast_arrays(inter['neutron_veto'][:, 0], result['ed'])[0]
+
     # Sort detector volumes and keep interactions in selected ones:
     if args['debug']:
         print('Removing clusters not in volumes:', *[v.name for v in args['detector_config']])
@@ -70,6 +73,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     # Adding new fields to result:
     for field in res_det.fields:
         result[field] = res_det[field]
+
     m = result['vol_id'] > 0  # All volumes have an id larger zero
     result = result[m]
 
@@ -151,6 +155,8 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
             print(f"Fixed event rate of {args['source_rate']} Hz")
 
     result['t'] = apply_time_offset(result, dt)
+
+
 
     # Reshape instructions:
     if args['debug'] & (len(result) == 0):

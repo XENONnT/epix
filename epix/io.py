@@ -91,7 +91,6 @@ class file_loader():
                 kwargs={},
                 cut_by_eventid=False,
                 cut_nr_only=False,
-                cut_neutron_veto=False
                 ):
 
         self.directory = directory
@@ -101,7 +100,6 @@ class file_loader():
         self.kwargs = kwargs
         self.cut_by_eventid = cut_by_eventid
         self.cut_nr_only = cut_nr_only
-        self.cut_neutron_veto = cut_neutron_veto
 
         self.file = os.path.join(self.directory, self.file_name)
 
@@ -110,8 +108,6 @@ class file_loader():
                              "type", "trackid",
                              "parenttype", "parentid",
                              "creaproc", "edproc",
-                             "e_pri", "type_pri",
-                             "pmthitTime", "nNVpmthits"
                              ]
 
         #Prepare cut for root and csv case
@@ -155,13 +151,6 @@ class file_loader():
             e_dep_er = ak.sum(interactions[~m]['ed'], axis=1)
             e_dep_nr = ak.sum(interactions[m]['ed'], axis=1)
             interactions = interactions[(e_dep_er<10) & (e_dep_nr>0)]
-
-        if self.cut_neutron_veto:
-            m_gamma_accompanied = (ak.num(interactions['type_pri'], axis=1) == 2)
-            e_neutron = np.asarray(interactions['e_pri']).copy()
-            e_neutron[m_gamma_accompanied] = e_neutron[m_gamma_accompanied] - 4438
-            m = e_neutron < 6000
-            interactions = interactions[m]
 
         # Removing all events with no interactions:
         m = ak.num(interactions['ed']) > 0
@@ -240,6 +229,20 @@ class file_loader():
         interactions['x_pri'] = ak.broadcast_arrays(xyz_pri['x_pri'], interactions['x'])[0]
         interactions['y_pri'] = ak.broadcast_arrays(xyz_pri['y_pri'], interactions['x'])[0]
         interactions['z_pri'] = ak.broadcast_arrays(xyz_pri['z_pri'], interactions['x'])[0]
+
+        neutron_veto = ttree.arrays(['eventid', 'pmthitTime', 'nNVpmthits'])
+        first_photon = ak.min(neutron_veto['pmthitTime'], axis=1)
+        first_photon = first_photon * 10 ** 9
+        neutron_veto_trigger = (neutron_veto['nNVpmthits'] >= 300) & (neutron_veto['nNVpmthits'] < 700)
+        neutron_veto_trigger = neutron_veto_trigger & (first_photon < 20)
+        neutron_veto_trigger = ak.fill_none(neutron_veto_trigger, False)
+        interactions['neutron_veto'] = ak.broadcast_arrays(neutron_veto_trigger, interactions['x'])[0]
+
+        e_pri = ttree.arrays(['e_pri', 'type_pri'])
+        m_gamma_accompanied = (ak.num(e_pri['type_pri'], axis=1) == 2)
+        e_neutron = np.asarray(e_pri['e_pri']).copy()
+        e_neutron[m_gamma_accompanied] = e_neutron[m_gamma_accompanied] - 4438
+        interactions['neutron_e_pri'] = ak.broadcast_arrays(e_neutron, interactions['x'])[0]
 
         return interactions, n_simulated_events, start, stop
 
@@ -381,6 +384,9 @@ def awkward_to_wfsim_row_style(interactions):
         res['g4id'][i::2] = awkward_to_flat_numpy(interactions['evtid'])
         res['vol_id'][i::2] = awkward_to_flat_numpy(interactions['vol_id'])
         res['e_dep'][i::2] = awkward_to_flat_numpy(interactions['ed'])
+        res['neutron_veto'][i::2] = awkward_to_flat_numpy(interactions['neutron_veto'])
+        res['neutron_e_pri'][i::2] = awkward_to_flat_numpy(interactions['neutron_e_pri'])
+
         if 'local_field' in res.dtype.names:
             res['local_field'][i::2] = awkward_to_flat_numpy(interactions['e_field'])
 
