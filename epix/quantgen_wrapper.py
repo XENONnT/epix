@@ -137,7 +137,7 @@ class BBF_quanta_generator:
 
         Ni = np.random.binomial(Nq, 1./(1.+par_dict['Nex/Ni']))
 
-        recomb = self.ER_recomb(energy,field,  par_dict)
+        recomb = self.ER_recomb(energy,field, par_dict)
         drecomb = self.ER_drecomb(energy, par_dict)
         true_recomb = np.clip(np.random.normal(recomb, drecomb), 0., 1.)
 
