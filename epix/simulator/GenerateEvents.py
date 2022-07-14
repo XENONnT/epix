@@ -117,9 +117,9 @@ class GenerateEvents():
         s2_positions = np.vstack([instructions['x'], instructions['y']]).T
         alt_s2_positions = np.vstack([instructions['alt_s2_x'], instructions['alt_s2_y']]).T
 
-        instructions['cs2'] = (instructions['s2_area'] * lifetime_corr / resource.s2_map(s2_positions)[:, 0])
+        instructions['cs2'] = (instructions['s2_area'] * lifetime_corr / resource.s2_map(s2_positions))
         instructions['alt_cs2'] = (
-                instructions['alt_s2_area'] * alt_lifetime_corr / resource.s2_map(alt_s2_positions)[:, 0])
+                instructions['alt_s2_area'] * alt_lifetime_corr / resource.s2_map(alt_s2_positions))
 
         alt_s2_nan = instructions['alt_s2_area'] < 1e-6
         instructions['alt_s2_x'][alt_s2_nan] = 0.0
