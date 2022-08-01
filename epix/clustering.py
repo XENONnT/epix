@@ -292,7 +292,6 @@ def classify(types, parenttype, creaproc, edproc):
     return infinity, infinity, 12
 
 
-@numba.njit
 def _write_result(res, x_mean, y_mean, z_mean,
                   ed_tot, t_mean, A, Z, nestid):
     """
