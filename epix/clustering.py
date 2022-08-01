@@ -56,7 +56,7 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
     return interactions
 
 
-@numba.jit(nopython=True)
+# @numba.jit(nopython=True)
 def simple_1d_clustering(data, scale):
     """
     Function to cluster one dimensional data.
@@ -167,7 +167,7 @@ def cluster(inter, classify_by_energy=False):
     return res.snapshot()
 
 
-@numba.njit
+# @numba.njit
 def _cluster(x, y, z, ed, time, ci,
              types, parenttype, creaproc, edproc,
              classify_by_energy, res):
