@@ -23,8 +23,8 @@ class BBF_quanta_generator:
             "delta": 0.0620,
             "kappa": 0.13762801393921467, 
             "eta": 6.387273512457444, 
-            "lambda": 1.4102590741165675
-            'fano' : 0.059
+            "lambda": 1.4102590741165675,
+            "fano" : 0.059
         }
         self.ERs = [7,8,11]
         self.NRs = [0,1]
