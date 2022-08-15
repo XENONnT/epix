@@ -47,6 +47,8 @@ def pars_args():
                         action='store', default=0,
                         help='Event rate for event separation. 0 (default) means no time shift is applied for the '
                              'different events. Use -1 for clean spacing or give a rate >0 to space events randomly.')
+    parser.add_argument('--YieldModel', dest='yield', type=str, 
+                        default='nest', help = 'Switch between BBF and NEST yield model')
     parser.add_argument('--JobNumber', dest='job_number', type=int,
                         action='store', default=0,
                         help='Job number in full chain simulation. Offset is computed as '
