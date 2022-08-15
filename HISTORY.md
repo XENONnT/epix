@@ -1,3 +1,7 @@
+0.3.2 (2022-08-15)
+==================
+ * First implementation of BBF quanta generator (#57)
+
 0.3.1 (2022-06-15)
 ==================
   * Save primary particle position (#56)
