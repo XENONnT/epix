@@ -1,6 +1,14 @@
 import numba
 import epix
 
+# Fixed detector dimensions of DARWIN:
+darwin_sensitive_volume_radius = 130.0  # cm
+darwin_z_gate_mesh = 125.0  # bottom of the gate electrode
+darwin_z_top_pmts = 131.0  # cm
+darwin_z_cathode = -135.0  # cm ... top of the cathode electrode
+darwin_z_bottom_pmts = -144.0  # cm ... top surface of the bottom PMT window
+darwin_z_lxe = 125.0  # cm ... liquid-gas interface
+
 # Fixed detector dimensions of XENONnT:
 # See also: https://xe1t-wiki.lngs.infn.it/doku.php?id=xenon:xenonnt:analysis:coordinate_system
 xenonnt_sensitive_volume_radius = 66.4  # cm
@@ -8,7 +16,7 @@ xenonnt_z_gate_mesh = 0.  # bottom of the gate electrode
 xenonnt_z_top_pmts = 7.3936  # cm
 xenonnt_z_cathode = -148.6515  # cm ... top of the cathode electrode
 xenonnt_z_bottom_pmts = -154.6555  # cm ... top surface of the bottom PMT window
-xenonnt_z_lxe = 0.416 # cm ... liquid-gas interface
+xenonnt_z_lxe = 0.416  # cm ... liquid-gas interface
 
 # Fixed detector dimensions of XENON1T:
 # See also: https://xe1t-wiki.lngs.infn.it/doku.php?id=xenon:xenon1t:analysis:coordinate_system
@@ -17,7 +25,59 @@ xenon1t_z_gate_mesh = 0.  # bottom of the gate electrode
 xenon1t_z_top_pmts = 7.38  # cm
 xenon1t_z_cathode = -96.87  # cm ... top of the cathode electrode
 xenon1t_z_bottom_pmts = -103.09  # cm ... top surface of the bottom PMT window
-xenon1t_z_lxe = 0.27 # cm ... liquid-gas interface
+xenon1t_z_lxe = 0.27  # cm ... liquid-gas interface
+
+
+def darwin():
+    """
+    Default DARWIN TPC with different sensitive volumes.
+
+    The structure for each volume is as follows:
+        key: VolumeName
+        items: keyword arguments for the Sensitive Volume class
+
+    :return: A list of volumes for the default nT detector.
+    """
+    # Outer edges of the volume of interest. This is needed for a
+    # preselection of interactions inside the desired volumes before
+    # clustering.
+    outer_cylinder = {'max_z': darwin_z_top_pmts,
+                      'min_z': darwin_z_bottom_pmts,
+                      'max_r': darwin_sensitive_volume_radius
+                      }
+
+    volumes = {'TPC': {'volume_id': 1,
+                       'roi': _make_roi_cylinder(darwin_z_cathode,
+                                                 darwin_z_gate_mesh,
+                                                 darwin_sensitive_volume_radius),
+                       'electric_field': 500,
+                       'create_S2': True,
+                       'xe_density': 2.862,
+                       'efield_outside_map': 500,
+                       'to_be_stored': True,
+                       },
+               'BelowCathode': {'volume_id': 2,
+                                'roi': _make_roi_cylinder(darwin_z_bottom_pmts,
+                                                          darwin_z_cathode,
+                                                          darwin_sensitive_volume_radius),
+                                'electric_field': 500,
+                                'create_S2': False,
+                                'xe_density': 2.862,
+                                'efield_outside_map': 500,
+                                'to_be_stored': True,
+                                },
+               'GasPhase': {'volume_id': 3,
+                            'roi': _make_roi_cylinder(darwin_z_lxe,
+                                                      darwin_z_top_pmts,
+                                                      darwin_sensitive_volume_radius),
+                            'electric_field': 500,
+                            'create_S2': False,
+                            'xe_density': 0.0177,
+                            'efield_outside_map': 500,
+                            'to_be_stored': False,
+                            },
+               }
+    return volumes, outer_cylinder
 
 
 def xenonnt():
