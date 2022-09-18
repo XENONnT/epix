@@ -9,7 +9,7 @@ import epix
 from .common import ak_num, calc_dt, apply_time_offset
 
 
-def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
+def main(args, return_df=False, return_instructions=False, strax=False):
     """Call this function from the run_epix script"""
 
     if args['debug']:
@@ -34,10 +34,10 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     if args['debug']:
         tnow = monitor_time(tnow, 'load data.')
         print(f"Finding clusters of interactions with a dr = {args['micro_separation']} mm"
-               f" and dt = {args['micro_separation_time']} ns")
+              f" and dt = {args['micro_separation_time']} ns")
 
     # Cluster finding and clustering (convert micro_separation mm -> cm):
-    inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
+    inter = epix.find_cluster(inter, args['micro_separation'] / 10, args['micro_separation_time'])
 
     if args['debug']:
         tnow = monitor_time(tnow, 'find clusters.')
@@ -98,7 +98,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     # Sort entries (in an event) by in time, then chop all delayed
     # events which are too far away from the rest.
-    # (This is a requirement of WFSim)
+
     result = result[ak.argsort(result['t'])]
     dt = calc_dt(result)
     result = result[dt <= args['max_delay']]
@@ -107,24 +107,25 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         print('Generating photons and electrons for events')
     # Generate quanta:
     if len(result) > 0:
-        if not ('yield' in args.keys()): 
+        if not ('yield' in args.keys()):
             print("No yield is provided! Forcing nest")
-            args['yield']="nest"
-        if args['yield'].lower()=="nest":
+            args['yield'] = "nest"
+        if args['yield'].lower() == "nest":
             photons, electrons, excitons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
                                                                  epix.awkward_to_flat_numpy(result['nestid']),
                                                                  epix.awkward_to_flat_numpy(result['e_field']),
                                                                  epix.awkward_to_flat_numpy(result['A']),
                                                                  epix.awkward_to_flat_numpy(result['Z']),
                                                                  epix.awkward_to_flat_numpy(result['create_S2']),
-                                                                 density=epix.awkward_to_flat_numpy(result['xe_density']))
-        elif args['yield'].lower()=="bbf":
-            bbfyields=epix.BBF_quanta_generator()
+                                                                 density=epix.awkward_to_flat_numpy(
+                                                                     result['xe_density']))
+        elif args['yield'].lower() == "bbf":
+            bbfyields = epix.BBF_quanta_generator()
             photons, electrons, excitons = bbfyields.get_quanta_vectorized(
-                                energy=epix.awkward_to_flat_numpy(result['ed']),
-                                interaction=epix.awkward_to_flat_numpy(result['nestid']),
-                                field=epix.awkward_to_flat_numpy(result['e_field'])
-                                )
+                energy=epix.awkward_to_flat_numpy(result['ed']),
+                interaction=epix.awkward_to_flat_numpy(result['nestid']),
+                field=epix.awkward_to_flat_numpy(result['e_field'])
+            )
         else:
             raise RuntimeError("Unknown yield model: ", args['yields'])
         result['photons'] = epix.reshape_awkward(photons, ak_num(result['ed']))
@@ -153,7 +154,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     else:
         # Rate offset computed based on the specified rate and job_id.
         # Assumes all jobs were started with the same number of events.
-        offset = (args['job_number']*n_simulated_events)/args['source_rate']
+        offset = (args['job_number'] * n_simulated_events) / args['source_rate']
         dt = epix.times_from_fixed_rate(args['source_rate'],
                                         number_of_events,
                                         n_simulated_events,
@@ -167,7 +168,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     # Reshape instructions:
     if args['debug'] & (len(result) == 0):
         warnings.warn('No interactions left, return empty DataFrame.')
-    instructions = epix.awkward_to_wfsim_row_style(result)
+    instructions = epix.awkward_to_ins_row_style(result)
     if args['source_rate'] != 0:
         # Only sort by time again if source rates were applied, otherwise
         # things are already sorted within the events and should stay this way.
@@ -179,7 +180,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         if args['output_path'] and not os.path.isdir(args['output_path']):
             os.makedirs(args['output_path'])
 
-        output_path_and_name = os.path.join(args['output_path'], args['file_name'][:-5] + "_wfsim_instructions.csv")
+        output_path_and_name = os.path.join(args['output_path'], args['file_name'][:-5] + "_instructions.csv")
         if os.path.isfile(output_path_and_name):
             warnings.warn("Output file already exists - Overwriting")
         ins_df.to_csv(output_path_and_name, index=False)
@@ -189,7 +190,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         if args['debug']:
             _ = monitor_time(starttime, 'run epix.')
 
-    if return_wfsim_instructions:
+    if return_instructions:
         return instructions
 
 

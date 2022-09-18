@@ -5,10 +5,27 @@ import pandas as pd
 
 import os
 import warnings
-import wfsim
 import configparser
 
 from .common import awkward_to_flat_numpy, offset_range, reshape_awkward
+
+instruction_dtype = [(('Event number.', 'event_number'), np.int32),
+                     (('Quanta type (S1 photons or S2 electrons)', 'type'), np.int8),
+                     (('Time of the interaction [ns]', 'time'), np.int64),
+                     (('X position of the cluster [cm]', 'x'), np.float32),
+                     (('Y position of the cluster [cm]', 'y'), np.float32),
+                     (('Z position of the cluster [cm]', 'z'), np.float32),
+                     (('Number of quanta', 'amp'), np.int32),
+                     (('Recoil type of interaction.', 'recoil'), np.int8),
+                     (('Energy deposit of interaction', 'e_dep'), np.float32),
+                     (('Eventid like in geant4 output rootfile', 'g4id'), np.int32),
+                     (('Volume id giving the detector subvolume', 'vol_id'), np.int32),
+                     (('Local field [ V / cm ]', 'local_field'), np.float64),
+                     (('Number of excitons', 'n_excitons'), np.int32),
+                     (('X position of the primary particle [cm]', 'x_pri'), np.float32),
+                     (('Y position of the primary particle [cm]', 'y_pri'), np.float32),
+                     (('Z position of the primary particle [cm]', 'z_pri'), np.float32),
+                     ]
 
 SUPPORTED_OPTION = {'to_be_stored': 'getboolean',
                     'electric_field': ('getfloat', 'get'),
@@ -29,7 +46,7 @@ def load_config(config_file_path):
     config.read(config_file_path)
     sections = config.sections()
     if not len(sections):
-        raise ValueError(f'Cannot load sections from config file "{config_file_path}".' 
+        raise ValueError(f'Cannot load sections from config file "{config_file_path}".'
                          'Have you specified a wrong file?')
     settings = {}
     for s in sections:
@@ -84,14 +101,14 @@ class file_loader():
     """
 
     def __init__(self,
-                directory,
-                file_name, 
-                arg_debug=False,
-                outer_cylinder=None,
-                kwargs={},
-                cut_by_eventid=False,
-                cut_nr_only=False,
-                ):
+                 directory,
+                 file_name,
+                 arg_debug=False,
+                 outer_cylinder=None,
+                 kwargs={},
+                 cut_by_eventid=False,
+                 cut_nr_only=False,
+                 ):
 
         self.directory = directory
         self.file_name = file_name
@@ -109,10 +126,10 @@ class file_loader():
                              "parenttype", "parentid",
                              "creaproc", "edproc"]
 
-        #Prepare cut for root and csv case
+        # Prepare cut for root and csv case
         if self.outer_cylinder:
             self.cut_string = (f'(r < {self.outer_cylinder["max_r"]})'
-                               f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')            
+                               f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')
         else:
             self.cut_string = None
 
@@ -146,10 +163,11 @@ class file_loader():
         interactions = interactions[m]
 
         if self.cut_nr_only:
-            m = ((interactions['type'] == "neutron")&(interactions['edproc'] == "hadElastic")) | (interactions['edproc'] == "ionIoni")
+            m = ((interactions['type'] == "neutron") & (interactions['edproc'] == "hadElastic")) | (
+                        interactions['edproc'] == "ionIoni")
             e_dep_er = ak.sum(interactions[~m]['ed'], axis=1)
             e_dep_nr = ak.sum(interactions[m]['ed'], axis=1)
-            interactions = interactions[(e_dep_er<10) & (e_dep_nr>0)]
+            interactions = interactions[(e_dep_er < 10) & (e_dep_nr > 0)]
 
         # Removing all events with no interactions:
         m = ak.num(interactions['ed']) > 0
@@ -173,9 +191,9 @@ class file_loader():
 
         if self.arg_debug:
             print(f'Total entries in input file = {ttree.num_entries}')
-            cutby_string='output file entry'
+            cutby_string = 'output file entry'
             if self.cut_by_eventid:
-                cutby_string='g4 eventid'
+                cutby_string = 'g4 eventid'
 
             if self.kwargs['entry_start'] is not None:
                 print(f'Starting to read from {cutby_string} {self.kwargs["entry_start"]}')
@@ -207,7 +225,7 @@ class file_loader():
                  'z': 'zp/10',
                  'r': 'sqrt(x**2 + y**2)',
                  't': 'time*10**9'
-                }
+                 }
 
         # Read in data, convert mm to cm and perform a first cut if specified:
         interactions = ttree.arrays(self.column_names,
@@ -219,11 +237,11 @@ class file_loader():
         interactions['evtid'] = eventids
 
         xyz_pri = ttree.arrays(['x_pri', 'y_pri', 'z_pri'],
-                              aliases={'x_pri': 'xp_pri/10',
-                                       'y_pri': 'yp_pri/10',
-                                       'z_pri': 'zp_pri/10'
-                                      },
-                              **self.kwargs)
+                               aliases={'x_pri': 'xp_pri/10',
+                                        'y_pri': 'yp_pri/10',
+                                        'z_pri': 'zp_pri/10'
+                                        },
+                               **self.kwargs)
 
         interactions['x_pri'] = ak.broadcast_arrays(xyz_pri['x_pri'], interactions['x'])[0]
         interactions['y_pri'] = ak.broadcast_arrays(xyz_pri['y_pri'], interactions['x'])[0]
@@ -244,20 +262,20 @@ class file_loader():
         """
 
         print("Load instructions from a csv file!")
-        
-        instr_df =  pd.read_csv(self.file)
 
-        #unit conversion similar to root case
-        instr_df["x"] = instr_df["xp"]/10 
-        instr_df["y"] = instr_df["yp"]/10 
-        instr_df["z"] = instr_df["zp"]/10
-        instr_df["x_pri"] = instr_df["xp_pri"]/10
-        instr_df["y_pri"] = instr_df["yp_pri"]/10
-        instr_df["z_pri"] = instr_df["zp_pri"]/10
-        instr_df["r"] = np.sqrt(instr_df["x"]**2 + instr_df["y"]**2)
-        instr_df["t"] = instr_df["time"]*10**9
+        instr_df = pd.read_csv(self.file)
 
-        #Check if all needed columns are in place:
+        # unit conversion similar to root case
+        instr_df["x"] = instr_df["xp"] / 10
+        instr_df["y"] = instr_df["yp"] / 10
+        instr_df["z"] = instr_df["zp"] / 10
+        instr_df["x_pri"] = instr_df["xp_pri"] / 10
+        instr_df["y_pri"] = instr_df["yp_pri"] / 10
+        instr_df["z_pri"] = instr_df["zp_pri"] / 10
+        instr_df["r"] = np.sqrt(instr_df["x"] ** 2 + instr_df["y"] ** 2)
+        instr_df["t"] = instr_df["time"] * 10 ** 9
+
+        # Check if all needed columns are in place:
         if not set(self.column_names).issubset(instr_df.columns):
             warnings.warn("Not all needed columns provided!")
 
@@ -268,11 +286,11 @@ class file_loader():
 
         interactions = self._awkwardify_df(instr_df)
 
-        #Use always all events in the csv file
+        # Use always all events in the csv file
         start = 0
         stop = n_simulated_events
 
-        return interactions, n_simulated_events, start, stop 
+        return interactions, n_simulated_events, start, stop
 
     def _get_ttree(self):
         """
@@ -297,8 +315,8 @@ class file_loader():
                 if v == 'TTree':
                     ttrees.append(k)
             raise ValueError(f'Cannot find ttree object of "{file_name}".'
-                            'I tried to search in events and events/events.'
-                            f'Found a ttree in {ttrees}?')
+                             'I tried to search in events and events/events.'
+                             f'Found a ttree in {ttrees}?')
         return ttree, n_simulated_events
 
     def _awkwardify_df(self, df):
@@ -313,35 +331,35 @@ class file_loader():
 
         """
 
-        _, evt_offsets = np.unique(df["eventid"], return_counts = True)
-    
-        dictionary = {"x": reshape_awkward(df["x"].values , evt_offsets),
-                      "y": reshape_awkward(df["y"].values , evt_offsets),
-                      "z": reshape_awkward(df["z"].values , evt_offsets),
+        _, evt_offsets = np.unique(df["eventid"], return_counts=True)
+
+        dictionary = {"x": reshape_awkward(df["x"].values, evt_offsets),
+                      "y": reshape_awkward(df["y"].values, evt_offsets),
+                      "z": reshape_awkward(df["z"].values, evt_offsets),
                       "x_pri": reshape_awkward(df["x_pri"].values, evt_offsets),
                       "y_pri": reshape_awkward(df["y_pri"].values, evt_offsets),
                       "z_pri": reshape_awkward(df["z_pri"].values, evt_offsets),
-                      "r": reshape_awkward(df["r"].values , evt_offsets),
-                      "t": reshape_awkward(df["t"].values , evt_offsets),
-                      "ed": reshape_awkward(df["ed"].values , evt_offsets),
-                      "type":reshape_awkward(np.array(df["type"], dtype=str) , evt_offsets),
-                      "trackid": reshape_awkward(df["trackid"].values , evt_offsets),
-                      "parenttype": reshape_awkward(np.array(df["parenttype"], dtype=str) , evt_offsets),
-                      "parentid": reshape_awkward(df["parentid"].values , evt_offsets),
-                      "creaproc": reshape_awkward(np.array(df["creaproc"], dtype=str) , evt_offsets),
-                      "edproc": reshape_awkward(np.array(df["edproc"], dtype=str) , evt_offsets),
-                      "evtid": reshape_awkward(df["eventid"].values , evt_offsets),
-                    }
+                      "r": reshape_awkward(df["r"].values, evt_offsets),
+                      "t": reshape_awkward(df["t"].values, evt_offsets),
+                      "ed": reshape_awkward(df["ed"].values, evt_offsets),
+                      "type": reshape_awkward(np.array(df["type"], dtype=str), evt_offsets),
+                      "trackid": reshape_awkward(df["trackid"].values, evt_offsets),
+                      "parenttype": reshape_awkward(np.array(df["parenttype"], dtype=str), evt_offsets),
+                      "parentid": reshape_awkward(df["parentid"].values, evt_offsets),
+                      "creaproc": reshape_awkward(np.array(df["creaproc"], dtype=str), evt_offsets),
+                      "edproc": reshape_awkward(np.array(df["edproc"], dtype=str), evt_offsets),
+                      "evtid": reshape_awkward(df["eventid"].values, evt_offsets),
+                      }
 
         return ak.Array(dictionary)
 
+
 # ----------------------
-# Outputing wfsim instructions:
+# Output instructions:
 # ----------------------
-def awkward_to_wfsim_row_style(interactions):
+def awkward_to_ins_row_style(interactions):
     """
-    Converts awkward array instructions into instructions required by
-    WFSim.
+    Converts awkward array into instructions.
 
     :param interactions: awkward.Array containing GEANT4 simulation
         information.
@@ -349,10 +367,10 @@ def awkward_to_wfsim_row_style(interactions):
         S2
     """
     if len(interactions) == 0:
-        return np.empty(0, dtype=wfsim.instruction_dtype)
+        return np.empty(0, dtype=instruction_dtype)
 
     ninteractions = np.sum(ak.num(interactions['ed']))
-    res = np.zeros(2 * ninteractions, dtype=wfsim.instruction_dtype)
+    res = np.zeros(2 * ninteractions, dtype=instruction_dtype)
 
     # TODO: Currently not supported rows with only electrons or photons due to
     # this super odd shape
