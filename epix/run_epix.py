@@ -130,7 +130,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
             )
         elif args['yield'].lower() == "beta":
             print("Using BETA quanta generator...")
-            betayields = epix.BETA_quanta_generator()
+            betayields = epix.BETA_quanta_generator(args['beta_yields_directory'])
             photons, electrons, excitons = betayields.get_quanta(energy=epix.awkward_to_flat_numpy(result['ed']),
                                                                  interaction=epix.awkward_to_flat_numpy(result['nestid']),
                                                                  field=epix.awkward_to_flat_numpy(result['e_field']))
