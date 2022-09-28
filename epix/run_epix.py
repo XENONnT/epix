@@ -34,10 +34,10 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     if args['debug']:
         tnow = monitor_time(tnow, 'load data.')
         print(f"Finding clusters of interactions with a dr = {args['micro_separation']} mm"
-               f" and dt = {args['micro_separation_time']} ns")
+              f" and dt = {args['micro_separation_time']} ns")
 
     # Cluster finding and clustering (convert micro_separation mm -> cm):
-    inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
+    inter = epix.find_cluster(inter, args['micro_separation'] / 10, args['micro_separation_time'])
 
     if args['debug']:
         tnow = monitor_time(tnow, 'find clusters.')
@@ -107,24 +107,33 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         print('Generating photons and electrons for events')
     # Generate quanta:
     if len(result) > 0:
-        if not ('yield' in args.keys()): 
+        if not ('yield' in args.keys()):
             print("No yield is provided! Forcing nest")
-            args['yield']="nest"
-        if args['yield'].lower()=="nest":
+            args['yield'] = "nest"
+        if args['yield'].lower() == "nest":
+            print("Using NEST quanta generator...")
             photons, electrons, excitons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
                                                                  epix.awkward_to_flat_numpy(result['nestid']),
                                                                  epix.awkward_to_flat_numpy(result['e_field']),
                                                                  epix.awkward_to_flat_numpy(result['A']),
                                                                  epix.awkward_to_flat_numpy(result['Z']),
                                                                  epix.awkward_to_flat_numpy(result['create_S2']),
-                                                                 density=epix.awkward_to_flat_numpy(result['xe_density']))
-        elif args['yield'].lower()=="bbf":
-            bbfyields=epix.BBF_quanta_generator()
+                                                                 density=epix.awkward_to_flat_numpy(
+                                                                     result['xe_density']))
+        elif args['yield'].lower() == "bbf":
+            print("Using BBF quanta generator...")
+            bbfyields = epix.BBF_quanta_generator()
             photons, electrons, excitons = bbfyields.get_quanta_vectorized(
-                                energy=epix.awkward_to_flat_numpy(result['ed']),
-                                interaction=epix.awkward_to_flat_numpy(result['nestid']),
-                                field=epix.awkward_to_flat_numpy(result['e_field'])
-                                )
+                energy=epix.awkward_to_flat_numpy(result['ed']),
+                interaction=epix.awkward_to_flat_numpy(result['nestid']),
+                field=epix.awkward_to_flat_numpy(result['e_field'])
+            )
+        elif args['yield'].lower() == "beta":
+            print("Using BETA quanta generator...")
+            betayields = epix.BETA_quanta_generator()
+            photons, electrons, excitons = betayields.get_quanta(energy=epix.awkward_to_flat_numpy(result['ed']),
+                                                                 interaction=epix.awkward_to_flat_numpy(result['nestid']),
+                                                                 field=epix.awkward_to_flat_numpy(result['e_field']))
         else:
             raise RuntimeError("Unknown yield model: ", args['yields'])
         result['photons'] = epix.reshape_awkward(photons, ak_num(result['ed']))
@@ -153,7 +162,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     else:
         # Rate offset computed based on the specified rate and job_id.
         # Assumes all jobs were started with the same number of events.
-        offset = (args['job_number']*n_simulated_events)/args['source_rate']
+        offset = (args['job_number'] * n_simulated_events) / args['source_rate']
         dt = epix.times_from_fixed_rate(args['source_rate'],
                                         number_of_events,
                                         n_simulated_events,
