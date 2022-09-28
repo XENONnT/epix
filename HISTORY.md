@@ -1,3 +1,17 @@
+0.3.2 (2022-08-15)
+==================
+ * First implementation of BBF quanta generator (#57)
+
+0.3.1 (2022-06-15)
+==================
+  * Save primary particle position (#56)
+  * Set arg defaults (#55)
+
+0.3.0 (2022-05-20)
+==================
+  * Add NR filter before quanta generation (#53)
+  * Update energy selection for Kr83m model (#52)
+
 0.2.2 (2021-10-31)
 ==================
   * Fixed field map loading (#50)
