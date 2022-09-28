@@ -198,6 +198,10 @@ class NEST_quanta_generator:
 class BETA_quanta_generator:
 
     def __init__(self, beta_yields_directory):
+
+        self.get_quanta_vectorized = np.vectorize(self.get_quanta, excluded="self")
+
+        
         self.XENONnT_g1 = 0.151  ## v5
         self.XENONnT_g2 = 16.450  ## v5
 
