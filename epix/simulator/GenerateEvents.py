@@ -1,6 +1,7 @@
 from .helpers import Helpers
 import numpy as np
 
+
 class GenerateEvents():
     '''Class to hold all the stuff to be applied to data.
     The functions will be grouped together and executed by Simulator'''
@@ -33,7 +34,7 @@ class GenerateEvents():
         num_ph = instructions['s1_area'].astype(np.int64)
         n_photons = Helpers.get_s1_light_yield(n_photons=num_ph,
                                                positions=xyz,
-                                               s1_light_yield_map=resource.s1_light_yield_map,
+                                               s1_lce_map=resource.s1_map,
                                                config=config) * config['dpe_fraction']
         instructions['s1_area'] = Helpers.get_s1_area_with_spe(resource.photon_area_distribution,
                                                                n_photons.astype(np.int64))
@@ -41,7 +42,7 @@ class GenerateEvents():
         num_ph = instructions['alt_s1_area'].astype(np.int64)
         alt_n_photons = Helpers.get_s1_light_yield(n_photons=num_ph,
                                                    positions=xyz,
-                                                   s1_light_yield_map=resource.s1_light_yield_map,
+                                                   s1_lce_map=resource.s1_map,
                                                    config=config) * config['dpe_fraction']
         instructions['alt_s1_area'] = Helpers.get_s1_area_with_spe(resource.photon_area_distribution,
                                                                    alt_n_photons.astype(np.int64))
@@ -92,11 +93,11 @@ class GenerateEvents():
             :params: config, dict with configuration values for resolution
             :params: resource, instance of wfsim Resource class
         """
-        event_positions = np.vstack([instructions['x'], instructions['y'], instructions['z']]).T
-        instructions['cs1'] = instructions['s1_area'] / resource.s1_map(event_positions)
 
         event_positions = np.vstack([instructions['x'], instructions['y'], instructions['z']]).T
-        instructions['alt_cs1'] = instructions['alt_s1_area'] / resource.s1_map(event_positions)
+
+        instructions['cs1'] = instructions['s1_area'] / resource.s1_map(event_positions)[:, 0]
+        instructions['alt_cs1'] = instructions['alt_s1_area'] / resource.s1_map(event_positions)[:, 0]
 
     @staticmethod
     @Helpers.assignOrder(4)
@@ -107,6 +108,7 @@ class GenerateEvents():
             :params: config, dict with configuration values for resolution
             :params: resource, instance of wfsim Resource class
         """
+
         lifetime_corr = np.exp(instructions['drift_time'] / config['electron_lifetime_liquid'])
 
         alt_lifetime_corr = (np.exp((instructions['alt_s2_drift_time']) / config['electron_lifetime_liquid']))

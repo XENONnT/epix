@@ -1,4 +1,4 @@
-__version__ = '0.2.2'
+__version__ = '0.3.2'
 
 from .common import *
 from .io import *
@@ -9,4 +9,5 @@ from .electric_field_handler import *
 from .event_separation import *
 from .detectors import *
 from .run_epix import *
+from .quantgen_wrapper import BBF_quanta_generator
 from .simulator import *

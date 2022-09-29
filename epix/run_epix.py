@@ -20,14 +20,14 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         tnow = starttime
 
     # Loading data:
-    
     epix_file_loader = epix.file_loader(args['path'],
                                         args['file_name'],
                                         args['debug'],
                                         outer_cylinder=args['outer_cylinder'],
                                         kwargs={'entry_start': args['entry_start'],
                                                 'entry_stop': args['entry_stop']},
-                                        cut_by_eventid=args['cut_by_eventid'],
+                                        cut_by_eventid=args.get('cut_by_eventid', False),
+                                        cut_nr_only=args.get('nr_only', False),
                                         )
     inter, n_simulated_events = epix_file_loader.load_file()
 
@@ -49,6 +49,11 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     # Add eventid again:
     result['evtid'] = ak.broadcast_arrays(inter['evtid'][:, 0], result['ed'])[0]
+
+    # Add x_pri, y_pri, z_pri again:
+    result['x_pri'] = ak.broadcast_arrays(inter['x_pri'][:, 0], result['ed'])[0]
+    result['y_pri'] = ak.broadcast_arrays(inter['y_pri'][:, 0], result['ed'])[0]
+    result['z_pri'] = ak.broadcast_arrays(inter['z_pri'][:, 0], result['ed'])[0]
 
     # Sort detector volumes and keep interactions in selected ones:
     if args['debug']:
@@ -102,13 +107,26 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         print('Generating photons and electrons for events')
     # Generate quanta:
     if len(result) > 0:
-        photons, electrons, excitons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
-                                                             epix.awkward_to_flat_numpy(result['nestid']),
-                                                             epix.awkward_to_flat_numpy(result['e_field']),
-                                                             epix.awkward_to_flat_numpy(result['A']),
-                                                             epix.awkward_to_flat_numpy(result['Z']),
-                                                             epix.awkward_to_flat_numpy(result['create_S2']),
-                                                             density=epix.awkward_to_flat_numpy(result['xe_density']))
+        if not ('yield' in args.keys()): 
+            print("No yield is provided! Forcing nest")
+            args['yield']="nest"
+        if args['yield'].lower()=="nest":
+            photons, electrons, excitons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
+                                                                 epix.awkward_to_flat_numpy(result['nestid']),
+                                                                 epix.awkward_to_flat_numpy(result['e_field']),
+                                                                 epix.awkward_to_flat_numpy(result['A']),
+                                                                 epix.awkward_to_flat_numpy(result['Z']),
+                                                                 epix.awkward_to_flat_numpy(result['create_S2']),
+                                                                 density=epix.awkward_to_flat_numpy(result['xe_density']))
+        elif args['yield'].lower()=="bbf":
+            bbfyields=epix.BBF_quanta_generator()
+            photons, electrons, excitons = bbfyields.get_quanta_vectorized(
+                                energy=epix.awkward_to_flat_numpy(result['ed']),
+                                interaction=epix.awkward_to_flat_numpy(result['nestid']),
+                                field=epix.awkward_to_flat_numpy(result['e_field'])
+                                )
+        else:
+            raise RuntimeError("Unknown yield model: ", args['yields'])
         result['photons'] = epix.reshape_awkward(photons, ak_num(result['ed']))
         result['electrons'] = epix.reshape_awkward(electrons, ak_num(result['ed']))
         result['excitons'] = epix.reshape_awkward(excitons, ak_num(result['ed']))
