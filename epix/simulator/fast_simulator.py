@@ -205,8 +205,8 @@ class StraxSimulator(strax.Plugin):
                            data_type='events_nveto')
         else:
             simulated_data_nveto_chunk=self.chunk(
-                           start=int(simulated_data_nveto['time'][0]),
-                           end=int(np.max(simulated_data_nveto['endtime'])),
+                           start=np.floor(simulated_data_nveto['time'][0], dtype=np.int64),
+                           end=np.ceil(np.max(simulated_data_nveto['endtime']), dtype=np.int64),
                            data=simulated_data_nveto,
                            data_type='events_nveto')
 
