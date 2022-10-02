@@ -197,10 +197,9 @@ class NEST_quanta_generator:
 
 class BETA_quanta_generator:
 
-    def __init__(self, beta_yields_directory):
+    def __init__(self, beta_yields_cs1_path, beta_yields_cs2_path):
 
         self.get_quanta_vectorized = np.vectorize(self.get_quanta, excluded="self")
-
         
         self.XENONnT_g1 = 0.151  ## v5
         self.XENONnT_g2 = 16.450  ## v5
@@ -209,8 +208,8 @@ class BETA_quanta_generator:
         for i in range(np.random.randint(100)):
             self.nc.GetQuanta(self.nc.GetYields(energy=np.random.uniform(10, 100)))
 
-        cs1_spline_path = beta_yields_directory + 'cs1_func_E_option2.pkl'
-        cs2_spline_path = beta_yields_directory + 'cs2_func_E_option2.pkl'
+        cs1_spline_path = beta_yields_cs1_path
+        cs2_spline_path = beta_yields_cs2_path
 
         with open(cs1_spline_path, 'rb') as f:
             self.cs1_spline = pickle.load(f)
