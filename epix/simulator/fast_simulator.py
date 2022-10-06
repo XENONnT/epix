@@ -167,7 +167,7 @@ class StraxSimulator(strax.Plugin):
                                              SPE_ResThreshold=self.config['nv_spe_res_threshold'],
                                              max_time_ns=self.config['nv_max_time_ns'],
                                              batch_size=10000)
-        return nv_hits
+            return nv_hits
 
     def get_epix_instructions(self, ):
         detector = epix.init_detector('xenonnt', '')
