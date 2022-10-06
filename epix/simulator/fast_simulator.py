@@ -4,6 +4,7 @@ from straxen import InterpolatingMap, get_resource
 from wfsim.load_resource import load_config
 import epix
 import numpy as np
+import pandas as pd
 from copy import deepcopy
 from immutabledict import immutabledict
 from .GenerateEvents import GenerateEvents
@@ -107,7 +108,7 @@ class Simulator():
     strax.Option('nv_spe_resolution', default=0.40, help='nVeto SPE resolution'),
     strax.Option('nv_spe_res_threshold', default=0.50, help='nVeto SPE acceptance threshold'),
     strax.Option('nv_max_time_ns', default=1e7, help='nVeto maximum time for the acceptance of PMT hits in event'),
-
+    strax.Option('save_epix', default=False, help='save epix instruction'),
 )
 class StraxSimulator(strax.Plugin):
     provides = ('events_tpc', 'events_nveto')
@@ -179,6 +180,10 @@ class StraxSimulator(strax.Plugin):
         epix_config['outer_cylinder'] = outer_cylinder
 
         epix_ins = epix.run_epix.main(epix_config, return_wfsim_instructions=True)
+        if self.config['save_epix']:
+            epix_path = self.config['epix_config']['path'] + self.config['epix_config']['file_name'][:-5] +'_epix'
+            np.save(epix_path, epix_ins)
+
         return epix_ins
 
     def compute(self):
