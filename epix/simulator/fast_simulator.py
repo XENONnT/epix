@@ -94,8 +94,12 @@ class Simulator():
         return self.instructions
 
 
+# We should think a bit more to detector_config_override
+# and tell fast_sim to look into epix_args
+# also beacaus one entry of self.config is epix_config
 @strax.takes_config(
     strax.Option('detector', default='XENONnT', help='Detector model'),
+    strax.Option('detector_config_override', default='', help='For the electric field, otherwise 200 V/cm'),
     strax.Option('g4_file', help='G4 file to simulate'),
     strax.Option('epix_config', default=dict(), help='Configuration file for epix', ),
     strax.Option('configuration_files', default=dict(), help='Files required for simulating'),
@@ -171,7 +175,8 @@ class StraxSimulator(strax.Plugin):
             return nv_hits
 
     def get_epix_instructions(self, ):
-        detector = epix.init_detector('xenonnt', '')
+        detector = epix.init_detector(self.config['detector'].lower(), self.config['detector_config_override'])
+
         epix_config = deepcopy(self.config['epix_config'])
         epix_config['detector_config'] = detector
 
