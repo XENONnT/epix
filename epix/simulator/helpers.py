@@ -55,6 +55,7 @@ class Helpers():
                 scaled_bins = np.zeros_like(cdf)
 
             grid_cdf = np.linspace(0, 1, 2001)
+            # For Inverse_transform_sampling methode
             grid_scale = interp1d(cdf, scaled_bins,
                                   bounds_error = False,
                                   fill_value = (scaled_bins[0], scaled_bins[-1]))(grid_cdf)

@@ -32,12 +32,13 @@ class GenerateEvents():
         xyz = np.vstack([instructions['x'], instructions['y'], instructions['z']]).T
 
         num_ph = instructions['s1_area'].astype(np.int64)
-
+        
+        # Here a WFsim function is called which remove the dpe
+        # we have to introduce it again in fast simulator
         n_photons = Helpers.get_s1_light_yield(n_photons = num_ph,
                                                positions = xyz,
                                                s1_lce_map = resource.s1_map,
-                                               config = config) * (1 + config['p_double_pe_emision']) # changed from 1, 12/10/2022
-                                                                                                # before was given as confin in the plugin
+                                               config = config) * (1 + config['p_double_pe_emision']) 
         
         instructions['s1_area'] = Helpers.get_s1_area_with_spe(resource.photon_area_distribution,
                                                                n_photons.astype(np.int64))
@@ -64,13 +65,12 @@ class GenerateEvents():
 
         n_el = instructions['s2_area'].astype(np.int64)
 
-        # print('n_el :', n_el)
         n_electron = Helpers.get_s2_charge_yield(n_electron = n_el,
                                                  positions = xy,
                                                  z_obs = instructions['z'],
                                                  config = config,
                                                  resource = resource)
-        # print('n_electron :', n_electron)
+
         n_el = instructions['alt_s2_area'].astype(np.int64)
         alt_n_electron = Helpers.get_s2_charge_yield(n_electron = n_el,
                                                      positions = alt_xy,
@@ -82,11 +82,11 @@ class GenerateEvents():
                                              config = config,
                                              resource = resource)
         sc_gain_sigma = np.sqrt(sc_gain)
-        # print('sc gain :', sc_gain)
+        
+        # Here a WFsim function is called which remove the dpe
+        # we have to introduce it again in fast simulator
+        instructions['s2_area'] = n_electron * np.random.normal(sc_gain, sc_gain_sigma) * (1 + config['p_double_pe_emision']) 
 
-        instructions['s2_area'] = n_electron * np.random.normal(sc_gain, sc_gain_sigma) * (1 + config['p_double_pe_emision']) # * config['p_double_pe_emision'] commented 12/10/2022
-                                                                                        # do we need it? I don't think so
-        # print('s2 area: ', instructions['s2_area'])
         instructions['drift_time'] = -instructions['z'] / config['drift_velocity_liquid']
 
         instructions['alt_s2_area'] = alt_n_electron * np.random.normal(sc_gain, sc_gain_sigma) * (1 + config['p_double_pe_emision'])
@@ -113,10 +113,6 @@ class GenerateEvents():
         # print(np.mean(the_map))
 
         instructions['cs1'] = instructions['s1_area'] / (resource.s1_map(event_positions)[:, 0]/0.1581797073725071)
-        # print('s1_area: ', instructions['s1_area'], '\n\n')
-        # print('correction: ', resource.s1_map(event_positions)[:, 0], '\n\n')
-        # print('new correction: ', resource.s1_map(event_positions)[:, 0]/0.1581797073725071, '\n\n')
-        # print('cs1: ', instructions['cs1'], '\n\n')
         instructions['alt_cs1'] = instructions['alt_s1_area'] / (resource.s1_map(event_positions)[:, 0]/0.1581797073725071)
 
     @staticmethod
@@ -137,10 +133,8 @@ class GenerateEvents():
         s2_positions = np.vstack([instructions['x'], instructions['y']]).T
         alt_s2_positions = np.vstack([instructions['alt_s2_x'], instructions['alt_s2_y']]).T
 
+        # Why S2 does not need the same threatment of S1 ?
         instructions['cs2'] = (instructions['s2_area'] * lifetime_corr / resource.s2_map(s2_positions))
-        # print('life time corr: ', lifetime_corr)
-        # print('map corr: ', resource.s2_map(s2_positions))
-        # print('cS2: ', instructions['cs2'])
         instructions['alt_cs2'] = (
                 instructions['alt_s2_area'] * alt_lifetime_corr / resource.s2_map(alt_s2_positions))
 

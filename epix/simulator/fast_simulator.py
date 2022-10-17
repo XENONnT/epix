@@ -191,11 +191,7 @@ class StraxSimulator(strax.Plugin):
         if 'n_tpc_pmts' not in self.config.keys():
             warnings.warn('This is a deault value, why we have to give it in fax_config_overrides? '
                           'No n_tpc_pmts are passed in fax_config_overrides, default equal to 494')
-            self.config['n_tpc_pmts'] =  494
-
-        # Is this useful ?
-        if self.config['epix_config']['debug']:
-            print('\nConfiguraton: \n',  self.config, '\n')     
+            self.config['n_tpc_pmts'] =  494  
 
         self.load_config()
 
