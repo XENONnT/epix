@@ -66,7 +66,7 @@ class Simulator():
             #i['s1_area'] = inst_s1[s1[-1]]['amp']
             #if len(s1) > 1:
                 # I do not think it is correct
-                #i['alt_s1_area'] = inst_s1[s1[-2]]['amp']
+            #    i['alt_s1_area'] = inst_s1[s1[-2]]['amp']
 
             i['s2_area'] = np.sum(inst_s2[s2[-1]]['amp'])
             if len(s2) > 1:

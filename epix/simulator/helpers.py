@@ -96,6 +96,7 @@ class Helpers():
         for n_ph in num_photons:
             s1_area_spe.append(np.sum(spe_distribution[
                                           (np.random.random(n_ph) * len(spe_distribution)).astype(np.int64)]))
+
         return np.array(s1_area_spe)
 
     @staticmethod
