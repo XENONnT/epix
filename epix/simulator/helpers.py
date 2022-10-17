@@ -2,6 +2,7 @@ import wfsim
 from scipy.interpolate import interp1d
 import numpy as np
 import numba
+import pickle
 
 
 # Numba and classes still are not a match made in heaven
@@ -26,9 +27,8 @@ def _merge_these_clusters(s2_area1, z1, s2_area2, z2):
 
 @numba.njit
 def _merge_these_clusters_nt_res(s2_area1, z1, s2_area2, z2):
-    sensitive_volume_ztop = 0  # [cm]
-    SeparationDistance = 1.6  # [cm], the worst case from [[weiss:analysis:he:zresoultion_zdependence]]
-    return np.abs(z1 - z2) < SeparationDistance
+    tree = pickle.load(open('/dali/lgrandi/jgrigat/s2_separation/s2_separation_decision_tree_fast_sim.p', 'rb+'))
+    return bool(tree.predict([[z1, z2-z1, s2_area1, s2_area2]]))
 
 
 class Helpers():
