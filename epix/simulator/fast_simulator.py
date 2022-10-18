@@ -164,7 +164,7 @@ class StraxSimulator(strax.Plugin):
 
         if 'photon_area_distribution' in self.config['configuration_files'].keys():
                 self.resource.photon_area_distribution = epix.Helpers.average_spe_distribution(
-                                get_resource(self.config['configuration_files']['photon_area_distribution'], 
+                                straxen.get_resource(self.config['configuration_files']['photon_area_distribution'], 
                                 fmt='csv'))
         else:
             warnings.warn('The configuration_files should not exist!'
@@ -172,7 +172,7 @@ class StraxSimulator(strax.Plugin):
                           'Since photon_area_distribution config is missing in configuration_files, '
                           'the one in fax_config will be used')
             self.resource.photon_area_distribution = epix.Helpers.average_spe_distribution(
-                                get_resource(self.config['photon_area_distribution'], fmt='csv'))
+                                straxen.get_resource(self.config['photon_area_distribution'], fmt='csv'))
 
     def setup(self, ):
         overrides = self.config['fax_config_overrides']
@@ -192,7 +192,7 @@ class StraxSimulator(strax.Plugin):
             warnings.warn('This is a deault value, why we have to give it in fax_config_overrides? '
                           'No n_tpc_pmts are passed in fax_config_overrides, default equal to 494')
             self.config['n_tpc_pmts'] =  494  
-
+        
         self.load_config()
 
     def get_nveto_data(self, ):

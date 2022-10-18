@@ -29,6 +29,11 @@ def _merge_these_clusters_nt_res(s2_area1, z1, s2_area2, z2):
     SeparationDistance = 1.6  # [cm], the worst case from [[weiss:analysis:he:zresoultion_zdependence]]
     return np.abs(z1 - z2) < 0.01 # SeparationDistance
 
+# @numba.njit
+def _merge_these_clusters_nt_res_jaron(s2_area1, z1, s2_area2, z2, tree):
+    tree = pickle.load(open('/dali/lgrandi/jgrigat/s2_separation/s2_separation_decision_tree_fast_sim.p', 'rb+'))
+    return bool(tree.predict([[z1, z2-z1, s2_area1, s2_area2]]))
+
 class Helpers():
     @staticmethod
     def assignOrder(order):
@@ -78,8 +83,8 @@ class Helpers():
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
                     break
                 # _nt_res
-                if _merge_these_clusters_nt_res(instructions[ix1]['amp'], instructions[ix1]['z'],
-                                                instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z']):
+                if _merge_these_clusters_nt_res_jaron(instructions[ix1]['amp'], instructions[ix1]['z'],
+                                                      instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z']):
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5
                     instructions[ix1 + ix2]['z'] = (instructions[ix1]['z'] + instructions[ix1 + ix2]['z']) * 0.5
