@@ -64,7 +64,6 @@ class Helpers():
         return spe_distribution
 
     @staticmethod
-    @numba.njit
     def macro_cluster_events(tree, instructions):
         """Loops over all instructions, checks if it's an s2 and if there is another s2 within the same event
             within the macro cluster distance, if it is they are merged."""
