@@ -70,7 +70,7 @@ class Helpers():
         for ix1, _ in enumerate(instructions):
             if instructions[ix1]['type'] != 2:
                 continue
-            for ix2 in range(1, len(instructions[ix1:]) + 1):
+            for ix2 in range(1, len(instructions[ix1:])):
                 if instructions[ix1 + ix2]['type'] != 2:
                     continue
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
