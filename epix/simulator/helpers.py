@@ -25,7 +25,6 @@ def _merge_these_clusters(s2_area1, z1, s2_area2, z2):
     return z1 - z2 < SeparationDistance
 
 
-@numba.njit
 def _merge_these_clusters_nt_res(tree, s2_area1, z1, s2_area2, z2):
     return bool(tree.predict([[z1, z2-z1, s2_area1, s2_area2]]))
 
