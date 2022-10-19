@@ -29,7 +29,6 @@ class Simulator():
             key=(lambda field: field.order)
         )
         self.instructions_epix = instructions_epix
-        self.tree = pickle.load(open('/dali/lgrandi/jgrigat/s2_separation/s2_separation_decision_tree_fast_sim.p', 'rb+'))
 
     def cluster_events(self, ):
         """Events have more than 1 s1/s2. Here we throw away all of them except the largest 2
@@ -39,10 +38,10 @@ class Simulator():
         First do the macro clustering. Clustered instructions will be flagged with amp=-1
         so we can safely through those out"""
 
-        Helpers.macro_cluster_events(self.tree, self.instructions_epix)
+        Helpers.macro_cluster_events(self.instructions_epix)
         self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
 
-        Helpers.macro_cluster_events(self.tree, self.instructions_epix)
+        Helpers.macro_cluster_events(self.instructions_epix)
         self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
 
         event_numbers = np.unique(self.instructions_epix['event_number'])
