@@ -83,7 +83,7 @@ class Helpers():
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
                     break
                 # _nt_res
-                if _merge_these_clusters_nt_res_jaron(instructions[ix1]['amp'], instructions[ix1]['z'],
+                if _merge_these_clusters_nt_res(instructions[ix1]['amp'], instructions[ix1]['z'],
                                                       instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z']):
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5
