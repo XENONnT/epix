@@ -31,7 +31,6 @@ def _merge_these_clusters_nt_res(s2_area1, z1, s2_area2, z2):
 
 # @numba.njit
 def _merge_these_clusters_nt_res_jaron(s2_area1, z1, s2_area2, z2, tree):
-    tree = pickle.load(open('/dali/lgrandi/jgrigat/s2_separation/s2_separation_decision_tree_fast_sim.p', 'rb+'))
     return bool(tree.predict([[z1, z2-z1, s2_area1, s2_area2]]))
 
 class Helpers():
@@ -70,8 +69,7 @@ class Helpers():
         return spe_distribution
 
     @staticmethod
-    @numba.njit
-    def macro_cluster_events(instructions):
+    def macro_cluster_events(tree, instructions):
         """Loops over all instructions, checks if it's an s2 and if there is another s2 within the same event
             within the macro cluster distance, if it is they are merged."""
         for ix1, _ in enumerate(instructions):
@@ -84,7 +82,7 @@ class Helpers():
                     break
                 # _nt_res
                 if _merge_these_clusters_nt_res(instructions[ix1]['amp'], instructions[ix1]['z'],
-                                                      instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z']):
+                                                      instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'], tree):
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5
                     instructions[ix1 + ix2]['z'] = (instructions[ix1]['z'] + instructions[ix1 + ix2]['z']) * 0.5
