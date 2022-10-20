@@ -75,14 +75,15 @@ class Helpers():
         for ix1, _ in enumerate(instructions):
             if instructions[ix1]['type'] != 2:
                 continue
-            for ix2 in range(1, len(instructions[ix1:]) + 1):
+            for ix2 in range(1, len(instructions[ix1:])): # why was  + 1): ?
                 if instructions[ix1 + ix2]['type'] != 2:
                     continue
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
                     break
                 # _nt_res
-                if _merge_these_clusters_nt_res(instructions[ix1]['amp'], instructions[ix1]['z'],
-                                                      instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'], tree):
+                if _merge_these_clusters_nt_res_jaron(instructions[ix1]['amp'], instructions[ix1]['z'],
+                                                      instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'], 
+                                                      tree):
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5
                     instructions[ix1 + ix2]['z'] = (instructions[ix1]['z'] + instructions[ix1 + ix2]['z']) * 0.5
