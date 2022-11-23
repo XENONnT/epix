@@ -40,12 +40,12 @@ class Simulator():
         First do the macro clustering. Clustered instructions will be flagged with amp=-1
         so we can safely through those out"""
 
-        # Helpers.macro_cluster_events(self.instructions_epix)
+        # Helpers.macro_cluster_events(self.tree, self.instructions_epix)
         # self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
-
+        
         Helpers.macro_cluster_events(self.tree, self.instructions_epix)
         self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
-
+        
         event_numbers = np.unique(self.instructions_epix['event_number'])
         ins_size = len(event_numbers)
         instructions = np.zeros(ins_size, dtype=StraxSimulator.dtype['events_tpc'])
@@ -70,9 +70,11 @@ class Simulator():
                 # I do not think it is correct
             #    i['alt_s1_area'] = inst_s1[s1[-2]]['amp']
 
-            i['s2_area'] = np.sum(inst_s2[s2[-1]]['amp'])
+            i['s2_area'] = inst_s2[s2[-1]]['amp']
+            i['e_dep'] = inst_s2[s2[-1]]['e_dep']
             if len(s2) > 1:
                 i['alt_s2_area'] = inst_s2[s2[-2]]['amp']
+                i['alt_e_dep'] = inst_s2[s2[-2]]['e_dep']
                 i['alt_s2_x'] = inst_s2[s2[-2]]['x']
                 i['alt_s2_y'] = inst_s2[s2[-2]]['y']
                 i['alt_s2_z'] = inst_s2[s2[-2]]['z']
@@ -96,6 +98,12 @@ class Simulator():
 
     def run_simulator(self, ):
         self.cluster_events()
+        
+        if isinstance(self.config['epix_config']['save_epix'], str):
+            epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][:-5] +'_epix_2'
+            print('Saving epix instruction: ', epix_path)
+            np.save(epix_path, self.instructions)
+
         self.simulate()
 
         return self.instructions
@@ -138,7 +146,9 @@ class StraxSimulator(strax.Plugin):
                              ('alt_s2_y', np.float),
                              ('alt_s2_z', np.float),
                              ('drift_time', np.float),
-                             ('alt_s2_drift_time', np.float)],
+                             ('alt_s2_drift_time', np.float),
+                             ('e_dep', np.float),
+                             ('alt_e_dep', np.float)],
                  events_nveto=[('time', np.float),
                                ('endtime', np.float),
                                ('event_id', np.int),
@@ -228,19 +238,19 @@ class StraxSimulator(strax.Plugin):
         epix_config['outer_cylinder'] = outer_cylinder
 
         epix_ins = epix.run_epix.main(epix_config, return_wfsim_instructions=True)
-        print('Saving epix instruction: ', self.config['epix_config']['save_epix'])
-        warnings.warn('The epix_config change here!'
-                       'Is this fine?')
-        if self.config['epix_config']['save_epix']:
-            epix_path = self.config['epix_config']['path'] + self.config['epix_config']['file_name'][:-5] +'_epix'
-            np.save(epix_path, epix_ins)
 
         return epix_ins
 
     def compute(self):
         simulated_data_nveto = self.get_nveto_data()
-        epix_instructions = self.get_epix_instructions()
-        self.Simulator = Simulator(instructions_epix=epix_instructions,
+        self.epix_instructions = self.get_epix_instructions()
+
+        if isinstance(self.config['epix_config']['save_epix'], str):
+            epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][:-5] +'_epix_1'
+            print('Saving epix instruction: ', epix_path)
+            np.save(epix_path, self.epix_instructions)
+            
+        self.Simulator = Simulator(instructions_epix=self.epix_instructions,
                                    config=self.config,
                                    resource=self.resource)
         simulated_data = self.Simulator.run_simulator()

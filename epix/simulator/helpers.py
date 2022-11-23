@@ -6,7 +6,7 @@ import numba
 
 # Numba and classes still are not a match made in heaven
 @numba.njit
-def _merge_these_clusters(s2_area1, z1, s2_area2, z2):
+def _merge_these_clusters(s2_area1, z1, s2_area2, z2, tree):
     sensitive_volume_ztop = 0  # it's the ground mesh, the top liquid level is at 2.7; // mm
     max_s2_area = max(s2_area1, s2_area2)
     if max_s2_area > 5000:
@@ -24,7 +24,7 @@ def _merge_these_clusters(s2_area1, z1, s2_area2, z2):
     return z1 - z2 < SeparationDistance
 
 @numba.njit
-def _merge_these_clusters_nt_res(s2_area1, z1, s2_area2, z2):
+def _merge_these_clusters_nt_res(s2_area1, z1, s2_area2, z2, tree):
     sensitive_volume_ztop = 0  # [cm]
     SeparationDistance = 1.6  # [cm], the worst case from [[weiss:analysis:he:zresoultion_zdependence]]
     return np.abs(z1 - z2) < 0.01 # SeparationDistance
@@ -82,13 +82,15 @@ class Helpers():
                     break
                 # _nt_res
                 if _merge_these_clusters_nt_res_jaron(instructions[ix1]['amp'], instructions[ix1]['z'],
-                                                      instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'], 
-                                                      tree):
+                                                          instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'], 
+                                                          tree):
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5
                     instructions[ix1 + ix2]['z'] = (instructions[ix1]['z'] + instructions[ix1 + ix2]['z']) * 0.5
                     instructions[ix1 + ix2]['amp'] = int((instructions[ix1]['amp'] + instructions[ix1 + ix2]['amp']))
                     instructions[ix1]['amp'] = -1  # flag to throw this instruction away later
+                    instructions[ix1 + ix2]['e_dep'] = (instructions[ix1]['e_dep'] + instructions[ix1 + ix2]['e_dep'])
+                    instructions[ix1]['e_dep'] = -1  # flag to throw this instruction away later
                     break
 
     @staticmethod
