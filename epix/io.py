@@ -116,7 +116,6 @@ class file_loader():
                                 f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')            
         # else:
         #    self.cut_string = None
-        print(self.cut_string)
 
     def load_file(self):
         """ 

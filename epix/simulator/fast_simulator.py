@@ -83,6 +83,10 @@ class Simulator():
             i['y'] = inst_s2[s2[-1]]['y']
             i['z'] = inst_s2[s2[-1]]['z']
 
+            i['x_pri'] = inst_s2[s2[-1]]['x_pri']
+            i['y_pri'] = inst_s2[s2[-1]]['y_pri']
+            i['z_pri'] = inst_s2[s2[-1]]['z_pri']
+
             # Strax wants begin and endtimes
             i['time'] = ix * 1000
             i['endtime'] = ix * 1000 + 1
@@ -148,7 +152,10 @@ class StraxSimulator(strax.Plugin):
                              ('drift_time', np.float),
                              ('alt_s2_drift_time', np.float),
                              ('e_dep', np.float),
-                             ('alt_e_dep', np.float)],
+                             ('alt_e_dep', np.float),
+                             ('x_pri', np.float),
+                             ('y_pri', np.float),
+                             ('z_pri', np.float),],
                  events_nveto=[('time', np.float),
                                ('endtime', np.float),
                                ('event_id', np.int),
