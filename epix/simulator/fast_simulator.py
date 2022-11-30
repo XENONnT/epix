@@ -83,6 +83,7 @@ class Simulator():
             i['y'] = inst_s2[s2[-1]]['y']
             i['z'] = inst_s2[s2[-1]]['z']
 
+            # From mm of G4 to cm in fastsim
             i['x_pri'] = inst_s2[s2[-1]]['x_pri']
             i['y_pri'] = inst_s2[s2[-1]]['y_pri']
             i['z_pri'] = inst_s2[s2[-1]]['z_pri']

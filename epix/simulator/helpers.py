@@ -82,11 +82,17 @@ class Helpers():
                     break
                 # _nt_res
                 if _merge_these_clusters_nt_res_jaron(instructions[ix1]['amp'], instructions[ix1]['z'],
-                                                          instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'], 
-                                                          tree):
+                                                      instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'], 
+                                                      tree):
+
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5
                     instructions[ix1 + ix2]['z'] = (instructions[ix1]['z'] + instructions[ix1 + ix2]['z']) * 0.5
+
+                    instructions[ix1 + ix2]['x_pri'] = (instructions[ix1]['x_pri'] + instructions[ix1 + ix2]['x_pri']) * 0.5
+                    instructions[ix1 + ix2]['y_pri'] = (instructions[ix1]['y_pri'] + instructions[ix1 + ix2]['y_pri']) * 0.5
+                    instructions[ix1 + ix2]['z_pri'] = (instructions[ix1]['z_pri'] + instructions[ix1 + ix2]['z_pri']) * 0.5
+
                     instructions[ix1 + ix2]['amp'] = int((instructions[ix1]['amp'] + instructions[ix1 + ix2]['amp']))
                     instructions[ix1]['amp'] = -1  # flag to throw this instruction away later
                     instructions[ix1 + ix2]['e_dep'] = (instructions[ix1]['e_dep'] + instructions[ix1 + ix2]['e_dep'])
