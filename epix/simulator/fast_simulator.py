@@ -40,8 +40,8 @@ class Simulator():
         First do the macro clustering. Clustered instructions will be flagged with amp=-1
         so we can safely through those out"""
 
-        # Helpers.macro_cluster_events(self.tree, self.instructions_epix)
-        # self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
+        Helpers.macro_cluster_events(self.tree, self.instructions_epix)
+        self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
         
         Helpers.macro_cluster_events(self.tree, self.instructions_epix)
         self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
@@ -83,10 +83,11 @@ class Simulator():
             i['y'] = inst_s2[s2[-1]]['y']
             i['z'] = inst_s2[s2[-1]]['z']
 
-            # From mm of G4 to cm in fastsim
             i['x_pri'] = inst_s2[s2[-1]]['x_pri']
             i['y_pri'] = inst_s2[s2[-1]]['y_pri']
             i['z_pri'] = inst_s2[s2[-1]]['z_pri']
+
+            i['g4id'] = inst_s2[s2[-1]]['g4id']
 
             # Strax wants begin and endtimes
             i['time'] = ix * 1000
@@ -124,8 +125,8 @@ class Simulator():
     strax.Option('configuration_files', default=dict(), help='Files required for simulating'),
     strax.Option('fax_config', help='Fax configuration to load'),
     strax.Option('fax_config_overrides', help='Fax configuration to override', default=None),
-    strax.Option('xy_resolution', default=5, help='xy position resolution (cm)'),
-    strax.Option('z_resolution', default=1, help='xy position resolution (cm)'),
+    strax.Option('xy_resolution', default=0, help='xy position resolution (cm)'),
+    strax.Option('z_resolution', default=0, help='xy position resolution (cm)'),
     strax.Option('nv_spe_resolution', default=0.40, help='nVeto SPE resolution'),
     strax.Option('nv_spe_res_threshold', default=0.50, help='nVeto SPE acceptance threshold'),
     strax.Option('nv_max_time_ns', default=1e7, help='nVeto maximum time for the acceptance of PMT hits in event'),
@@ -156,7 +157,8 @@ class StraxSimulator(strax.Plugin):
                              ('alt_e_dep', np.float),
                              ('x_pri', np.float),
                              ('y_pri', np.float),
-                             ('z_pri', np.float),],
+                             ('z_pri', np.float),
+                             ('g4id', np.int)],
                  events_nveto=[('time', np.float),
                                ('endtime', np.float),
                                ('event_id', np.int),
