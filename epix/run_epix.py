@@ -106,18 +106,25 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     if args['debug']:
         print('Generating photons and electrons for events')
     # Generate quanta:
+
+    enable_recombination_fluctuation = True
+    if not args['recomb_fluct']:
+        enable_recombination_fluctuation = False
+
     if len(result) > 0:
         if not ('yield' in args.keys()):
             print("No yield is provided! Forcing nest")
             args['yield'] = "nest"
         if args['yield'].lower() == "nest":
             print("Using NEST quanta generator...")
+            print(f"enable_recombination_fluctuation == {enable_recombination_fluctuation}")
             photons, electrons, excitons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
                                                                  epix.awkward_to_flat_numpy(result['nestid']),
                                                                  epix.awkward_to_flat_numpy(result['e_field']),
                                                                  epix.awkward_to_flat_numpy(result['A']),
                                                                  epix.awkward_to_flat_numpy(result['Z']),
                                                                  epix.awkward_to_flat_numpy(result['create_S2']),
+                                                                 recomb_fluct=enable_recombination_fluctuation,
                                                                  density=epix.awkward_to_flat_numpy(
                                                                      result['xe_density']))
         elif args['yield'].lower() == "bbf":
@@ -130,9 +137,11 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
             )
         elif args['yield'].lower() == "beta":
             print("Using BETA quanta generator...")
+            print(f"enable_recombination_fluctuation == {enable_recombination_fluctuation}")
             print(f"CS1 FILE: {args['beta_yields_cs1_path']}")
             print(f"CS2 FILE: {args['beta_yields_cs2_path']}")
-            betayields = epix.BETA_quanta_generator(args['beta_yields_cs1_path'], args['beta_yields_cs2_path'])
+            betayields = epix.BETA_quanta_generator(args['beta_yields_cs1_path'], args['beta_yields_cs2_path'],
+                                                    recomb_fluct=enable_recombination_fluctuation,)
             photons, electrons, excitons = betayields.get_quanta_vectorized(energy=epix.awkward_to_flat_numpy(result['ed']),
                                                                             interaction=epix.awkward_to_flat_numpy(result['nestid']),
                                                                             field=epix.awkward_to_flat_numpy(result['e_field']))

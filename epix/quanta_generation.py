@@ -5,7 +5,7 @@ import nestpy
 print(f'Using nestpy version {nestpy.__version__}')
 
 @np.vectorize
-def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
+def quanta_from_NEST(en, model, e_field, A, Z, create_s2, recomb_fluct=True, **kwargs):
     """
     Function which uses NEST to yield photons and electrons
     for a given set of parameters.
@@ -71,5 +71,10 @@ def quanta_from_NEST(en, model, e_field, A, Z, create_s2, **kwargs):
     electrons = 0
     if create_s2:
         electrons = event_quanta.electrons
+
+    if not recomb_fluct:
+        photons = y.PhotonYield
+        if create_s2:
+            electrons = y.ElectronYield
 
     return photons, electrons, excitons

@@ -197,10 +197,12 @@ class NEST_quanta_generator:
 
 class BETA_quanta_generator:
 
-    def __init__(self, beta_yields_cs1_path, beta_yields_cs2_path):
+    def __init__(self, beta_yields_cs1_path, beta_yields_cs2_path, recomb_fluct):
 
         self.get_quanta_vectorized = np.vectorize(self.get_quanta, excluded="self")
-        
+
+        self.use_recombination_fluctuation = recomb_fluct
+
         self.XENONnT_g1 = 0.151  ## v5
         self.XENONnT_g2 = 16.450  ## v5
 
@@ -220,10 +222,21 @@ class BETA_quanta_generator:
         beta_photons = self.cs1_spline(energy) / self.XENONnT_g1
         beta_electrons = self.cs2_spline(energy) / self.XENONnT_g2
 
+        if self.use_recombination_fluctuation:
+            rf = np.random.normal(0, energy * 3.0, 1)[0]
+            beta_photons = int(beta_photons + rf)
+            beta_electrons = int(beta_electrons - rf)
+
+            if beta_photons < 0:
+                beta_photons = 0
+            if beta_electrons < 0:
+                beta_electrons = 0
+
         y = self.nc.GetYields(
             interaction=nestpy.INTERACTION_TYPE.beta,
             energy=energy,
             drift_field=field,
         )
         q_ = self.nc.GetQuanta(y)
+
         return beta_photons, beta_electrons, q_.excitons
