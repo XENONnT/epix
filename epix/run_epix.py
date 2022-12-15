@@ -9,7 +9,7 @@ import epix
 from .common import ak_num, calc_dt, apply_time_offset
 
 
-def main(args, return_df=False, return_instructions=False, strax=False):
+def main(args, return_df=False, return_instructions=False, return_mcdeposits=False):
     """Call this function from the run_epix script"""
 
     if args['debug']:
@@ -168,7 +168,12 @@ def main(args, return_df=False, return_instructions=False, strax=False):
     # Reshape instructions:
     if args['debug'] & (len(result) == 0):
         warnings.warn('No interactions left, return empty DataFrame.')
-    instructions = epix.awkward_to_ins_row_style(result)
+
+    if return_mcdeposits:
+        instructions = epix.awkward_to_tray_style(result)
+    else:
+        instructions = epix.awkward_to_ins_row_style(result)
+
     if args['source_rate'] != 0:
         # Only sort by time again if source rates were applied, otherwise
         # things are already sorted within the events and should stay this way.

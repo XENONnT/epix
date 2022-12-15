@@ -1,4 +1,4 @@
-__version__ = '0.3.2.DARWIN'
+__version__ = '0.3.2.DWTRAY'
 
 from .common import *
 from .io import *

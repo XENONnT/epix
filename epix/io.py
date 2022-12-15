@@ -27,6 +27,20 @@ instruction_dtype = [(('Event number.', 'event_number'), np.int32),
                      (('Z position of the primary particle [cm]', 'z_pri'), np.float32),
                      ]
 
+mcdeposit_dtype = [(('X position of the cluster [mm]', 'x'), np.float32),
+                   (('Y position of the cluster [mm]', 'y'), np.float32),
+                   (('Z position of the cluster [mm]', 'z'), np.float32),
+                   (('Energy deposit of interaction', 'energy'), np.float32),
+                   (('Time of the interaction [ns]', 'time'), np.int64),
+                   (('Number of photons', 'n_photons'), np.int32),
+                   (('Number of electrons', 'n_electrons'), np.int32),
+                   (('Number of excitons', 'n_excitons'), np.int32),
+                   (('Recoil type of interaction.', 'deposit_type'), np.int8),
+                   (('Local field [ V / cm ]', 'field'), np.float64),
+                   (('Geant4 event ID', 'g4id'), np.int32),
+                   (('Volume id giving the detector subvolume', 'vol_id'), np.int32),
+                   ]
+
 SUPPORTED_OPTION = {'to_be_stored': 'getboolean',
                     'electric_field': ('getfloat', 'get'),
                     'create_S2': 'getboolean',
@@ -164,7 +178,7 @@ class file_loader():
 
         if self.cut_nr_only:
             m = ((interactions['type'] == "neutron") & (interactions['edproc'] == "hadElastic")) | (
-                        interactions['edproc'] == "ionIoni")
+                    interactions['edproc'] == "ionIoni")
             e_dep_er = ak.sum(interactions[~m]['ed'], axis=1)
             e_dep_nr = ak.sum(interactions[m]['ed'], axis=1)
             interactions = interactions[(e_dep_er < 10) & (e_dep_nr > 0)]
@@ -401,4 +415,43 @@ def awkward_to_ins_row_style(interactions):
                 res['n_excitons'][i::2] = awkward_to_flat_numpy(interactions['excitons'])
     # Remove entries with no quanta
     res = res[res['amp'] > 0]
+    return res
+
+
+# ----------------------
+# Output instructions:
+# ----------------------
+def awkward_to_tray_style(interactions):
+    """
+    Converts awkward array into a dataframe of DARWIN Tray MCDeposit-like rows.
+
+    :param interactions: awkward.Array containing GEANT4 simulation
+        information.
+    :return: Structured numpy.array. Each row represents MCDeposit
+    """
+
+    if len(interactions) == 0:
+        return np.empty(0, dtype=mcdeposit_dtype)
+
+    ninteractions = np.sum(ak.num(interactions['ed']))
+    res = np.zeros(ninteractions, dtype=mcdeposit_dtype)
+
+    res['x'] = awkward_to_flat_numpy(interactions['x']) * 10.0  ## [cm] to [mm]
+    res['y'] = awkward_to_flat_numpy(interactions['y']) * 10.0  ## [cm] to [mm]
+    res['z'] = awkward_to_flat_numpy(interactions['z']) * 10.0  ## [cm] to [mm]
+    res['energy'] = awkward_to_flat_numpy(interactions['ed'])
+    res['time'] = awkward_to_flat_numpy(interactions['t'])
+    res['n_photons'] = awkward_to_flat_numpy(interactions['electrons'])
+    res['n_electrons'] = awkward_to_flat_numpy(interactions['photons'])
+    res['n_excitons'] = awkward_to_flat_numpy(interactions['excitons'])
+
+    recoil = awkward_to_flat_numpy(interactions['nestid'])
+    res['deposit_type'] = np.where(np.isin(recoil, [0, 6, 7, 8, 11]), recoil, 8)
+    res['field'] = awkward_to_flat_numpy(interactions['e_field'])
+    res['g4id'] = awkward_to_flat_numpy(interactions['evtid'])
+    res['vol_id'] = awkward_to_flat_numpy(interactions['vol_id'])
+
+    # Remove entries with no quanta
+    res = res[(res['n_photons'] > 0) | ((res['n_electrons'] > 0))]
+
     return res

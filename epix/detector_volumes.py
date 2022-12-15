@@ -189,7 +189,7 @@ def in_sensitive_volume(events, sensitive_volumes):
             # volumes overlap. Only possible if we explicitly loop
             # over everything. This reduces performance but adds layer of
             # safety.
-            m = (result['vol_id'] > 0) & (res['vol_id'] == vol.volume_id)
+            m = (result['vol_id'] > 0) & (res.snapshot()['vol_id'] == vol.volume_id)
             if ak.any(m):
                 overlapping_id = result[m][0]
                 # Get volume name:
