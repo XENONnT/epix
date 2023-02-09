@@ -274,6 +274,8 @@ classifier['A'] = [0, 0, 4, infinity, infinity, 0, 0]
 classifier['Z'] = [0, 0, 2, 0, 0, 0, 0]
 classifier['nestid'] = [0, 0, 6, 11, 11, 7, 8]
 
+# quick fix for https://github.com/XENONnT/epix/issues/69
+classifier = classifier[::-1]
 
 @numba.njit
 def classify(types, parenttype, creaproc, edproc):
