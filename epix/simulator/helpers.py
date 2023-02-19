@@ -6,7 +6,7 @@ import numba
 
 # Numba and classes still are not a match made in heaven
 @numba.njit
-def _merge_these_clusters(s2_area1, z1, s2_area2, z2, tree):
+def _merge_these_clusters_nsort(s2_area1, z1, s2_area2, z2, **kwargs):
     sensitive_volume_ztop = 0  # it's the ground mesh, the top liquid level is at 2.7; // mm
     max_s2_area = max(s2_area1, s2_area2)
     if max_s2_area > 5000:
@@ -24,12 +24,11 @@ def _merge_these_clusters(s2_area1, z1, s2_area2, z2, tree):
     return z1 - z2 < SeparationDistance
 
 @numba.njit
-def _merge_these_clusters_nt_res(s2_area1, z1, s2_area2, z2, tree):
+def _merge_these_clusters_nt_res_naive(s2_area1, z1, s2_area2, z2, **kwargs):
     sensitive_volume_ztop = 0  # [cm]
     SeparationDistance = 1.6  # [cm], the worst case from [[weiss:analysis:he:zresoultion_zdependence]]
     return np.abs(z1 - z2) < 0.01 # SeparationDistance
 
-# @numba.njit
 def _merge_these_clusters_nt_res_jaron(s2_area1, z1, s2_area2, z2, tree):
     return bool(tree.predict([[z1, z2-z1, s2_area1, s2_area2]]))
 
@@ -69,9 +68,23 @@ class Helpers():
         return spe_distribution
 
     @staticmethod
-    def macro_cluster_events(tree, instructions):
+    def macro_cluster_events(tree, instructions, config):
         """Loops over all instructions, checks if it's an s2 and if there is another s2 within the same event
             within the macro cluster distance, if it is they are merged."""
+
+        print(f"\n macro_cluster_events --> s2_clustering_algorithm == {config['s2_clustering_algorithm']} . . .")
+
+        if config['s2_clustering_algorithm'] == 'bdt':
+            _merge_clusters = _merge_these_clusters_nt_res_jaron
+        elif config['s2_clustering_algorithm'] == 'naive':
+            tree = None
+            _merge_clusters = _merge_these_clusters_nt_res_naive
+        elif config['s2_clustering_algorithm'] == 'nsort':
+            tree = None
+            _merge_clusters = _merge_these_clusters_nsort
+        else:
+            _merge_clusters = None
+
         for ix1, _ in enumerate(instructions):
             if instructions[ix1]['type'] != 2:
                 continue
@@ -81,9 +94,9 @@ class Helpers():
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
                     break
                 # _nt_res
-                if _merge_these_clusters_nt_res_jaron(instructions[ix1]['amp'], instructions[ix1]['z'],
-                                                      instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'], 
-                                                      tree):
+                if _merge_clusters(instructions[ix1]['amp'], instructions[ix1]['z'],
+                                   instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'],
+                                   tree):
 
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5

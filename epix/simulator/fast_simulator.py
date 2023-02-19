@@ -5,6 +5,7 @@ from wfsim.load_resource import load_config
 import epix
 import numpy as np
 import pandas as pd
+import os
 from copy import deepcopy
 from immutabledict import immutabledict
 from .GenerateEvents import GenerateEvents
@@ -12,6 +13,14 @@ from .GenerateNveto import NVetoUtils
 from .helpers import Helpers
 import warnings
 import pickle
+
+# 2023-02-19: configuration_files:
+#   'nv_pmt_qe':'nveto_pmt_qe.json',
+#   'photon_area_distribution':'XENONnT_SR0_spe_distributions_20210713_no_noise_scaled.csv',
+#   's1_pattern_map': 'XENONnT_s1_xyz_patterns_LCE_MCvf051911_wires.pkl',
+#   's2_pattern_map': 'XENONnT_s2_xy_patterns_GXe_LCE_corrected_qes_MCv4.3.0_wires.pkl',
+#   's2_separation_bdt': 's2_separation_decision_tree_fast_sim.p'
+#   (FROM: /dali/lgrandi/jgrigat/s2_separation/s2_separation_decision_tree_fast_sim.p)
 
 class Simulator():
     '''Simulator class for epix to go from  epix instructions to fully processed data'''
@@ -29,7 +38,9 @@ class Simulator():
             key=(lambda field: field.order)
         )
         self.instructions_epix = instructions_epix
-        self.tree = pickle.load(open('/dali/lgrandi/jgrigat/s2_separation/s2_separation_decision_tree_fast_sim.p', 'rb+'))
+
+        #print(f"\n\nSimulator : Current directory [ {os.getcwd()} ]")
+        self.tree = pickle.load(open(self.config['configuration_files']['s2_separation_bdt'], 'rb+'))
 
 
     def cluster_events(self, ):
@@ -40,11 +51,12 @@ class Simulator():
         First do the macro clustering. Clustered instructions will be flagged with amp=-1
         so we can safely through those out"""
 
-        Helpers.macro_cluster_events(self.tree, self.instructions_epix)
+        Helpers.macro_cluster_events(self.tree, self.instructions_epix, self.config)
         self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
-        
-        Helpers.macro_cluster_events(self.tree, self.instructions_epix)
-        self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
+
+        # Why is it called for the second time??
+        #Helpers.macro_cluster_events(self.tree, self.instructions_epix, self.config)
+        #self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
         
         event_numbers = np.unique(self.instructions_epix['event_number'])
         ins_size = len(event_numbers)
@@ -117,7 +129,7 @@ class Simulator():
 
 # We should think a bit more to detector_config_override
 # and tell fast_sim to look into epix_args
-# also beacaus one entry of self.config is epix_config
+# also because one entry of self.config is epix_config
 @strax.takes_config(
     strax.Option('detector', default='XENONnT', help='Detector model'),
     strax.Option('g4_file', help='G4 file to simulate'),
@@ -130,6 +142,7 @@ class Simulator():
     strax.Option('nv_spe_resolution', default=0.40, help='nVeto SPE resolution'),
     strax.Option('nv_spe_res_threshold', default=0.50, help='nVeto SPE acceptance threshold'),
     strax.Option('nv_max_time_ns', default=1e7, help='nVeto maximum time for the acceptance of PMT hits in event'),
+    strax.Option('s2_clustering_algorithm', default='bdt', help='Macroclustering algorithm for S2, [ nsort | naive | bdt ]'),
 )
 class StraxSimulator(strax.Plugin):
     provides = ('events_tpc', 'events_nveto')
