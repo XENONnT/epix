@@ -1,5 +1,5 @@
 uproot >= 4.0.0
 awkward >= 1.0.0
 numba != 0.56.0
-sklearn
+scikit-learn
 wfsim >= 0.7.0

@@ -2,6 +2,7 @@
 
 [![PyPI version shields.io](https://img.shields.io/pypi/v/epix.svg)](https://pypi.python.org/pypi/epix/)
 [![CodeFactor](https://www.codefactor.io/repository/github/xenonnt/epix/badge)](https://www.codefactor.io/repository/github/xenonnt/epix)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7516941.svg)](https://doi.org/10.5281/zenodo.7516941)
 
 **E**lectron and **P**hoton **I**nstructions generator for **X**ENON
 
