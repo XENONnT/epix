@@ -268,6 +268,16 @@ class StraxSimulator(strax.Plugin):
         simulated_data_nveto = self.get_nveto_data()
         self.epix_instructions = self.get_epix_instructions()
 
+        if isinstance(self.config['epix_config']['record_epix_df'], str):
+            epix_df_path = self.config['epix_config']['record_epix_df']
+            epix_df_path += '/'
+            epix_df_path += os.path.splitext(self.config['epix_config']['file_name'])[0] + '_epix.csv'
+            print(f"Saving EPIX df to [ {epix_df_path} ]...")
+            epix_df = pd.DataFrame(self.epix_instructions)
+            epix_df.to_csv(epix_df_path, index=False)
+            print(f"Saving EPIX df - Done!")
+            del epix_df
+
         if isinstance(self.config['epix_config']['save_epix'], str):
             epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][:-5] +'_epix_1'
             print('Saving epix instruction: ', epix_path)
