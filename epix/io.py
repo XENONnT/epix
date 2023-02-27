@@ -130,8 +130,10 @@ class file_loader():
         """
 
         if self.file.endswith(".root"):
+            print('Loading ROOT input file...')
             interactions, n_simulated_events, start, stop = self._load_root_file()
         elif self.file.endswith(".csv"):
+            print('Loading CSV input file...')
             interactions, n_simulated_events, start, stop = self._load_csv_file()
         else:
             raise ValueError(f'Cannot load events from file "{self.file}": .root or .cvs file needed.')
