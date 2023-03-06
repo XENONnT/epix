@@ -48,6 +48,7 @@ class GenerateEvents():
                                                    positions = xyz,
                                                    s1_lce_map = resource.s1_map,
                                                    config = config) * (1 + config['p_double_pe_emision'])
+
         instructions['alt_s1_area'] = Helpers.get_s1_area_with_spe(resource.photon_area_distribution,
                                                                    alt_n_photons.astype(np.int64))
 
@@ -72,21 +73,20 @@ class GenerateEvents():
                                                  resource = resource)
 
         n_el = instructions['alt_s2_area'].astype(np.int64)
-        alt_n_electron = Helpers.get_s2_charge_yield(n_electron = n_el,
-                                                     positions = alt_xy,
-                                                     z_obs = instructions['z'],
-                                                     config = config,
-                                                     resource = resource)
+        alt_n_electron = Helpers.get_s2_charge_yield(n_electron=n_el,
+                                                     positions=alt_xy,
+                                                     z_obs=instructions['z'],
+                                                     config=config,
+                                                     resource=resource)
 
-        sc_gain = Helpers.get_s2_light_yield(positions = xy,
-                                             config = config,
-                                             resource = resource)
+        sc_gain = Helpers.get_s2_light_yield(positions=xy,
+                                             config=config,
+                                             resource=resource)
         sc_gain_sigma = np.sqrt(sc_gain)
         
         # Here a WFsim function is called which remove the dpe
         # we have to introduce it again in fast simulator
-        instructions['s2_area'] = n_electron * np.random.normal(sc_gain, sc_gain_sigma) * (1 + config['p_double_pe_emision']) 
-
+        instructions['s2_area'] = n_electron * np.random.normal(sc_gain, sc_gain_sigma) * (1 + config['p_double_pe_emision'])
         instructions['drift_time'] = -instructions['z'] / config['drift_velocity_liquid']
 
         instructions['alt_s2_area'] = alt_n_electron * np.random.normal(sc_gain, sc_gain_sigma) * (1 + config['p_double_pe_emision'])

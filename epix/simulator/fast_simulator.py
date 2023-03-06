@@ -73,8 +73,7 @@ class Simulator():
 
             if len(s1) < 1 or len(s2) < 1:
                 continue
-            
-            i['s1_area'] = np.sum(inst_s1['amp']) # sum over all s1 10/12/2022
+
 
             # why we consider only the larger s1 ?
             #i['s1_area'] = inst_s1[s1[-1]]['amp']
@@ -84,6 +83,7 @@ class Simulator():
 
             i['s2_area'] = inst_s2[s2[-1]]['amp']
             i['e_dep'] = inst_s2[s2[-1]]['e_dep']
+
             if len(s2) > 1:
                 i['alt_s2_area'] = inst_s2[s2[-2]]['amp']
                 i['alt_e_dep'] = inst_s2[s2[-2]]['e_dep']
@@ -132,6 +132,7 @@ class Simulator():
 # also because one entry of self.config is epix_config
 @strax.takes_config(
     strax.Option('detector', default='XENONnT', help='Detector model'),
+    strax.Option('detector_config_override', default='', help='For the electric field, otherwise 200 V/cm'),
     strax.Option('g4_file', help='G4 file to simulate'),
     strax.Option('epix_config', default=dict(), help='Configuration file for epix', ),
     strax.Option('configuration_files', default=dict(), help='Files required for simulating'),
@@ -180,7 +181,7 @@ class StraxSimulator(strax.Plugin):
     def load_config(self):
         """First load the config through wfsim, then we add some things we'd like to have"""
         self.resource = load_config(self.config)
-        
+
         self.resource.s1_map = self.resource.s1_lce_correction_map
         self.resource.s2_map = self.resource.s2_correction_map
 
@@ -227,7 +228,7 @@ class StraxSimulator(strax.Plugin):
             warnings.warn('This is a deault value, why we have to give it in fax_config_overrides? '
                           'No n_tpc_pmts are passed in fax_config_overrides, default equal to 494')
             self.config['n_tpc_pmts'] =  494  
-        
+
         self.load_config()
 
     def get_nveto_data(self, ):
@@ -246,12 +247,7 @@ class StraxSimulator(strax.Plugin):
             return nv_hits
 
     def get_epix_instructions(self, ):
-        warnings.warn('The epix_config is subtle!'
-                       'detector_config_override is given by epix_config, '
-                       'while detector is from config '
-                       'I do not like it!')
-        detector = epix.init_detector(self.config['detector'].lower(), 
-                        self.config['epix_config']['detector_config_override'])
+        detector = epix.init_detector(self.config['detector'].lower(), self.config['detector_config_override'])
 
         epix_config = deepcopy(self.config['epix_config'])
         epix_config['detector_config'] = detector
@@ -261,6 +257,10 @@ class StraxSimulator(strax.Plugin):
         epix_config['outer_cylinder'] = outer_cylinder
 
         epix_ins = epix.run_epix.main(epix_config, return_wfsim_instructions=True)
+
+        if self.config['save_epix']:
+            epix_path = self.config['epix_config']['path'] + self.config['epix_config']['file_name'][:-5] +'_epix'
+            np.save(epix_path, epix_ins)
 
         return epix_ins
 

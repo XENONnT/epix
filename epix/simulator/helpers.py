@@ -23,11 +23,13 @@ def _merge_these_clusters_nsort(s2_area1, z1, s2_area2, z2, **kwargs):
                                    (z1 + z2) * 0.5)
     return z1 - z2 < SeparationDistance
 
+
 @numba.njit
 def _merge_these_clusters_nt_res_naive(s2_area1, z1, s2_area2, z2, **kwargs):
     sensitive_volume_ztop = 0  # [cm]
     SeparationDistance = 1.6  # [cm], the worst case from [[weiss:analysis:he:zresoultion_zdependence]]
-    return np.abs(z1 - z2) < 0.01 # SeparationDistance
+    return np.abs(z1 - z2) < SeparationDistance
+
 
 def _merge_these_clusters_nt_res_jaron(s2_area1, z1, s2_area2, z2, tree):
     return bool(tree.predict([[z1, z2-z1, s2_area1, s2_area2]]))
@@ -60,8 +62,8 @@ class Helpers():
             grid_cdf = np.linspace(0, 1, 2001)
             # For Inverse_transform_sampling methode
             grid_scale = interp1d(cdf, scaled_bins,
-                                  bounds_error = False,
-                                  fill_value = (scaled_bins[0], scaled_bins[-1]))(grid_cdf)
+                                  bounds_error=False,
+                                  fill_value=(scaled_bins[0], scaled_bins[-1]))(grid_cdf)
 
             uniform_to_pe_arr.append(grid_scale)
         spe_distribution = np.mean(uniform_to_pe_arr, axis=0)
@@ -93,6 +95,7 @@ class Helpers():
                     continue
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
                     break
+
                 # _nt_res
                 if _merge_clusters(instructions[ix1]['amp'], instructions[ix1]['z'],
                                    instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'],
@@ -129,23 +132,23 @@ class Helpers():
     @staticmethod
     def get_s1_light_yield(n_photons, positions, s1_lce_map, config):
         """See WFsim.s1.get_n_photons"""
-        return wfsim.S1.get_n_photons(n_photons = n_photons,
-                                      positions = positions,
-                                      s1_lce_correction_map = s1_lce_map,
-                                      config = config)
+        return wfsim.S1.get_n_photons(n_photons=n_photons,
+                                      positions=positions,
+                                      s1_lce_correction_map=s1_lce_map,
+                                      config=config)
 
     @staticmethod
     def get_s2_light_yield(positions, config, resource):
         """See WFsim.s2.get_s2_light_yield"""
-        return wfsim.S2.get_s2_light_yield(positions = positions,
-                                           config = config,
-                                           resource = resource)
+        return wfsim.S2.get_s2_light_yield(positions=positions,
+                                           config=config,
+                                           resource=resource)
 
     @staticmethod
     def get_s2_charge_yield(n_electron, positions, z_obs, config, resource):
         """See wfsim.s2.get_electron_yield"""
-        return wfsim.S2.get_electron_yield(n_electron = n_electron,
-                                           xy_int = positions,
-                                           z_int = z_obs,
-                                           config = config,
-                                           resource = resource)
+        return wfsim.S2.get_electron_yield(n_electron=n_electron,
+                                           xy_int=positions,
+                                           z_int=z_obs,
+                                           config=config,
+                                           resource=resource)
