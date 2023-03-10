@@ -6,7 +6,7 @@ import numba
 
 # Numba and classes still are not a match made in heaven
 @numba.njit
-def _merge_these_clusters(s2_area1, z1, s2_area2, z2):
+def _merge_these_clusters_nsort(s2_area1, z1, s2_area2, z2, **kwargs):
     sensitive_volume_ztop = 0  # it's the ground mesh, the top liquid level is at 2.7; // mm
     max_s2_area = max(s2_area1, s2_area2)
     if max_s2_area > 5000:
@@ -25,11 +25,14 @@ def _merge_these_clusters(s2_area1, z1, s2_area2, z2):
 
 
 @numba.njit
-def _merge_these_clusters_nt_res(s2_area1, z1, s2_area2, z2):
+def _merge_these_clusters_nt_res_naive(s2_area1, z1, s2_area2, z2, **kwargs):
     sensitive_volume_ztop = 0  # [cm]
     SeparationDistance = 1.6  # [cm], the worst case from [[weiss:analysis:he:zresoultion_zdependence]]
     return np.abs(z1 - z2) < SeparationDistance
 
+
+def _merge_these_clusters_nt_res_jaron(s2_area1, z1, s2_area2, z2, tree):
+    return bool(tree.predict([[z1, z2-z1, s2_area1, s2_area2]]))
 
 class Helpers():
     @staticmethod
@@ -57,6 +60,7 @@ class Helpers():
                 scaled_bins = np.zeros_like(cdf)
 
             grid_cdf = np.linspace(0, 1, 2001)
+            # For Inverse_transform_sampling methode
             grid_scale = interp1d(cdf, scaled_bins,
                                   bounds_error=False,
                                   fill_value=(scaled_bins[0], scaled_bins[-1]))(grid_cdf)
@@ -66,25 +70,50 @@ class Helpers():
         return spe_distribution
 
     @staticmethod
-    @numba.njit
-    def macro_cluster_events(instructions):
+    def macro_cluster_events(tree, instructions, config):
         """Loops over all instructions, checks if it's an s2 and if there is another s2 within the same event
             within the macro cluster distance, if it is they are merged."""
+
+        print(f"\n macro_cluster_events --> s2_clustering_algorithm == {config['s2_clustering_algorithm']} . . .")
+
+        if config['s2_clustering_algorithm'] == 'bdt':
+            _merge_clusters = _merge_these_clusters_nt_res_jaron
+        elif config['s2_clustering_algorithm'] == 'naive':
+            tree = None
+            _merge_clusters = _merge_these_clusters_nt_res_naive
+        elif config['s2_clustering_algorithm'] == 'nsort':
+            tree = None
+            _merge_clusters = _merge_these_clusters_nsort
+        else:
+            _merge_clusters = None
+
         for ix1, _ in enumerate(instructions):
             if instructions[ix1]['type'] != 2:
                 continue
-            for ix2 in range(1, len(instructions[ix1:]) + 1):
+            for ix2 in range(1, len(instructions[ix1:])): # why was  + 1): ?
                 if instructions[ix1 + ix2]['type'] != 2:
                     continue
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
                     break
-                if _merge_these_clusters_nt_res(instructions[ix1]['amp'], instructions[ix1]['z'],
-                                                instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z']):
+
+                # _nt_res
+                if _merge_clusters(instructions[ix1]['amp'], instructions[ix1]['z'],
+                                   instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z'],
+                                   tree):
+
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5
                     instructions[ix1 + ix2]['z'] = (instructions[ix1]['z'] + instructions[ix1 + ix2]['z']) * 0.5
+
+                    # prymary position is one
+                    instructions[ix1 + ix2]['x_pri'] = instructions[ix1]['x_pri'] 
+                    instructions[ix1 + ix2]['y_pri'] = instructions[ix1]['y_pri'] 
+                    instructions[ix1 + ix2]['z_pri'] = instructions[ix1]['z_pri'] 
+
                     instructions[ix1 + ix2]['amp'] = int((instructions[ix1]['amp'] + instructions[ix1 + ix2]['amp']))
                     instructions[ix1]['amp'] = -1  # flag to throw this instruction away later
+                    instructions[ix1 + ix2]['e_dep'] = (instructions[ix1]['e_dep'] + instructions[ix1 + ix2]['e_dep'])
+                    instructions[ix1]['e_dep'] = -1  # flag to throw this instruction away later
                     break
 
     @staticmethod
@@ -97,6 +126,7 @@ class Helpers():
         for n_ph in num_photons:
             s1_area_spe.append(np.sum(spe_distribution[
                                           (np.random.random(n_ph) * len(spe_distribution)).astype(np.int64)]))
+
         return np.array(s1_area_spe)
 
     @staticmethod
