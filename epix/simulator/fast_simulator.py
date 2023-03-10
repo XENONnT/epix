@@ -40,7 +40,6 @@ class Simulator():
         self.instructions_epix = instructions_epix
 
         #print(f"\n\nSimulator : Current directory [ {os.getcwd()} ]")
-        self.tree = pickle.load(open(self.config['configuration_files']['s2_separation_bdt'], 'rb+'))
 
 
     def cluster_events(self, ):
