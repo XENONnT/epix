@@ -247,7 +247,6 @@ class StraxSimulator(strax.Plugin):
 
     def get_epix_instructions(self, ):
         detector = epix.init_detector(self.config['detector'].lower(), self.config['detector_config_override'])
-
         epix_config = deepcopy(self.config['epix_config'])
         epix_config['detector_config'] = detector
 
@@ -257,7 +256,7 @@ class StraxSimulator(strax.Plugin):
 
         epix_ins = epix.run_epix.main(epix_config, return_wfsim_instructions=True)
 
-        if self.config['save_epix']:
+        if self.config['epix_config']['save_epix']:
             epix_path = self.config['epix_config']['path'] + self.config['epix_config']['file_name'][:-5] +'_epix'
             np.save(epix_path, epix_ins)
 
