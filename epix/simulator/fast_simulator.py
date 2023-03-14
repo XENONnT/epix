@@ -264,7 +264,6 @@ class StraxSimulator(strax.Plugin):
         return epix_ins
 
     def compute(self):
-        simulated_data_nveto = self.get_nveto_data()
         self.epix_instructions = self.get_epix_instructions()
 
         if isinstance(self.config['epix_config']['save_epix'], str):
@@ -283,22 +282,7 @@ class StraxSimulator(strax.Plugin):
             data=simulated_data,
             data_type='events_tpc')
 
-        # write empty chunk if nveto data isn't there
-        if simulated_data_nveto is None or len(simulated_data_nveto['time']) < 1:
-            simulated_data_nveto_chunk = self.chunk(
-                start=0,
-                end=1,
-                data=simulated_data_nveto,
-                data_type='events_nveto')
-        else:
-            simulated_data_nveto_chunk=self.chunk(
-                           start=np.floor(simulated_data_nveto['time'][0]).astype(np.int64),
-                           end=np.ceil(np.max(simulated_data_nveto['endtime'])).astype(np.int64),
-                           data=simulated_data_nveto,
-                           data_type='events_nveto')
-
-        return {'events_tpc':simulated_data_chunk,
-                'events_nveto':simulated_data_nveto_chunk}
+        return {'events_tpc':simulated_data_chunk}
     
     def is_ready(self, chunk):
         # For this plugin we'll smash everything into 1 chunk, should be oke
