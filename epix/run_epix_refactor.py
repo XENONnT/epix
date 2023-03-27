@@ -154,15 +154,6 @@ class clustering(strax.Plugin):
         
         return numpy_data
         
-
-
-@strax.takes_config(
-    strax.Option('debug', default=False, track=False, infer_type=False,
-                 help="Show debug informations"),
-    strax.Option('tag_cluster_by', default=False, track=False, infer_type=False,
-                 help="decide if you tag the cluster (particle type, energy depositing process)\
-                       according to first interaction in it (time) or most energetic (energy)"),
-)
 @strax.takes_config(
     strax.Option('debug', default=False, track=False, infer_type=False,
                  help="Show debug informations"),
@@ -173,6 +164,8 @@ class clustering(strax.Plugin):
                  help="Detector to be used. Has to be defined in epix.detectors"),
     strax.Option('DetectorConfigOverride', default=None, track=False, infer_type=False,
                  help="Config file to overwrite default epix.detectors settings; see examples in the configs folder"),
+    strax.Option('max_delay', default=1e7, track=False, infer_type=False,
+                 help="Time after which we cut the rest of the event (ns)"),
 )
 class cluster_merging(strax.Plugin):
     
@@ -248,6 +241,13 @@ class cluster_merging(strax.Plugin):
         m = epix.ak_num(result['ed']) > 0
         result = result[m]
         
+        # Sort entries (in an event) by in time, then chop all delayed
+        # events which are too far away from the rest.
+        # (This is a requirement of WFSim)
+        result = result[ak.argsort(result['t'])]
+        dt = epix.calc_dt(result)
+        result = result[dt <= self.max_delay]
+        
         result = self.full_array_to_numpy(result)
         
         result["time"] = (result["evtid"]+1) *1e9
@@ -255,7 +255,6 @@ class cluster_merging(strax.Plugin):
         
         return result
         
-
 @strax.takes_config(
     strax.Option('debug', default=False, track=False, infer_type=False,
                  help="Show debug informations"),
@@ -306,7 +305,7 @@ class electic_field(strax.Plugin):
         
         
 
-class yields(strax.plugin):
+class yields(strax.Plugin):
     depends_on = ["clustered_interactions", "electric_field_values"]
     provides = "quanta"
     dtype = "quanta_data_that_can_be_added_to_clustered_interactions"
@@ -315,8 +314,8 @@ class yields(strax.plugin):
         "Again, epix functions are already there"
         pass
 
-class time_separation(strax.plugin):
-    depends_on = ["clustered_interactions"]:
+class time_separation(strax.Plugin):
+    depends_on = ["clustered_interactions"]
     provides = "interaction_times"
     dtype = "interaction_times_that_can_be_added_to_clustered_interactions"
 
@@ -324,7 +323,7 @@ class time_separation(strax.plugin):
         "Again, epix functions are already there"
         pass
 
-class output_plugin(strax.plugin):
+class output_plugin(strax.Plugin):
     depends_on = ["clustered_interactions", "quanta", "interaction_times"]
     returns = "wfsim_instructions"
     dtype = "wfsim_instructions_dtype"
