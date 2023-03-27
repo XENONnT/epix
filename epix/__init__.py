@@ -1,4 +1,4 @@
-__version__ = '0.3.3'
+__version__ = '0.3.3.CUSTOM_CLUSTER'
 
 from .common import *
 from .io import *
@@ -10,3 +10,5 @@ from .event_separation import *
 from .detectors import *
 from .run_epix import *
 from .quantgen_wrapper import BBF_quanta_generator
+from .quantgen_wrapper import BETA_quanta_generator
+from .quantgen_wrapper import NEST_quanta_generator

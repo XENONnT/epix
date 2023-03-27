@@ -111,6 +111,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
             print("No yield is provided! Forcing nest")
             args['yield']="nest"
         if args['yield'].lower()=="nest":
+            print("Using NEST quanta generator...")
             photons, electrons, excitons = epix.quanta_from_NEST(epix.awkward_to_flat_numpy(result['ed']),
                                                                  epix.awkward_to_flat_numpy(result['nestid']),
                                                                  epix.awkward_to_flat_numpy(result['e_field']),
@@ -119,12 +120,20 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
                                                                  epix.awkward_to_flat_numpy(result['create_S2']),
                                                                  density=epix.awkward_to_flat_numpy(result['xe_density']))
         elif args['yield'].lower()=="bbf":
+            print("Using BBF quanta generator...")
             bbfyields=epix.BBF_quanta_generator()
             photons, electrons, excitons = bbfyields.get_quanta_vectorized(
                                 energy=epix.awkward_to_flat_numpy(result['ed']),
                                 interaction=epix.awkward_to_flat_numpy(result['nestid']),
                                 field=epix.awkward_to_flat_numpy(result['e_field'])
                                 )
+        elif args['yield'].lower() == "beta":
+            print("Using BETA quanta generator...")
+            betayields = epix.BETA_quanta_generator()
+            photons, electrons, excitons = betayields.get_quanta_vectorized(
+                energy=epix.awkward_to_flat_numpy(result['ed']),
+                interaction=epix.awkward_to_flat_numpy(result['nestid']),
+                field=epix.awkward_to_flat_numpy(result['e_field']))
         else:
             raise RuntimeError("Unknown yield model: ", args['yields'])
         result['photons'] = epix.reshape_awkward(photons, ak_num(result['ed']))
