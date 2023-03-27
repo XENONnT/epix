@@ -305,14 +305,63 @@ class electic_field(strax.Plugin):
         
         
 
+@strax.takes_config(
+    strax.Option('debug', default=False, track=False, infer_type=False,
+                 help="Show debug informations"),
+    strax.Option('YieldModel', default="nest", track=False, infer_type=False,
+                 help="Model for yield/quanta generationg (nest or bbf)"),
+)
 class yields(strax.Plugin):
-    depends_on = ["clustered_interactions", "electric_field_values"]
+    
+    __version__ = "0.0.0"
+    
+    depends_on = ["clustered_interactions", "electic_field_values"]
     provides = "quanta"
-    dtype = "quanta_data_that_can_be_added_to_clustered_interactions"
+    
+    dtype = [('photons', np.float64),
+             ('electrons', np.float64),
+             ('excitons', np.float64),
+            ]
+    
+    dtype = dtype + strax.time_fields
 
-    def compute():
-        "Again, epix functions are already there"
-        pass
+    def compute(self, geant4_interactions):
+        
+        result = np.zeros(len(geant4_interactions), dtype=self.dtype)
+        result["time"] = geant4_interactions["time"]
+        result["endtime"] = geant4_interactions["endtime"]
+
+        # Generate quanta:
+        if len(geant4_interactions) > 0:
+            
+            if self.YieldModel.lower()=="nest":
+                photons, electrons, excitons = epix.quanta_from_NEST(geant4_interactions['ed'],
+                                                                     geant4_interactions['nestid'],
+                                                                     geant4_interactions['e_field'],
+                                                                     geant4_interactions['A'],
+                                                                     geant4_interactions['Z'],
+                                                                     geant4_interactions['create_S2'],
+                                                                     density=geant4_interactions['xe_density'])
+            elif self.YieldModel.lower()=="bbf":
+                bbfyields=epix.BBF_quanta_generator()
+                photons, electrons, excitons = bbfyields.get_quanta_vectorized(
+                                    energy=geant4_interactions['ed'],
+                                    interaction=geant4_interactions['nestid'],
+                                    field=geant4_interactions['e_field']
+                                    )
+            else:
+                raise RuntimeError("Unknown yield model: ", self.YieldModel)
+            
+            
+            result['photons'] = photons
+            result['electrons'] = electrons
+            result['excitons'] = excitons
+        else: #Is this needed????
+            result['photons'] = np.empty(0)
+            result['electrons'] = np.empty(0)
+            result['excitons'] = np.empty(0)
+        return result
+    
 
 class time_separation(strax.Plugin):
     depends_on = ["clustered_interactions"]
