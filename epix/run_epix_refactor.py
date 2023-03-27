@@ -312,7 +312,7 @@ class electic_field(strax.Plugin):
                  help="Model for yield/quanta generationg (nest or bbf)"),
 )
 class yields(strax.Plugin):
-    
+    #I guess we want to split this function in the different yield models afterwards!
     __version__ = "0.0.0"
     
     depends_on = ["clustered_interactions", "electic_field_values"]
