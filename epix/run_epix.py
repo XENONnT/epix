@@ -37,7 +37,8 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
                f" and dt = {args['micro_separation_time']} ns")
 
     # Cluster finding and clustering (convert micro_separation mm -> cm):
-    inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
+    #inter = epix.find_cluster(inter, args['micro_separation']/10, args['micro_separation_time'])
+    inter = epix.find_betadecay_cluster(inter,)
 
     if args['debug']:
         tnow = monitor_time(tnow, 'find clusters.')

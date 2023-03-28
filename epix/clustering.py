@@ -2,17 +2,80 @@ import numpy as np
 import pandas as pd
 import numba
 import awkward as ak
-from .common import reshape_awkward
+from .common import reshape_awkward, awkwardify_df
 from sklearn.cluster import DBSCAN
+
+
+def find_betadecay_cluster(interactions, ):
+    """
+        Function which finds clusters within an event
+        using beta-decay clustering approach: . . .
+
+        Args:
+            x (pandas.DataFrame): Subentries of event must contain all fields
+                of interactions type returned by epix.file_loader
+
+        Returns:
+            awkward.array: Modified interactions array with applied beta-decay clustering and added cluster_ids.
+        """
+
+    df = ak.to_pandas(interactions)
+    df_clustered = pd.DataFrame()
+
+    if df.empty:
+        # TPC interaction is empty
+        return interactions
+
+    for evt in df.index.get_level_values(0).unique():
+        dte = _selectBetaGamma(df.loc[evt])
+        if len(dte) > 0:
+            dte['cluster_ids'] = np.arange(len(dte))
+            df_clustered = pd.concat((df_clustered, dte), ignore_index=True)
+
+    interactions = awkwardify_df(df_clustered)
+
+    ci = df_clustered.loc[:, 'cluster_ids'].values
+    offsets = ak.num(interactions['x'])
+    interactions['cluster_ids'] = reshape_awkward(ci, offsets)
+
+    return interactions
+
+
+def _selectBetaGamma(betagamma_df, ):
+    betagamma_df = betagamma_df[
+        ((betagamma_df.type == 'e-') & (betagamma_df.creaproc == 'RadioactiveDecayBase'))
+        | ((betagamma_df.type == 'gamma') & (betagamma_df.creaproc == 'RadioactiveDecayBase'))]
+    betagamma_df = betagamma_df[
+        ~((betagamma_df.edproc == "Rayl") | (betagamma_df.edproc == "Transportation"))]
+
+    betagamma_df['ed'] = betagamma_df.PreStepEnergy - betagamma_df.PostStepEnergy
+    betagamma_df.loc[betagamma_df.type == 'e-', 'ed'] = betagamma_df.loc[
+        betagamma_df.type == 'e-', 'PreStepEnergy']
+    betagamma_df = betagamma_df[betagamma_df.ed > 1e-6]
+
+    beta_trackid = []
+    for ind, row in betagamma_df.iterrows():
+        if row['type'] == 'gamma':
+            pass
+        elif row['type'] == 'e-':
+            if row['trackid'] in beta_trackid:
+                betagamma_df.drop(ind, inplace=True)
+            else:
+                beta_trackid.append(row['trackid'])
+        else:
+            betagamma_df.drop(ind, inplace=True)
+
+    return betagamma_df
 
 
 def find_cluster(interactions, cluster_size_space, cluster_size_time):
     """
-    Function which finds cluster within a event.
+    Function which finds clusters within an event using temporal
+    and spatial DBSCAN clustering.
 
     Args:
         x (pandas.DataFrame): Subentries of event must contain the
-            fields, x,y,z,time
+            fields: x,y,z,ed,time
         cluster_size_space (float): Max spatial distance between two points to
             be inside a cluster [cm].
         cluster_size_time (float): Max time distance between two points to be 

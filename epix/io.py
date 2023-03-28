@@ -8,7 +8,7 @@ import warnings
 import wfsim
 import configparser
 
-from .common import awkward_to_flat_numpy, offset_range, reshape_awkward
+from .common import awkward_to_flat_numpy, offset_range, reshape_awkward, awkwardify_df
 
 SUPPORTED_OPTION = {'to_be_stored': 'getboolean',
                     'electric_field': ('getfloat', 'get'),
@@ -107,7 +107,7 @@ class file_loader():
                              "t", "ed",
                              "type", "trackid",
                              "parenttype", "parentid",
-                             "creaproc", "edproc"]
+                             "creaproc", "edproc", "PreStepEnergy", "PostStepEnergy"]
 
         #Prepare cut for root and csv case
         if self.outer_cylinder:
@@ -266,7 +266,7 @@ class file_loader():
         if self.outer_cylinder:
             instr_df = instr_df.query(self.cut_string)
 
-        interactions = self._awkwardify_df(instr_df)
+        interactions = awkwardify_df(instr_df)
 
         #Use always all events in the csv file
         start = 0
@@ -300,40 +300,6 @@ class file_loader():
                             'I tried to search in events and events/events.'
                             f'Found a ttree in {ttrees}?')
         return ttree, n_simulated_events
-
-    def _awkwardify_df(self, df):
-        """
-        Function which builds an jagged awkward array from pandas dataframe.
-
-        Args:
-            df: Pandas Dataframe
-
-        Returns:
-            ak.Array(dictionary): awkward array
-
-        """
-
-        _, evt_offsets = np.unique(df["eventid"], return_counts = True)
-    
-        dictionary = {"x": reshape_awkward(df["x"].values , evt_offsets),
-                      "y": reshape_awkward(df["y"].values , evt_offsets),
-                      "z": reshape_awkward(df["z"].values , evt_offsets),
-                      "x_pri": reshape_awkward(df["x_pri"].values, evt_offsets),
-                      "y_pri": reshape_awkward(df["y_pri"].values, evt_offsets),
-                      "z_pri": reshape_awkward(df["z_pri"].values, evt_offsets),
-                      "r": reshape_awkward(df["r"].values , evt_offsets),
-                      "t": reshape_awkward(df["t"].values , evt_offsets),
-                      "ed": reshape_awkward(df["ed"].values , evt_offsets),
-                      "type":reshape_awkward(np.array(df["type"], dtype=str) , evt_offsets),
-                      "trackid": reshape_awkward(df["trackid"].values , evt_offsets),
-                      "parenttype": reshape_awkward(np.array(df["parenttype"], dtype=str) , evt_offsets),
-                      "parentid": reshape_awkward(df["parentid"].values , evt_offsets),
-                      "creaproc": reshape_awkward(np.array(df["creaproc"], dtype=str) , evt_offsets),
-                      "edproc": reshape_awkward(np.array(df["edproc"], dtype=str) , evt_offsets),
-                      "evtid": reshape_awkward(df["eventid"].values , evt_offsets),
-                    }
-
-        return ak.Array(dictionary)
 
 # ----------------------
 # Outputing wfsim instructions:
