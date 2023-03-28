@@ -252,7 +252,6 @@ class StraxSimulator(strax.Plugin):
 
     def get_epix_instructions(self, ):
         detector = epix.init_detector(self.config['detector'].lower(), self.config['detector_config_override'])
-
         epix_config = deepcopy(self.config['epix_config'])
         epix_config['detector_config'] = detector
 
@@ -261,15 +260,8 @@ class StraxSimulator(strax.Plugin):
         epix_config['outer_cylinder'] = outer_cylinder
 
         epix_ins = epix.run_epix.main(epix_config, return_wfsim_instructions=True)
-        if isinstance(self.config['epix_config']['save_epix'], str):
-            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-5] + '_instruction'
-            epix_path = os.path.join(self.config['epix_config']['save_epix'], file_name)
-            print('Saving epix instruction: ', epix_path)
-            np.save(epix_path, epix_ins)
-        elif self.config['epix_config']['save_epix']:
-            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-5] + '_instruction'
-            epix_path = os.path.join(self.config['epix_config']['path'] ,file_name)
-            print(f'Saving epix instruction: {epix_path}')
+        if self.config['epix_config']['save_epix']:
+            epix_path = self.config['epix_config']['path'] + self.config['epix_config']['file_name'][:-5] +'_epix'
             np.save(epix_path, epix_ins)
         return epix_ins
 
