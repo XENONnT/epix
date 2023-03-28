@@ -1,3 +1,5 @@
+import time
+
 import strax
 import straxen
 from straxen import InterpolatingMap, get_resource
@@ -22,6 +24,12 @@ import pickle
 #   's2_separation_bdt': 's2_separation_decision_tree_fast_sim.p'
 #   (FROM: /dali/lgrandi/jgrigat/s2_separation/s2_separation_decision_tree_fast_sim.p)
 
+def monitor_time(prev_time, task):
+    t = time.time()
+    print(f'It took {(t - prev_time):.4f} sec to {task}')
+    return t
+
+
 class Simulator():
     '''Simulator class for epix to go from  epix instructions to fully processed data'''
 
@@ -41,22 +49,18 @@ class Simulator():
 
         #print(f"\n\nSimulator : Current directory [ {os.getcwd()} ]")
 
-
     def cluster_events(self, ):
         """Events have more than 1 s1/s2. Here we throw away all of them except the largest 2
          Take the position to be that of the main s2
          And strax wants some start and endtime, so we make something up
         
-        First do the macro clustering. Clustered instructions will be flagged with amp=-1
-        so we can safely through those out"""
-
+        First do the macro clustering. Clustered instructions will be flagged with amp=-1,
+        so we can safely throw those out"""
+        start_time = time.time()
+        self.tree = pickle.load(open('/dali/lgrandi/jgrigat/s2_separation/tree_v2_unoptimised', 'rb+'))
         Helpers.macro_cluster_events(self.tree, self.instructions_epix, self.config)
         self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
 
-        # Why is it called for the second time??
-        #Helpers.macro_cluster_events(self.tree, self.instructions_epix, self.config)
-        #self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
-        
         event_numbers = np.unique(self.instructions_epix['event_number'])
         ins_size = len(event_numbers)
         instructions = np.zeros(ins_size, dtype=StraxSimulator.dtype['events_tpc'])
@@ -73,12 +77,10 @@ class Simulator():
             if len(s1) < 1 or len(s2) < 1:
                 continue
 
-
-            # why we consider only the larger s1 ?
-            #i['s1_area'] = inst_s1[s1[-1]]['amp']
-            #if len(s1) > 1:
-                # I do not think it is correct
-            #    i['alt_s1_area'] = inst_s1[s1[-2]]['amp']
+            # FIXME maybe we need a macro clustering for s1s as well. Need to check.
+            i['s1_area'] = inst_s1[s1[-1]]['amp']
+            if len(s1) > 1:
+                i['alt_s1_area'] = inst_s1[s1[-2]]['amp']
 
             i['s2_area'] = inst_s2[s2[-1]]['amp']
             i['e_dep'] = inst_s2[s2[-1]]['e_dep']
@@ -106,18 +108,21 @@ class Simulator():
 
         instructions = instructions[~((instructions['time'] == 0) & (instructions['endtime'] == 0))]
         self.instructions = instructions
+        print(f'It took {(time.time() - start_time):.4f} sec to macro cluster events')
 
     def simulate(self, ):
         for func in self.simulation_functions:
+            starttime = time.time()
             func(instructions=self.instructions,
                  config=self.config,
                  resource=self.resource)
+            monitor_time(starttime, func.__name__)
 
     def run_simulator(self, ):
         self.cluster_events()
-        
         if isinstance(self.config['epix_config']['save_epix'], str):
-            epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][:-5] +'_epix_2'
+            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-5] + '_instruction_after_macro_clustering'
+            epix_path = os.path.join(self.config['epix_config']['save_epix'] ,file_name)
             print('Saving epix instruction: ', epix_path)
             np.save(epix_path, self.instructions)
 
@@ -256,21 +261,22 @@ class StraxSimulator(strax.Plugin):
         epix_config['outer_cylinder'] = outer_cylinder
 
         epix_ins = epix.run_epix.main(epix_config, return_wfsim_instructions=True)
-
-        if self.config['save_epix']:
-            epix_path = self.config['epix_config']['path'] + self.config['epix_config']['file_name'][:-5] +'_epix'
+        if isinstance(self.config['epix_config']['save_epix'], str):
+            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-5] + '_instruction'
+            epix_path = os.path.join(self.config['epix_config']['save_epix'], file_name)
+            print('Saving epix instruction: ', epix_path)
             np.save(epix_path, epix_ins)
-
+        elif self.config['epix_config']['save_epix']:
+            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-5] + '_instruction'
+            epix_path = os.path.join(self.config['epix_config']['path'] ,file_name)
+            print(f'Saving epix instruction: {epix_path}')
+            np.save(epix_path, epix_ins)
         return epix_ins
 
     def compute(self):
+        simulated_data_nveto = self.get_nveto_data()
         self.epix_instructions = self.get_epix_instructions()
 
-        if isinstance(self.config['epix_config']['save_epix'], str):
-            epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][:-5] +'_epix_1'
-            print('Saving epix instruction: ', epix_path)
-            np.save(epix_path, self.epix_instructions)
-            
         self.Simulator = Simulator(instructions_epix=self.epix_instructions,
                                    config=self.config,
                                    resource=self.resource)
@@ -282,7 +288,22 @@ class StraxSimulator(strax.Plugin):
             data=simulated_data,
             data_type='events_tpc')
 
-        return {'events_tpc':simulated_data_chunk}
+        # write empty chunk if nveto data isn't there	        return {'events_tpc':simulated_data_chunk}
+        if simulated_data_nveto is None or len(simulated_data_nveto['time']) < 1:
+            simulated_data_nveto_chunk = self.chunk(
+                start=0,
+                end=1,
+                data=simulated_data_nveto,
+                data_type='events_nveto')
+        else:
+            simulated_data_nveto_chunk = self.chunk(
+                start=np.floor(simulated_data_nveto['time'][0]).astype(np.int64),
+                end=np.ceil(np.max(simulated_data_nveto['endtime'])).astype(np.int64),
+                data=simulated_data_nveto,
+                data_type='events_nveto')
+
+        return {'events_tpc': simulated_data_chunk,
+                'events_nveto': simulated_data_nveto_chunk}
     
     def is_ready(self, chunk):
         # For this plugin we'll smash everything into 1 chunk, should be oke

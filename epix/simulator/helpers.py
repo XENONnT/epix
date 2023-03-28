@@ -35,18 +35,18 @@ def _merge_these_clusters_nt_res_naive(amp1, r1, z1, amp2, r2, z2, field_map, d_
 def _merge_these_clusters_nt_res_jaron(amp1, r1, z1, amp2, r2, z2, conf):
 
     lin_corr = {'delta_t': [0.234, 1/1.116], 'width': [0.047, 1/1.176]}
-    v1 = 0.1*conf['field_map'](np.array([r1, z1]).T, map_name='drift_speed_map') # cm/us
-    v2 = 0.1*conf['field_map'](np.array([r2, z2]).T, map_name='drift_speed_map') # cm/us
+    v1 = 0.1*conf['field_map']([r1, z1], map_name='drift_speed_map')[0] # cm/us
+    v2 = 0.1*conf['field_map']([r2, z2], map_name='drift_speed_map')[0] # cm/us
     dt1 = -z1/v1+conf['dt_gate']/1000 # us
     dt2 = -z2/v2+conf['dt_gate']/1000 # us
-    diff1 = 1e3*conf['diffusion_map'](np.array([r1,z1]).T) # cm2/us
-    diff2 = 1e3*conf['diffusion_map'](np.array([r2,z2]).T) # cm2/us
+    diff1 = 1e3*conf['diffusion_map']([r1,z1])[0] # cm2/us
+    diff2 = 1e3*conf['diffusion_map']([r2,z2])[0] # cm2/us
     w1 = lin_corr['width'][1]*1.348*np.sqrt(2*diff1*dt1/v1**2)+lin_corr['width'][0] # us
     w2 = lin_corr['width'][1]*1.348*np.sqrt(2*diff2*dt2/v2**2)+lin_corr['width'][0] # us
     delta_t = lin_corr['delta_t'][1]*(dt2-dt1)+lin_corr['delta_t'][0] # us
     split_param = delta_t/(w1+w2)
-    survival1 = conf['field_map'](np.array([r1,z1]).T, map_name='survival_probability_map')
-    survival2 = conf['field_map'](np.array([r2,z2]).T, map_name='survival_probability_map')
+    survival1 = conf['field_map']([r1,z1], map_name='survival_probability_map')[0]
+    survival2 = conf['field_map']([r2,z2], map_name='survival_probability_map')[0]
     amp1_corr = conf['e_extraction_yield'] * survival1 * np.exp(-dt1/conf['e_lifetime']) * amp1
     amp2_corr = conf['e_extraction_yield'] * survival2 * np.exp(-dt2/conf['e_lifetime']) * amp2
     return bool(conf['tree'].predict([[split_param, amp1_corr, amp2_corr]]))
@@ -92,7 +92,6 @@ class Helpers():
             within the macro cluster distance, if it is they are merged."""
 
         print(f"\n macro_cluster_events --> s2_clustering_algorithm == {config['s2_clustering_algorithm']} . . .")
-        print(f'config: {config}')
         merge_config = {}
         if config['s2_clustering_algorithm'] == 'bdt':
             _merge_clusters = _merge_these_clusters_nt_res_jaron
@@ -103,7 +102,7 @@ class Helpers():
                                                      fmt='json.gz', method='WeightedNearestNeighbors')
             merge_config['diffusion_map'] = wfsim.load_resource.make_map(config['diffusion_longitudinal_map'],
                                                       fmt='json.gz', method='WeightedNearestNeighbors')
-            merge_config['tree'] = pickle.load(open(config['configuration_files']['s2_separation_bdt'], 'rb+')) # TODO: better way to load this
+            merge_config['tree'] = tree
         elif config['s2_clustering_algorithm'] == 'naive':
             _merge_clusters = _merge_these_clusters_nt_res_naive
         elif config['s2_clustering_algorithm'] == 'nsort':
@@ -119,10 +118,11 @@ class Helpers():
                     continue
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
                     break
-
                 # _nt_res
-                if _merge_clusters(instructions[ix1]['amp'], instructions[ix1]['r'], instructions[ix1]['z'],
-                                   instructions[ix1 + ix2]['amp'], instructions[ix1]['r'], instructions[ix1 + ix2]['z'],
+                r1 = np.sqrt(instructions[ix1]['x']**2 + instructions[ix1]['y']**2)
+                r2 = np.sqrt(instructions[ix1 + ix2]['x']**2 + instructions[ix1 + ix2]['y']**2)
+                if _merge_clusters(instructions[ix1]['amp'], r1, instructions[ix1]['z'],
+                                   instructions[ix1 + ix2]['amp'], r2, instructions[ix1 + ix2]['z'],
                                    merge_config):
 
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
