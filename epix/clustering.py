@@ -4,6 +4,45 @@ import numba
 import awkward as ak
 from .common import reshape_awkward, awkwardify_df
 from sklearn.cluster import DBSCAN
+from .brem_cluster import BremClustering
+from .betadecay_cluster import BetaDecayClustering
+
+
+def find_brem_cluster(interactions):
+    df = ak.to_pandas(interactions)
+    df_clustered = pd.DataFrame(columns=interactions.fields)
+
+    if df.empty:
+        # TPC interaction is empty
+        return interactions
+
+    bremClustering = BremClustering()
+
+    for evt in df.index.get_level_values(0).unique():
+        gamma_df, e_df, ep_df = bremClustering.cluster(df.loc[evt], verbose=False)
+
+        dte = pd.DataFrame()
+        dte = pd.concat((dte, gamma_df), ignore_index=True)
+        dte = pd.concat((dte, e_df), ignore_index=True)
+        dte = pd.concat((dte, ep_df), ignore_index=True)
+
+        if len(dte) > 0:
+            dte['cluster_ids'] = np.arange(len(dte))
+            df_clustered = pd.concat((df_clustered, dte), ignore_index=True)
+
+    try:
+        df_clustered.ed = df_clustered.dE_corr
+        df_clustered.drop(['corr', 'dE', 'dE_corr'], axis=1, inplace=True)
+    except AttributeError:
+        pass
+
+    interactions = awkwardify_df(df_clustered)
+
+    ci = df_clustered.loc[:, 'cluster_ids'].values
+    offsets = ak.num(interactions['x'])
+    interactions['cluster_ids'] = reshape_awkward(ci, offsets)
+
+    return interactions
 
 
 def find_betadecay_cluster(interactions, ):
@@ -20,14 +59,16 @@ def find_betadecay_cluster(interactions, ):
         """
 
     df = ak.to_pandas(interactions)
-    df_clustered = pd.DataFrame()
+    df_clustered = pd.DataFrame(columns=interactions.fields)
 
     if df.empty:
         # TPC interaction is empty
         return interactions
 
+    betadecayClustering = BetaDecayClustering()
+
     for evt in df.index.get_level_values(0).unique():
-        dte = _selectBetaGamma(df.loc[evt])
+        dte = betadecayClustering.cluster(df.loc[evt])
         if len(dte) > 0:
             dte['cluster_ids'] = np.arange(len(dte))
             df_clustered = pd.concat((df_clustered, dte), ignore_index=True)
@@ -39,33 +80,6 @@ def find_betadecay_cluster(interactions, ):
     interactions['cluster_ids'] = reshape_awkward(ci, offsets)
 
     return interactions
-
-
-def _selectBetaGamma(betagamma_df, ):
-    betagamma_df = betagamma_df[
-        ((betagamma_df.type == 'e-') & (betagamma_df.creaproc == 'RadioactiveDecayBase'))
-        | ((betagamma_df.type == 'gamma') & (betagamma_df.creaproc == 'RadioactiveDecayBase'))]
-    betagamma_df = betagamma_df[
-        ~((betagamma_df.edproc == "Rayl") | (betagamma_df.edproc == "Transportation"))]
-
-    betagamma_df['ed'] = betagamma_df.PreStepEnergy - betagamma_df.PostStepEnergy
-    betagamma_df.loc[betagamma_df.type == 'e-', 'ed'] = betagamma_df.loc[
-        betagamma_df.type == 'e-', 'PreStepEnergy']
-    betagamma_df = betagamma_df[betagamma_df.ed > 1e-6]
-
-    beta_trackid = []
-    for ind, row in betagamma_df.iterrows():
-        if row['type'] == 'gamma':
-            pass
-        elif row['type'] == 'e-':
-            if row['trackid'] in beta_trackid:
-                betagamma_df.drop(ind, inplace=True)
-            else:
-                beta_trackid.append(row['trackid'])
-        else:
-            betagamma_df.drop(ind, inplace=True)
-
-    return betagamma_df
 
 
 def find_cluster(interactions, cluster_size_space, cluster_size_time):
