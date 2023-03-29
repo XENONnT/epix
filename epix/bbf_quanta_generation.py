@@ -1,5 +1,53 @@
+import strax
 import numpy as np
 import nestpy
+
+@strax.takes_config(
+    strax.Option('debug', default=False, track=False, infer_type=False,
+                 help="Show debug informations"),
+)
+class bbf_yields(strax.Plugin):
+    
+    __version__ = "0.0.0"
+    
+    depends_on = ["clustered_interactions", "electic_field_values"]
+    provides = "quanta"
+    
+    dtype = [('photons', np.float64),
+             ('electrons', np.float64),
+             ('excitons', np.float64),
+            ]
+    
+    dtype = dtype + strax.time_fields
+
+    def compute(self, geant4_interactions):
+        
+        result = np.zeros(len(geant4_interactions), dtype=self.dtype)
+        result["time"] = geant4_interactions["time"]
+        result["endtime"] = geant4_interactions["endtime"]
+
+        # Generate quanta:
+        if len(geant4_interactions) > 0:
+
+            bbfyields = BBF_quanta_generator()
+            photons, electrons, excitons = bbfyields.get_quanta_vectorized(
+                                energy=geant4_interactions['ed'],
+                                interaction=geant4_interactions['nestid'],
+                                field=geant4_interactions['e_field']
+                                )
+
+            
+            
+            result['photons'] = photons
+            result['electrons'] = electrons
+            result['excitons'] = excitons
+        else:
+            result['photons'] = np.empty(0)
+            result['electrons'] = np.empty(0)
+            result['excitons'] = np.empty(0)
+        return result
+    
+
 class BBF_quanta_generator:
     def __init__(self):
         self.er_par_dict = {
@@ -164,7 +212,11 @@ class BBF_quanta_generator:
         Ne = np.random.binomial(Ni, 1.-recomb)
         Nph = Ni + Nex - Ne
         return Nph, Ne, Nex
-    
+
+
+
+
+#Is this class needed???
 class NEST_quanta_generator:
     
     def __init__(self):
