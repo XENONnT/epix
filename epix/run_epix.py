@@ -8,8 +8,6 @@ from nest_quanta_generation import nest_yields
 from bbf_quanta_generation import bbf_yields
 from output import output_plugin
 
-
-
 st = strax.Context(register = [input_plugin,
                                clustering,
                                cluster_merging,

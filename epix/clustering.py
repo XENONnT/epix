@@ -30,6 +30,16 @@ class clustering(strax.Plugin):
 
     def compute(self, geant4_interactions):
         
+        """
+        Performs clustering of Geant4 interactions, returning the cluster index.
+        
+        Args:
+            geant4_interactions (numpy.ndarray): Array of Geant4 interactions.
+        
+        Returns:
+            numpy.ndarray: Array of cluster IDs.
+        """
+        
         inter = ak.from_numpy(np.empty(1, dtype=geant4_interactions.dtype))
         structure = geant4_interactions["structure"][geant4_interactions["structure"]>=0]
         
