@@ -36,11 +36,15 @@ def find_brem_cluster(interactions):
     except AttributeError:
         pass
 
+    for c in ['trackid', 'parentid', 'evtid']:
+        df_clustered[c] = df_clustered[c].astype(int)
+
     interactions = awkwardify_df(df_clustered)
 
-    ci = df_clustered.loc[:, 'cluster_ids'].values
-    offsets = ak.num(interactions['x'])
-    interactions['cluster_ids'] = reshape_awkward(ci, offsets)
+    if len(df_clustered)>0:
+        ci = df_clustered.loc[:, 'cluster_ids'].values
+        offsets = ak.num(interactions['x'])
+        interactions['cluster_ids'] = reshape_awkward(ci, offsets)
 
     return interactions
 
@@ -75,9 +79,10 @@ def find_betadecay_cluster(interactions, ):
 
     interactions = awkwardify_df(df_clustered)
 
-    ci = df_clustered.loc[:, 'cluster_ids'].values
-    offsets = ak.num(interactions['x'])
-    interactions['cluster_ids'] = reshape_awkward(ci, offsets)
+    if len(df_clustered)>0:
+        ci = df_clustered.loc[:, 'cluster_ids'].values
+        offsets = ak.num(interactions['x'])
+        interactions['cluster_ids'] = reshape_awkward(ci, offsets)
 
     return interactions
 
@@ -286,8 +291,9 @@ def _cluster(x, y, z, ed, time, ci,
                                         edproc[ei][i_class])
 
                 # Write result, simple but extensive with awkward...
-                _write_result(res, x_mean, y_mean, z_mean,
-                              ed_tot, t_mean, event_time_min, A, Z, nestid)
+                if ed_tot > 1e-6:
+                    _write_result(res, x_mean, y_mean, z_mean,
+                                  ed_tot, t_mean, event_time_min, A, Z, nestid)
 
                 # Update cluster id and empty buffer
                 current_ci = ci[ei][ii]
@@ -329,9 +335,9 @@ def _cluster(x, y, z, ed, time, ci,
                                 parenttype[ei][i_class],
                                 creaproc[ei][i_class],
                                 edproc[ei][i_class])
-
-        _write_result(res, x_mean, y_mean, z_mean,
-                      ed_tot, t_mean, event_time_min, A, Z, nestid)
+        if ed_tot>1e-6:
+            _write_result(res, x_mean, y_mean, z_mean,
+                          ed_tot, t_mean, event_time_min, A, Z, nestid)
 
         res.end_list()
 

@@ -16,9 +16,10 @@ class BremClustering():
         self.min_dE = 1e-6
         self.max_lineage_depth = 1000  # safeguard for the lineage loop
 
-        g4_keys = ['trackid', 'parentid', 'parenttype',
+        g4_keys = ['evtid', 'trackid', 'parentid', 'parenttype',
                    'ed', 'edproc', 'type', 'creaproc',
-                   'PreStepEnergy', 'PostStepEnergy']
+                   'PreStepEnergy', 'PostStepEnergy',
+                   'x', 'y', 'z', 'x_pri', 'y_pri', 'z_pri', 't']
         self.agg_beta = {x: 'first' for x in g4_keys}
         self.agg_beta['PostStepEnergy'] = 'last'
         self.agg_beta['ed'] = 'sum'
@@ -47,7 +48,7 @@ class BremClustering():
         return em_df.groupby(['trackid'], as_index=False).aggregate(self.agg_beta)
 
     def get_clean_positron_df(self, df):
-        ep_df = df[(df.type == 'e+') & (df.creaproc == 'conv')]
+        ep_df = df[(df.type == 'e+')]
         ep_df = ep_df[ep_df.edproc != 'annihil']
         ep_df = ep_df[ep_df.dE > self.min_dE]
         return ep_df.groupby(['trackid'], as_index=False).aggregate(self.agg_beta)
@@ -165,7 +166,7 @@ class BremClustering():
                 (clean_event_df.type == 'gamma') & (clean_event_df.creaproc == 'phot')].trackid.unique()
             e_from_phot_gamma_trackid = []
             for g in phot_gamma_trackid:
-                lineage = get_lineage(tracks_arr, g)
+                lineage = self.get_lineage(tracks_arr, g)
                 if len(lineage) > 0:
                     e_from_phot_gamma_trackid.extend(np.unique(lineage[:, self.lineage_dict['trackid']]))
 
@@ -207,7 +208,8 @@ class BremClustering():
             e_df = self.remove_e_from_eIoni_gamma(event_df, e_df)
 
         try:
-            e_df = e_df[(e_df.creaproc == 'compt') | (e_df.creaproc == 'conv')]
+            if e_type == 'e-':
+                e_df = e_df[(e_df.creaproc == 'compt') | (e_df.creaproc == 'conv') | (e_df.parentid == 0)]
             e_df['dE_corr'] = e_df['dE'] + e_df['corr']
         except AttributeError:
             pass
@@ -302,7 +304,22 @@ class BremClustering():
 
         return gamma_df, e_df, p_df, brem_gamma_added_to_corr
 
-    def check_dE_corr(self, gamma_df, e_df, p_df):
+    def check_dE_corr(self, gamma_df, e_df, p_df, event_df):
+        # Positron table - check if there was a local eDep during annihilation step;
+        # add it as a correction
+
+        for p_id in p_df.trackid.unique():
+            _df = event_df[(event_df.trackid == p_id)]
+            _df = _df[_df.edproc == 'annihil']
+
+            try:
+                if len(_df) > 0:
+                    _corr = _df.ed.sum()
+                    p_df.loc[p_df['trackid'] == p_id, 'corr'] += _corr
+                    p_df.loc[p_df['trackid'] == p_id, 'dE_corr'] += _corr
+            except IndexError:
+                print('IndexError')
+
         # Safeguard - check if there are any negative dE_corr values in the output
         for df in [gamma_df, e_df, p_df]:
             df.loc[df['dE_corr'] < self.min_dE, 'dE_corr'] *= 0.0
@@ -351,6 +368,6 @@ class BremClustering():
             gamma_df, e_df, p_df = self.escaped_secondaries_correction(event_df, escaped_df,
                                                                        gamma_df, e_df, p_df,
                                                                        brem_gamma_added_to_corr)
-            gamma_df, e_df, p_df = self.check_dE_corr(gamma_df, e_df, p_df)
+            gamma_df, e_df, p_df = self.check_dE_corr(gamma_df, e_df, p_df, event_df)
 
         return gamma_df, e_df, p_df

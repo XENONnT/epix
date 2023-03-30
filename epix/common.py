@@ -17,7 +17,7 @@ def awkwardify_df(df):
                   "x_pri": reshape_awkward(df["x_pri"].values, evt_offsets),
                   "y_pri": reshape_awkward(df["y_pri"].values, evt_offsets),
                   "z_pri": reshape_awkward(df["z_pri"].values, evt_offsets),
-                  "r": reshape_awkward(df["r"].values, evt_offsets),
+
                   "t": reshape_awkward(df["t"].values, evt_offsets),
                   "ed": reshape_awkward(df["ed"].values, evt_offsets),
                   "PreStepEnergy": reshape_awkward(df["PreStepEnergy"].values, evt_offsets),
@@ -30,6 +30,9 @@ def awkwardify_df(df):
                   "edproc": reshape_awkward(np.array(df["edproc"], dtype=str), evt_offsets),
                   "evtid": reshape_awkward(df[df_eventid_key].values, evt_offsets),
                   }
+
+    if 'r' in df.keys():
+        dictionary["r"] = reshape_awkward(df["r"].values, evt_offsets)
 
     return ak.Array(dictionary)
 
