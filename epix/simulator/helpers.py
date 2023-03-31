@@ -36,36 +36,20 @@ def _merge_these_clusters_nt_res_jaron(amp1, r1, z1, amp2, r2, z2, conf):
 
     lin_corr = {'delta_t': [0.234, 1/1.116], 'width': [0.047, 1/1.176]}
     v1 = 0.1*conf['field_map']([r1, z1], map_name='drift_speed_map')[0] # cm/us
-    #print(f'{v1 = }')
     v2 = 0.1*conf['field_map']([r2, z2], map_name='drift_speed_map')[0] # cm/us
-    #print(f'{v2 = }')
     dt1 = -z1/v1+conf['dt_gate']/1000 # us
-    #print(f'{dt1 = }')
     dt2 = -z2/v2+conf['dt_gate']/1000 # us
-    #print(f'{dt2 = }')
     diff1 = 1e3*conf['diffusion_map']([r1,z1])[0] # cm2/us
-    #print(f'{diff1 = }')
     diff2 = 1e3*conf['diffusion_map']([r2,z2])[0] # cm2/us
-    #print(f'{diff2 = }')
     w1 = lin_corr['width'][1]*1.348*np.sqrt(2*diff1*dt1/v1**2)+lin_corr['width'][0] # us
-    #print(f'{w1 = }')
     w2 = lin_corr['width'][1]*1.348*np.sqrt(2*diff2*dt2/v2**2)+lin_corr['width'][0] # us
-    #print(f'{w2 = }')
     delta_t = lin_corr['delta_t'][1]*(dt2-dt1)+lin_corr['delta_t'][0] # us
-    #print(f'{delta_t = }')
     split_param = np.abs(delta_t)/(w1+w2)
-    #print(f'{split_param = }')
     survival1 = conf['field_map']([r1,z1], map_name='survival_probability_map')[0]
-    #print(f'{survival1 = }')
     survival2 = conf['field_map']([r2,z2], map_name='survival_probability_map')[0]
-    #print(f'{survival2 = }')
     e_lifetime = conf['e_lifetime'] / 1000 # us
-    #print(f'{e_lifetime = }')
     amp1_corr = conf['e_extraction_yield'] * survival1 * np.exp(-dt1/e_lifetime) * amp1
-    #print(f'{amp1_corr = }')
     amp2_corr = conf['e_extraction_yield'] * survival2 * np.exp(-dt2/e_lifetime) * amp2
-    #print(f'{amp2_corr = }')
-    #print(f'Result: {bool(conf["tree"].predict([[split_param, amp1_corr, amp2_corr]]))}')
     return bool(conf['tree'].predict([[split_param, amp1_corr, amp2_corr]]))
 
 class Helpers():
