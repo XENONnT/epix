@@ -78,9 +78,10 @@ class Simulator():
                 continue
 
             # FIXME maybe we need a macro clustering for s1s as well. Need to check.
-            i['s1_area'] = inst_s1[s1[-1]]['amp']
-            if len(s1) > 1:
-                i['alt_s1_area'] = inst_s1[s1[-2]]['amp']
+            i['s1_area'] = np.sum(inst_s1['amp'])
+            #i['s1_area'] = inst_s1[s1[-1]]['amp']
+            #if len(s1) > 1:
+            #    i['alt_s1_area'] = inst_s1[s1[-2]]['amp']
 
             i['s2_area'] = inst_s2[s2[-1]]['amp']
             i['e_dep'] = inst_s2[s2[-1]]['e_dep']
@@ -120,8 +121,8 @@ class Simulator():
 
     def run_simulator(self, ):
         self.cluster_events()
-        if isinstance(self.config['epix_config']['save_epix'], str):
-            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-5] + '_instruction_after_macro_clustering'
+        if isinstance(self.config['epix_config'].get('save_epix', None), str):
+            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-4] + '_instruction_after_macro_clustering'
             epix_path = os.path.join(self.config['epix_config']['save_epix'] ,file_name)
             print('Saving epix instruction: ', epix_path)
             np.save(epix_path, self.instructions)
@@ -225,7 +226,7 @@ class StraxSimulator(strax.Plugin):
                           'No gains are passed in fax_config_overrides, default equal to 1')
             self.config['gains'] =  [1 for i in range(494)]
         if 'n_top_pmts' not in self.config.keys():
-            warnings.warn('This is a deault value, why we have to give it in fax_config_overrides? '
+            warnings.warn('This is a default value, why we have to give it in fax_config_overrides? '
                           'No n_top_pmts are passed in fax_config_overrides, default equal to 253')
             self.config['n_top_pmts'] =  253
         if 'n_tpc_pmts' not in self.config.keys():
@@ -251,8 +252,10 @@ class StraxSimulator(strax.Plugin):
             return nv_hits
 
     def get_epix_instructions(self, ):
-        detector = epix.init_detector(self.config['detector'].lower(), self.config['detector_config_override'])
         epix_config = deepcopy(self.config['epix_config'])
+        if epix_config.get('load_from_file', False):
+            return np.load(epix_config['file_name'])
+        detector = epix.init_detector(self.config['detector'].lower(), self.config['detector_config_override'])
         epix_config['detector_config'] = detector
 
         outer_cylinder = getattr(epix.detectors, 'xenonnt')
@@ -260,15 +263,24 @@ class StraxSimulator(strax.Plugin):
         epix_config['outer_cylinder'] = outer_cylinder
 
         epix_ins = epix.run_epix.main(epix_config, return_wfsim_instructions=True)
-        if self.config['epix_config']['save_epix']:
-            epix_path = self.config['epix_config']['path'] + self.config['epix_config']['file_name'][:-5] +'_epix'
+        save_epix = epix_config.get('save_epix', False)
+        if isinstance(save_epix, str):
+            # assume save epix as path to store
+            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-4] + '_instruction'
+            epix_path = os.path.join(self.config['epix_config']['save_epix'], file_name)
+            print('Saving epix instruction: ', epix_path)
             np.save(epix_path, epix_ins)
+        elif save_epix:
+            # if save epix True store in normal path
+            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-4] + '_instruction'
+            epix_path = os.path.join(self.config['epix_config']['path'], file_name)
+            print(f'Saving epix instruction: {epix_path}')
         return epix_ins
 
     def compute(self):
-        simulated_data_nveto = self.get_nveto_data()
+        #simulated_data_nveto = self.get_nveto_data()
+        simulated_data_nveto = None
         self.epix_instructions = self.get_epix_instructions()
-
         self.Simulator = Simulator(instructions_epix=self.epix_instructions,
                                    config=self.config,
                                    resource=self.resource)

@@ -8,7 +8,7 @@ import numba
 
 # Numba and classes still are not a match made in heaven
 @numba.njit
-def _merge_these_clusters_nsort(amp1, r1, z1, amp2, r2, z2, field_map, d_map, tree, dt_gate):
+def _merge_these_clusters_nsort(amp1, r1, z1, amp2, r2, z2, conf):
     sensitive_volume_ztop = 0  # it's the ground mesh, the top liquid level is at 2.7; // mm
     max_s2_area = max(amp1, amp2)
     if max_s2_area > 5000:
@@ -26,7 +26,7 @@ def _merge_these_clusters_nsort(amp1, r1, z1, amp2, r2, z2, field_map, d_map, tr
 
 
 @numba.njit
-def _merge_these_clusters_nt_res_naive(amp1, r1, z1, amp2, r2, z2, field_map, d_map, tree, dt_gate):
+def _merge_these_clusters_nt_res_naive(amp1, r1, z1, amp2, r2, z2, conf):
     sensitive_volume_ztop = 0  # [cm]
     SeparationDistance = 1.6  # [cm], the worst case from [[weiss:analysis:he:zresoultion_zdependence]]
     return np.abs(z1 - z2) < SeparationDistance
@@ -47,8 +47,9 @@ def _merge_these_clusters_nt_res_jaron(amp1, r1, z1, amp2, r2, z2, conf):
     split_param = delta_t/(w1+w2)
     survival1 = conf['field_map']([r1,z1], map_name='survival_probability_map')[0]
     survival2 = conf['field_map']([r2,z2], map_name='survival_probability_map')[0]
-    amp1_corr = conf['e_extraction_yield'] * survival1 * np.exp(-dt1/conf['e_lifetime']) * amp1
-    amp2_corr = conf['e_extraction_yield'] * survival2 * np.exp(-dt2/conf['e_lifetime']) * amp2
+    e_lifetime = conf['e_lifetime'] / 1000 # us
+    amp1_corr = conf['e_extraction_yield'] * survival1 * np.exp(-dt1/e_lifetime) * amp1
+    amp2_corr = conf['e_extraction_yield'] * survival2 * np.exp(-dt2/e_lifetime) * amp2
     return bool(conf['tree'].predict([[split_param, amp1_corr, amp2_corr]]))
 
 class Helpers():
@@ -110,34 +111,32 @@ class Helpers():
         else:
             return
 
-        for ix1, _ in enumerate(instructions):
-            if instructions[ix1]['type'] != 2:
+        for ix1, inst in enumerate(instructions):
+            if inst['type'] != 2:
                 continue
-            for ix2 in range(1, len(instructions[ix1:])): # why was  + 1): ?
-                if instructions[ix1 + ix2]['type'] != 2:
+            for inst2 in instructions[ix1+1:]:
+                if inst2['type'] != 2:
                     continue
-                if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
+                if inst['event_number'] != inst2['event_number']:
                     break
-                # _nt_res
-                r1 = np.sqrt(instructions[ix1]['x']**2 + instructions[ix1]['y']**2)
-                r2 = np.sqrt(instructions[ix1 + ix2]['x']**2 + instructions[ix1 + ix2]['y']**2)
-                if _merge_clusters(instructions[ix1]['amp'], r1, instructions[ix1]['z'],
-                                   instructions[ix1 + ix2]['amp'], r2, instructions[ix1 + ix2]['z'],
+                r1 = np.sqrt(inst['x']**2 + inst['y']**2)
+                r2 = np.sqrt(inst2['x']**2 + inst2['y']**2)
+                if _merge_clusters(inst['amp'], r1, inst['z'],
+                                   inst2['amp'], r2, inst2['z'],
                                    merge_config):
-
-                    instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
-                    instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5
-                    instructions[ix1 + ix2]['z'] = (instructions[ix1]['z'] + instructions[ix1 + ix2]['z']) * 0.5
+                    inst2['x'] = (inst['x'] + inst2['x']) * 0.5
+                    inst2['y'] = (inst['y'] + inst2['y']) * 0.5
+                    inst2['z'] = (inst['z'] + inst2['z']) * 0.5
 
                     # primary position is one
-                    instructions[ix1 + ix2]['x_pri'] = instructions[ix1]['x_pri'] 
-                    instructions[ix1 + ix2]['y_pri'] = instructions[ix1]['y_pri'] 
-                    instructions[ix1 + ix2]['z_pri'] = instructions[ix1]['z_pri'] 
+                    inst2['x_pri'] = inst['x_pri'] 
+                    inst2['y_pri'] = inst['y_pri'] 
+                    inst2['z_pri'] = inst['z_pri'] 
 
-                    instructions[ix1 + ix2]['amp'] = int((instructions[ix1]['amp'] + instructions[ix1 + ix2]['amp']))
-                    instructions[ix1]['amp'] = -1  # flag to throw this instruction away later
-                    instructions[ix1 + ix2]['e_dep'] = (instructions[ix1]['e_dep'] + instructions[ix1 + ix2]['e_dep'])
-                    instructions[ix1]['e_dep'] = -1  # flag to throw this instruction away later
+                    inst2['amp'] = int((inst['amp'] + inst2['amp']))
+                    inst['amp'] = -1  # flag to throw this instruction away later
+                    inst2['e_dep'] = (inst['e_dep'] + inst2['e_dep'])
+                    inst['e_dep'] = -1  # flag to throw this instruction away later
                     break
 
     @staticmethod

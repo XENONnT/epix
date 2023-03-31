@@ -56,7 +56,7 @@ class GenerateEvents():
     @Helpers.assignOrder(2)
     def make_s2(instructions, config, resource):
         """Call functions from wfsim to drift electrons. Since the s2 light yield implementation is a little bad how to do that?
-            Make sc_gain factor 11 to large to correct for this? Also whats the se gain variation? Lets take sqrt for now
+            Make sc_gain factor 11 too large to correct for this? Also, what's the se gain variation? Let's take sqrt for now
             :params: instructions, numpy array with instructions of events_tpc dtype
             :params: config, dict with configuration values for resolution
             :params: resource, instance of wfsim Resource class
@@ -65,7 +65,6 @@ class GenerateEvents():
         alt_xy = np.array([instructions['alt_s2_x'], instructions['alt_s2_y']]).T
 
         n_el = instructions['s2_area'].astype(np.int64)
-
         n_electron = Helpers.get_s2_charge_yield(n_electron = n_el,
                                                  positions = xy,
                                                  z_obs = instructions['z'],
@@ -78,18 +77,24 @@ class GenerateEvents():
                                                      z_obs=instructions['z'],
                                                      config=config,
                                                      resource=resource)
-
+        # Here a WFsim function is called which remove the dpe
+        # we have to introduce it again in fast simulator
         sc_gain = Helpers.get_s2_light_yield(positions=xy,
                                              config=config,
                                              resource=resource)
+        sc_gain *= (1 + config['p_double_pe_emision'])
         sc_gain_sigma = np.sqrt(sc_gain)
-        
-        # Here a WFsim function is called which remove the dpe
-        # we have to introduce it again in fast simulator
-        instructions['s2_area'] = n_electron * np.random.normal(sc_gain, sc_gain_sigma) * (1 + config['p_double_pe_emision'])
+
+        alt_sc_gain = Helpers.get_s2_light_yield(positions=alt_xy,
+                                                 config=config,
+                                                 resource=resource)
+        alt_sc_gain *= (1 + config['p_double_pe_emision'])
+        alt_sc_gain_sigma = np.sqrt(alt_sc_gain)
+
+        instructions['s2_area'] = n_electron * np.random.normal(sc_gain, sc_gain_sigma)
         instructions['drift_time'] = -instructions['z'] / config['drift_velocity_liquid']
 
-        instructions['alt_s2_area'] = alt_n_electron * np.random.normal(sc_gain, sc_gain_sigma) * (1 + config['p_double_pe_emision'])
+        instructions['alt_s2_area'] = alt_n_electron * np.random.normal(alt_sc_gain, alt_sc_gain_sigma)
         instructions['alt_s2_drift_time'] = -instructions['alt_s2_z'] / config['drift_velocity_liquid']
 
     @staticmethod
