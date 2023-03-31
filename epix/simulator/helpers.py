@@ -32,8 +32,8 @@ def _merge_these_clusters_nt_res_naive(amp1, r1, z1, amp2, r2, z2, conf):
     return np.abs(z1 - z2) < SeparationDistance
 
 
-def _merge_these_clusters_nt_res_jaron(amp1, r1, z1, amp2, r2, z2, conf):
 
+def _merge_these_clusters_nt_res_jaron(amp1, r1, z1, amp2, r2, z2, conf):
     lin_corr = {'delta_t': [0.234, 1/1.116], 'width': [0.047, 1/1.176]}
     v1 = 0.1*conf['field_map']([r1, z1], map_name='drift_speed_map')[0] # cm/us
     v2 = 0.1*conf['field_map']([r2, z2], map_name='drift_speed_map')[0] # cm/us
@@ -125,6 +125,7 @@ class Helpers():
                 if _merge_clusters(instructions[ix1]['amp'], r1, instructions[ix1]['z'],
                                    instructions[ix1 + ix2]['amp'], r2, instructions[ix1 + ix2]['z'],
                                    merge_config):
+
 
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5

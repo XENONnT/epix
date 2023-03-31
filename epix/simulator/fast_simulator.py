@@ -16,6 +16,12 @@ from .helpers import Helpers
 import warnings
 import pickle
 
+def monitor_time(prev_time, task):
+    t = time.time()
+    print(f'It took {(t - prev_time):.4f} sec to {task}')
+    return t
+
+
 # 2023-02-19: configuration_files:
 #   'nv_pmt_qe':'nveto_pmt_qe.json',
 #   'photon_area_distribution':'XENONnT_SR0_spe_distributions_20210713_no_noise_scaled.csv',
@@ -23,12 +29,6 @@ import pickle
 #   's2_pattern_map': 'XENONnT_s2_xy_patterns_GXe_LCE_corrected_qes_MCv4.3.0_wires.pkl',
 #   's2_separation_bdt': 's2_separation_decision_tree_fast_sim.p'
 #   (FROM: /dali/lgrandi/jgrigat/s2_separation/s2_separation_decision_tree_fast_sim.p)
-
-def monitor_time(prev_time, task):
-    t = time.time()
-    print(f'It took {(t - prev_time):.4f} sec to {task}')
-    return t
-
 
 class Simulator():
     '''Simulator class for epix to go from  epix instructions to fully processed data'''
@@ -48,7 +48,7 @@ class Simulator():
         self.instructions_epix = instructions_epix
 
         #print(f"\n\nSimulator : Current directory [ {os.getcwd()} ]")
-
+        
     def cluster_events(self, ):
         """Events have more than 1 s1/s2. Here we throw away all of them except the largest 2
          Take the position to be that of the main s2
@@ -58,9 +58,14 @@ class Simulator():
         so we can safely throw those out"""
         start_time = time.time()
         self.tree = pickle.load(open('/dali/lgrandi/jgrigat/s2_separation/tree_v2_unoptimised', 'rb+'))
+   
         Helpers.macro_cluster_events(self.tree, self.instructions_epix, self.config)
         self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
 
+        # Why is it called for the second time??
+        #Helpers.macro_cluster_events(self.tree, self.instructions_epix, self.config)
+        #self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
+        
         event_numbers = np.unique(self.instructions_epix['event_number'])
         ins_size = len(event_numbers)
         instructions = np.zeros(ins_size, dtype=StraxSimulator.dtype['events_tpc'])
@@ -79,9 +84,6 @@ class Simulator():
 
             # FIXME maybe we need a macro clustering for s1s as well. Need to check.
             i['s1_area'] = np.sum(inst_s1['amp'])
-            #i['s1_area'] = inst_s1[s1[-1]]['amp']
-            #if len(s1) > 1:
-            #    i['alt_s1_area'] = inst_s1[s1[-2]]['amp']
 
             i['s2_area'] = inst_s2[s2[-1]]['amp']
             i['e_dep'] = inst_s2[s2[-1]]['e_dep']
@@ -278,9 +280,15 @@ class StraxSimulator(strax.Plugin):
         return epix_ins
 
     def compute(self):
-        #simulated_data_nveto = self.get_nveto_data()
-        simulated_data_nveto = None
+        simulated_data_nveto = self.get_nveto_data()
         self.epix_instructions = self.get_epix_instructions()
+
+        if isinstance(self.config['epix_config']['save_epix'], str):
+            epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][:-5] +'_epix_1'
+            print('Saving epix instruction: ', epix_path)
+            np.save(epix_path, self.epix_instructions)
+            
+
         self.Simulator = Simulator(instructions_epix=self.epix_instructions,
                                    config=self.config,
                                    resource=self.resource)
