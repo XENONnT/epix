@@ -1,3 +1,5 @@
+import time
+
 import strax
 import straxen
 from straxen import InterpolatingMap, get_resource
@@ -15,13 +17,19 @@ import warnings
 import pickle
 
 
+def monitor_time(prev_time, task):
+    t = time.time()
+    print(f'It took {(t - prev_time):.4f} sec to {task}')
+    return t
+
+
 # 2023-02-19: configuration_files:
 #   'nv_pmt_qe':'nveto_pmt_qe.json',
 #   'photon_area_distribution':'XENONnT_SR0_spe_distributions_20210713_no_noise_scaled.csv',
 #   's1_pattern_map': 'XENONnT_s1_xyz_patterns_LCE_MCvf051911_wires.pkl',
 #   's2_pattern_map': 'XENONnT_s2_xy_patterns_GXe_LCE_corrected_qes_MCv4.3.0_wires.pkl',
-#   's2_separation_bdt': 's2_separation_decision_tree_fast_sim.p'
-#   (FROM: /dali/lgrandi/jgrigat/s2_separation/s2_separation_decision_tree_fast_sim.p)
+#   's2_separation_bdt': 'tree_v2_unoptimised'
+#   (FROM: /dali/lgrandi/jgrigat/s2_separation/tree_v2_unoptimised)
 
 class Simulator():
     '''Simulator class for epix to go from  epix instructions to fully processed data'''
@@ -40,23 +48,18 @@ class Simulator():
         )
         self.instructions_epix = instructions_epix
 
-        # print(f"\n\nSimulator : Current directory [ {os.getcwd()} ]")
-        self.tree = pickle.load(open(self.config['configuration_files']['s2_separation_bdt'], 'rb+'))
-
     def cluster_events(self, ):
         """Events have more than 1 s1/s2. Here we throw away all of them except the largest 2
          Take the position to be that of the main s2
          And strax wants some start and endtime, so we make something up
         
-        First do the macro clustering. Clustered instructions will be flagged with amp=-1
-        so we can safely through those out"""
+        First do the macro clustering. Clustered instructions will be flagged with amp=-1,
+        so we can safely throw those out"""
+        start_time = time.time()
+        self.tree = pickle.load(open('tree_v2_unoptimised', 'rb+'))
 
-        Helpers.macro_cluster_events(self.tree, self.instructions_epix, self.config)
+        Helpers.macro_cluster_events(self.instructions_epix, self.tree)
         self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
-
-        # Why is it called for the second time??
-        # Helpers.macro_cluster_events(self.tree, self.instructions_epix, self.config)
-        # self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
 
         event_numbers = np.unique(self.instructions_epix['event_number'])
         ins_size = len(event_numbers)
@@ -74,16 +77,12 @@ class Simulator():
             if len(s1) < 1 or len(s2) < 1:
                 continue
 
-            i['s1_area'] = np.sum(inst_s1['amp'])  # sum over all s1 10/12/2022
-
-            # why we consider only the larger s1 ?
-            # i['s1_area'] = inst_s1[s1[-1]]['amp']
-            # if len(s1) > 1:
-            # I do not think it is correct
-            #    i['alt_s1_area'] = inst_s1[s1[-2]]['amp']
+            # FIXME maybe we need a macro clustering for s1s as well. Need to check.
+            i['s1_area'] = np.sum(inst_s1['amp'])
 
             i['s2_area'] = inst_s2[s2[-1]]['amp']
             i['e_dep'] = inst_s2[s2[-1]]['e_dep']
+
             if len(s2) > 1:
                 i['alt_s2_area'] = inst_s2[s2[-2]]['amp']
                 i['alt_e_dep'] = inst_s2[s2[-2]]['e_dep']
@@ -107,19 +106,22 @@ class Simulator():
 
         instructions = instructions[~((instructions['time'] == 0) & (instructions['endtime'] == 0))]
         self.instructions = instructions
+        print(f'It took {(time.time() - start_time):.4f} sec to macro cluster events')
 
     def simulate(self, ):
         for func in self.simulation_functions:
+            starttime = time.time()
             func(instructions=self.instructions,
                  config=self.config,
                  resource=self.resource)
+            monitor_time(starttime, func.__name__)
 
     def run_simulator(self, ):
         self.cluster_events()
-
-        if isinstance(self.config['epix_config']['save_epix'], str):
-            epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][
-                                                                  :-5] + '_epix_2'
+        if isinstance(self.config['epix_config'].get('save_epix', None), str):
+            file_name = self.config['epix_config']['file_name'].split('/')[-1][
+                        :-4] + '_instruction_after_macro_clustering'
+            epix_path = os.path.join(self.config['epix_config']['save_epix'], file_name)
             print('Saving epix instruction: ', epix_path)
             np.save(epix_path, self.instructions)
 
@@ -133,6 +135,7 @@ class Simulator():
 # also because one entry of self.config is epix_config
 @strax.takes_config(
     strax.Option('detector', default='XENONnT', help='Detector model'),
+    strax.Option('detector_config_override', default='', help='For the electric field, otherwise 200 V/cm'),
     strax.Option('g4_file', help='G4 file to simulate'),
     strax.Option('epix_config', default=dict(), help='Configuration file for epix', ),
     strax.Option('configuration_files', default=dict(), help='Files required for simulating'),
@@ -222,7 +225,7 @@ class StraxSimulator(strax.Plugin):
                           'No gains are passed in fax_config_overrides, default equal to 1')
             self.config['gains'] = [1 for i in range(494)]
         if 'n_top_pmts' not in self.config.keys():
-            warnings.warn('This is a deault value, why we have to give it in fax_config_overrides? '
+            warnings.warn('This is a default value, why we have to give it in fax_config_overrides? '
                           'No n_top_pmts are passed in fax_config_overrides, default equal to 253')
             self.config['n_top_pmts'] = 253
         if 'n_tpc_pmts' not in self.config.keys():
@@ -233,30 +236,25 @@ class StraxSimulator(strax.Plugin):
         self.load_config()
 
     def get_nveto_data(self, ):
-        nv_hits = None
-        if self.config['epix_config']['file_name'].endswith(".root"):
-            file_loader = epix.io.file_loader(directory=self.config['epix_config']['path'],
-                                              file_name=self.config['epix_config']['file_name'])
-            file_tree, _ = file_loader._get_ttree()
-            if 'pmthitID' in file_tree.keys():
-                nv_hits = NVetoUtils.get_nv_hits(ttree=file_tree,
-                                                 pmt_nv_json_dict=self.resource.nv_pmt_qe,
-                                                 nveto_dtype=self.dtype['events_nveto'],
-                                                 SPE_Resolution=self.config['nv_spe_resolution'],
-                                                 SPE_ResThreshold=self.config['nv_spe_res_threshold'],
-                                                 max_time_ns=self.config['nv_max_time_ns'],
-                                                 batch_size=10000)
-        return nv_hits
+        file_loader = epix.io.file_loader(directory=self.config['epix_config']['path'],
+                                          file_name=self.config['epix_config']['file_name'])
+        file_tree, _ = file_loader._get_ttree()
+
+        if 'pmthitID' in file_tree.keys():
+            nv_hits = NVetoUtils.get_nv_hits(ttree=file_tree,
+                                             pmt_nv_json_dict=self.resource.nv_pmt_qe,
+                                             nveto_dtype=self.dtype['events_nveto'],
+                                             SPE_Resolution=self.config['nv_spe_resolution'],
+                                             SPE_ResThreshold=self.config['nv_spe_res_threshold'],
+                                             max_time_ns=self.config['nv_max_time_ns'],
+                                             batch_size=10000)
+            return nv_hits
 
     def get_epix_instructions(self, ):
-        warnings.warn('The epix_config is subtle!'
-                      'detector_config_override is given by epix_config, '
-                      'while detector is from config '
-                      'I do not like it!')
-        detector = epix.init_detector(self.config['detector'].lower(),
-                                      self.config['epix_config']['detector_config_override'])
-
         epix_config = deepcopy(self.config['epix_config'])
+        if epix_config.get('load_from_file', False):
+            return np.load(epix_config['file_name'])
+        detector = epix.init_detector(self.config['detector'].lower(), self.config['detector_config_override'])
         epix_config['detector_config'] = detector
 
         outer_cylinder = getattr(epix.detectors, 'xenonnt')
@@ -264,7 +262,18 @@ class StraxSimulator(strax.Plugin):
         epix_config['outer_cylinder'] = outer_cylinder
 
         epix_ins = epix.run_epix.main(epix_config, return_wfsim_instructions=True)
-
+        save_epix = epix_config.get('save_epix', False)
+        if isinstance(save_epix, str):
+            # assume save epix as path to store
+            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-4] + '_instruction'
+            epix_path = os.path.join(self.config['epix_config']['save_epix'], file_name)
+            print('Saving epix instruction: ', epix_path)
+            np.save(epix_path, epix_ins)
+        elif save_epix:
+            # if save epix True store in normal path
+            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-4] + '_instruction'
+            epix_path = os.path.join(self.config['epix_config']['path'], file_name)
+            print(f'Saving epix instruction: {epix_path}')
         return epix_ins
 
     def compute(self):
@@ -282,8 +291,8 @@ class StraxSimulator(strax.Plugin):
             del epix_df
 
         if isinstance(self.config['epix_config']['save_epix'], str):
-            epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][
-                                                                  :-5] + '_epix_1'
+            epix_path = self.config['epix_config']['save_epix'] \
+                        + self.config['epix_config']['file_name'][:-5] + '_epix_1'
             print('Saving epix instruction: ', epix_path)
             np.save(epix_path, self.epix_instructions)
 
@@ -298,7 +307,7 @@ class StraxSimulator(strax.Plugin):
             data=simulated_data,
             data_type='events_tpc')
 
-        # write empty chunk if nveto data isn't there
+        # write empty chunk if nveto data isn't there	        return {'events_tpc':simulated_data_chunk}
         if simulated_data_nveto is None or len(simulated_data_nveto['time']) < 1:
             simulated_data_nveto_chunk = self.chunk(
                 start=0,
