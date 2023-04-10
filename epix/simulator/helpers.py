@@ -4,11 +4,12 @@ import numpy as np
 import numba
 import pickle
 
+
+def _merge_these_clusters_nt_res(tree, s2_area1, z1, s2_area2, z2):
+    return bool(tree.predict([[z1, z2 - z1, s2_area1, s2_area2]]))
+
+
 class Helpers():
-
-    def _merge_these_clusters_nt_res(self, tree, s2_area1, z1, s2_area2, z2):
-        return bool(tree.predict([[z1, z2 - z1, s2_area1, s2_area2]]))
-
     @staticmethod
     def assignOrder(order):
         """This is a trick to have the calculation function be executed in a particular order"""
@@ -42,8 +43,8 @@ class Helpers():
         spe_distribution = np.mean(uniform_to_pe_arr, axis=0)
         return spe_distribution
 
-    @numba.njit
-    def macro_cluster_events(self, instructions, tree):
+    @staticmethod
+    def macro_cluster_events(instructions, tree):
         """Loops over all instructions, checks if it's an s2 and if there is another s2 within the same event
             within the macro cluster distance, if it is they are merged."""
         for ix1, _ in enumerate(instructions):
@@ -54,9 +55,9 @@ class Helpers():
                     continue
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
                     break
-                if self._merge_these_clusters_nt_res(tree,
-                                                     instructions[ix1]['amp'], instructions[ix1]['z'],
-                                                     instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z']):
+                if _merge_these_clusters_nt_res(tree,
+                                                instructions[ix1]['amp'], instructions[ix1]['z'],
+                                                instructions[ix1 + ix2]['amp'], instructions[ix1 + ix2]['z']):
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] + instructions[ix1 + ix2]['x']) * 0.5
                     instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] + instructions[ix1 + ix2]['y']) * 0.5
                     instructions[ix1 + ix2]['z'] = (instructions[ix1]['z'] + instructions[ix1 + ix2]['z']) * 0.5
