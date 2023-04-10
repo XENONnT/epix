@@ -236,19 +236,20 @@ class StraxSimulator(strax.Plugin):
         self.load_config()
 
     def get_nveto_data(self, ):
-        file_loader = epix.io.file_loader(directory=self.config['epix_config']['path'],
-                                          file_name=self.config['epix_config']['file_name'])
-        file_tree, _ = file_loader._get_ttree()
-
-        if 'pmthitID' in file_tree.keys():
-            nv_hits = NVetoUtils.get_nv_hits(ttree=file_tree,
-                                             pmt_nv_json_dict=self.resource.nv_pmt_qe,
-                                             nveto_dtype=self.dtype['events_nveto'],
-                                             SPE_Resolution=self.config['nv_spe_resolution'],
-                                             SPE_ResThreshold=self.config['nv_spe_res_threshold'],
-                                             max_time_ns=self.config['nv_max_time_ns'],
-                                             batch_size=10000)
-            return nv_hits
+        nv_hits = None
+        if self.config['epix_config']['file_name'].endswith(".root"):
+            file_loader = epix.io.file_loader(directory=self.config['epix_config']['path'],
+                                              file_name=self.config['epix_config']['file_name'])
+            file_tree, _ = file_loader._get_ttree()
+            if 'pmthitID' in file_tree.keys():
+                nv_hits = NVetoUtils.get_nv_hits(ttree=file_tree,
+                                                 pmt_nv_json_dict=self.resource.nv_pmt_qe,
+                                                 nveto_dtype=self.dtype['events_nveto'],
+                                                 SPE_Resolution=self.config['nv_spe_resolution'],
+                                                 SPE_ResThreshold=self.config['nv_spe_res_threshold'],
+                                                 max_time_ns=self.config['nv_max_time_ns'],
+                                                 batch_size=10000)
+        return nv_hits
 
     def get_epix_instructions(self, ):
         epix_config = deepcopy(self.config['epix_config'])
