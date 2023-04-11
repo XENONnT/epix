@@ -1,4 +1,4 @@
-__version__ = '0.4.0.RFBETA'
+__version__ = '0.4.1.RFBETA'
 
 from .common import *
 from .io import *

@@ -56,7 +56,7 @@ class Simulator():
         First do the macro clustering. Clustered instructions will be flagged with amp=-1,
         so we can safely throw those out"""
         start_time = time.time()
-        self.tree = pickle.load(open('tree_v2_unoptimised', 'rb+'))
+        self.tree = pickle.load(open(self.config['configuration_files']['s2_separation_bdt'], 'rb+'))
 
         Helpers.macro_cluster_events(self.instructions_epix, self.tree)
         self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
