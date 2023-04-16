@@ -322,6 +322,10 @@ class StraxSimulator(strax.Plugin):
                 data=simulated_data_nveto,
                 data_type='events_nveto')
 
+        print(f"Restoring photon_area_distribution resource...")
+        self.resource.photon_area_distribution = straxen.get_resource(self.config['photon_area_distribution'],
+                                                                      fmt='csv')
+
         return {'events_tpc': simulated_data_chunk,
                 'events_nveto': simulated_data_nveto_chunk}
 
