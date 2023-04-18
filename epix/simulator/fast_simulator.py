@@ -216,6 +216,9 @@ class StraxSimulator(strax.Plugin):
 
     def setup(self, ):
         overrides = self.config['fax_config_overrides']
+
+        print(f"\nepix.fast_simulator.setup: overrides:\n{overrides}")
+
         self.config.update(straxen.get_resource(self.config['fax_config'], fmt='json'))
         if overrides is not None:
             self.config.update(overrides)
@@ -255,6 +258,7 @@ class StraxSimulator(strax.Plugin):
         epix_config = deepcopy(self.config['epix_config'])
         if epix_config.get('load_from_file', False):
             return np.load(epix_config['file_name'])
+
         detector = epix.init_detector(self.config['detector'].lower(), self.config['detector_config_override'])
         epix_config['detector_config'] = detector
 
