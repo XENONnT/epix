@@ -292,7 +292,7 @@ class StraxSimulator(strax.Plugin):
 
             if isinstance(self.config['epix_config']['tag_epix_df'], str):
                 _tag = self.config['epix_config']['tag_epix_df']
-                epix_df_path = epix_df_path.replace('_epix.csv', f"_epix_{_tag}.csv")
+                epix_df_path = epix_df_path.replace('_epix.csv', f"_{_tag}_epix.csv")
 
             print(f"Saving EPIX df to [ {epix_df_path} ]...")
             epix_df = pd.DataFrame(self.epix_instructions)
