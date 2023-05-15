@@ -21,7 +21,7 @@ class GenerateEvents:
 
     @staticmethod
     @Helpers.assign_order(1)
-    def get_true_polar_coordinates(i):
+    def get_true_polar_coordinates(i, config, resource):
         for alt_s2, alt in [('', '', ''), ('alt_s2_', 'alt_')]:
             i[f'{alt_s2}r_true'] = np.sqrt(i[f'{alt_s2}x_true'] ** 2 + i[f'{alt_s2}y_true'] ** 2)
             i[f'{alt_s2}theta_true'] = np.arctan2(i[f'{alt_s2}y_true'], i[f'{alt_s2}x_true'])
@@ -48,7 +48,7 @@ class GenerateEvents:
 
     @staticmethod
     @Helpers.assign_order(3)
-    def smear_positions(i, config):
+    def smear_positions(i, config, resource):
         """Take initial positions and apply gaussian smearing with some resolution to get the measured position
             :params: instructions, numpy array with instructions of events_tpc dtype
             :params: config, dict with configuration values for resolution
@@ -61,7 +61,7 @@ class GenerateEvents:
 
     @staticmethod
     @Helpers.assign_order(4)
-    def get_corrected_positions(i, resource):
+    def get_corrected_positions(i, config, resource):
         """
         Apply FDC to observed positions s2_x, s2_y to get x, y
             :params: instructions, numpy array with instructions of events_tpc dtype
@@ -134,7 +134,7 @@ class GenerateEvents:
 
     @staticmethod
     @Helpers.assign_order(7)
-    def correction_s1(i, resource):
+    def correction_s1(i, config, resource):
         """
             Calculates cs1. Method taken from CorrectedAreas in straxen
             :params: i, numpy array with instructions of events_tpc dtype
