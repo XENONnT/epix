@@ -16,12 +16,6 @@ from .helpers import Helpers
 import inspect
 import warnings
 
-def monitor_time(prev_time, task):
-    t = time.time()
-    print(f'It took {(t - prev_time):.4f} sec to {task}')
-    return t
-
-
 # 2023-02-19: configuration_files:
 #   'nv_pmt_qe':'nveto_pmt_qe.json',
 #   'photon_area_distribution':'XENONnT_SR0_spe_distributions_20210713_no_noise_scaled.csv',
@@ -38,7 +32,6 @@ def monitor_time(prev_time, task):
 
 class Simulator:
     """Simulator class for epix to go from  epix instructions to fully processed data"""
-
 
     def __init__(self, instructions_epix, config, resource):
         self.config = config
@@ -149,7 +142,6 @@ class Simulator:
 @strax.takes_config(
     strax.Option('detector', default='XENONnT', help='Detector model'),
     strax.Option('detector_config_override', default='', help='For the electric field, otherwise 200 V/cm'),
-    strax.Option('g4_file', help='G4 file to simulate'),
     strax.Option('epix_config', default=dict(), help='Configuration file for epix', ),
     strax.Option('configuration_files', default=dict(), help='Files required for simulating'),
     strax.Option('fax_config', help='Fax configuration to load'),
