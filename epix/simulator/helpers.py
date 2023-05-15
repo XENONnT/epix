@@ -43,8 +43,8 @@ def get_nn_prediction(inp, w0, w1, w2, w3, w4, w5, w6, w7, w8, w9):
     y = 1 / (1+np.exp(-y))
     return y[0]
 
-def _merge_these_clusters_nt_res_jaron(amp1, r1, z1, amp2, r2, z2, conf):
 
+def _merge_these_clusters_nt_res_jaron(amp1, r1, z1, amp2, r2, z2, conf):
     dt_correction = 0.8988671508131871
     width_correction = 0.854918851953897
     fm = conf['field_map']
@@ -69,8 +69,8 @@ def _merge_these_clusters_nt_res_jaron(amp1, r1, z1, amp2, r2, z2, conf):
     #print(f'{delta_t =}')
     split_param = delta_t/(width1+width2)
     #print(f'{split_param = }')
-    survival1 = fm([r1,z1], map_name='survival_probability_map')[0]
-    survival2 = fm([r2,z2], map_name='survival_probability_map')[0]
+    survival1 = conf['field_map']([r1,z1], map_name='survival_probability_map')[0]
+    survival2 = conf['field_map']([r2,z2], map_name='survival_probability_map')[0]
     e_lifetime = conf['e_lifetime'] / 1000 # us
     amp1_corr = int(conf['e_extraction_yield'] * survival1 * np.exp(-dt1/e_lifetime) * amp1)
     amp2_corr = int(conf['e_extraction_yield'] * survival2 * np.exp(-dt2/e_lifetime) * amp2)

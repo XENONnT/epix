@@ -15,6 +15,12 @@ from .GenerateNveto import NVetoUtils
 from .helpers import Helpers
 import warnings
 
+def monitor_time(prev_time, task):
+    t = time.time()
+    print(f'It took {(t - prev_time):.4f} sec to {task}')
+    return t
+
+
 # 2023-02-19: configuration_files:
 #   'nv_pmt_qe':'nveto_pmt_qe.json',
 #   'photon_area_distribution':'XENONnT_SR0_spe_distributions_20210713_no_noise_scaled.csv',
@@ -31,6 +37,7 @@ def monitor_time(prev_time, task):
 
 class Simulator:
     """Simulator class for epix to go from  epix instructions to fully processed data"""
+
 
     def __init__(self, instructions_epix, config, resource):
         self.config = config
@@ -288,6 +295,13 @@ class StraxSimulator(strax.Plugin):
         #simulated_data_nveto = self.get_nveto_data()
         simulated_data_nveto = None
         self.epix_instructions = self.get_epix_instructions()
+
+        if isinstance(self.config['epix_config']['save_epix'], str):
+            epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][:-5] +'_epix_1'
+            print('Saving epix instruction: ', epix_path)
+            np.save(epix_path, self.epix_instructions)
+            
+
         self.Simulator = Simulator(instructions_epix=self.epix_instructions,
                                    config=self.config,
                                    resource=self.resource)
