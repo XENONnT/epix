@@ -22,7 +22,7 @@ class GenerateEvents:
     @staticmethod
     @Helpers.assign_order(1)
     def get_true_polar_coordinates(i, config, resource):
-        for alt_s2, alt in [('', '', ''), ('alt_s2_', 'alt_')]:
+        for alt_s2, alt in [('', ''), ('alt_s2_', 'alt_')]:
             i[f'{alt_s2}r_true'] = np.sqrt(i[f'{alt_s2}x_true'] ** 2 + i[f'{alt_s2}y_true'] ** 2)
             i[f'{alt_s2}theta_true'] = np.arctan2(i[f'{alt_s2}y_true'], i[f'{alt_s2}x_true'])
 
@@ -54,7 +54,7 @@ class GenerateEvents:
             :params: config, dict with configuration values for resolution
         """
         # TODO check if this makes sense. Can we get the resolutions from somewhere?
-        for alt_s2, alt in [('', '', ''), ('alt_s2_', 'alt_')]:
+        for alt_s2, alt in [('', ''), ('alt_s2_', 'alt_')]:
             i[f'{alt}s2_x'] = np.random.normal(i[f'{alt}s2_x'], config['xy_resolution'])
             i[f'{alt}s2_y'] = np.random.normal(i[f'{alt}s2_y'], config['xy_resolution'])
             i[f'{alt_s2}z_naive'] = np.random.normal(i[f'{alt_s2}z_naive'], config['z_resolution'])
