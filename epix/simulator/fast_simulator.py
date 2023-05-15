@@ -13,6 +13,7 @@ from immutabledict import immutabledict
 from .GenerateEvents import GenerateEvents
 from .GenerateNveto import NVetoUtils
 from .helpers import Helpers
+import inspect
 import warnings
 
 def monitor_time(prev_time, task):
@@ -61,7 +62,8 @@ class Simulator:
         First do the macro clustering. Clustered instructions will be flagged with amp=-1,
         so we can safely throw those out"""
         start_time = time.time()
-        self.nn_weights = pickle.load(open('/home/jgrigat/epix/epix/simulator/nn_weights.p', 'rb+'))
+        working_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        self.nn_weights = pickle.load(open(f'{working_dir}/nn_weights.p', 'rb+'))
         Helpers.macro_cluster_events(self.nn_weights, self.instructions_epix, self.config)
         self.instructions_epix = self.instructions_epix[self.instructions_epix['amp'] != -1]
 
@@ -122,11 +124,21 @@ class Simulator:
     def run_simulator(self, ):
         self.cluster_events()
         # TODO this is for debug purposes - not super nice. We should have a fastsim_truth data type
-        if isinstance(self.config['epix_config'].get('save_epix', None), str):
-            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-4] + '_instruction_after_macro_clustering'
-            epix_path = os.path.join(self.config['epix_config']['save_epix'] ,file_name)
-            print('Saving epix instruction: ', epix_path)
-            np.save(epix_path, self.instructions)
+        file_name = self.config['epix_config']['file_name'].split('/')[-1]
+        file_name = file_name.split('.')[0]
+        file_name += '_instruction_after_macro_clustering.csv'
+        save_epix = self.config['epix_config'].get('save_epix', False)
+        if isinstance(save_epix, str):
+            # assume save epix as path to store
+            epix_path = os.path.join(self.config['epix_config']['save_epix'], file_name)
+        elif save_epix:
+            # if save epix True store in normal path
+            epix_path = os.path.join(self.config['epix_config']['path'], file_name)
+        else:
+            return
+        print(f'Saving epix instruction after macro clustering: {epix_path}')
+        df = pd.DataFrame(self.instructions)
+        df.to_csv(epix_path, index=False)
         self.simulate()
         return self.instructions
 
@@ -258,6 +270,24 @@ class StraxSimulator(strax.Plugin):
                                              batch_size=10000)
             return nv_hits
 
+    def save_epix_instruction(self, epix_ins, save_epix, config):
+        # TODO I don't know if I like this.
+
+        file_name = config['epix_config']['file_name'].split('/')[-1]
+        file_name = file_name.split('.')[0]
+        file_name += '_instructions.csv'
+        if isinstance(save_epix, str):
+            # assume save epix as path to store
+            epix_path = os.path.join(config['epix_config']['save_epix'], file_name)
+        elif save_epix:
+            # if save epix True store in normal path
+            epix_path = os.path.join(config['epix_config']['path'], file_name)
+        else:
+            return
+        print(f'Saving epix instruction: {epix_path}')
+        df = pd.DataFrame(epix_ins)
+        df.to_csv(epix_path, index=False)
+
     def get_epix_instructions(self, ):
         epix_config = deepcopy(self.config['epix_config'])
         fn = epix_config.get('file_name', '')
@@ -274,20 +304,10 @@ class StraxSimulator(strax.Plugin):
             _, outer_cylinder = outer_cylinder()
             epix_config['outer_cylinder'] = outer_cylinder
             epix_ins = epix.run_epix.main(epix_config, return_wfsim_instructions=True)
-
-        # TODO I don't know if I like this.
+        else:
+            print('No valid file_name! must be .root (Geant4 file) or .csv (epix instructions)')
         save_epix = epix_config.get('save_epix', False)
-        if isinstance(save_epix, str):
-            # assume save epix as path to store
-            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-4] + '_instruction'
-            epix_path = os.path.join(self.config['epix_config']['save_epix'], file_name)
-            print('Saving epix instruction: ', epix_path)
-            np.save(epix_path, epix_ins)
-        elif save_epix:
-            # if save epix True store in normal path
-            file_name = self.config['epix_config']['file_name'].split('/')[-1][:-4] + '_instruction'
-            epix_path = os.path.join(self.config['epix_config']['path'], file_name)
-            print(f'Saving epix instruction: {epix_path}')
+        self.save_epix_instruction(epix_ins, save_epix, self.config)
         return epix_ins
 
     def compute(self):
@@ -296,10 +316,10 @@ class StraxSimulator(strax.Plugin):
         simulated_data_nveto = None
         self.epix_instructions = self.get_epix_instructions()
 
-        if isinstance(self.config['epix_config']['save_epix'], str):
-            epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][:-5] +'_epix_1'
-            print('Saving epix instruction: ', epix_path)
-            np.save(epix_path, self.epix_instructions)
+        #if isinstance(self.config['epix_config']['save_epix'], str):
+        #    epix_path = self.config['epix_config']['save_epix'] + self.config['epix_config']['file_name'][:-5] +'_epix_1'
+        #    print('Saving epix instruction: ', epix_path)
+        #   np.save(epix_path, self.epix_instructions)
             
 
         self.Simulator = Simulator(instructions_epix=self.epix_instructions,
