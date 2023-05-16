@@ -121,17 +121,16 @@ class Simulator:
         file_name = file_name.split('.')[0]
         file_name += '_instruction_after_macro_clustering.csv'
         save_epix = self.config['epix_config'].get('save_epix', False)
-        if isinstance(save_epix, str):
-            # assume save epix as path to store
-            epix_path = os.path.join(self.config['epix_config']['save_epix'], file_name)
-        elif save_epix:
-            # if save epix True store in normal path
-            epix_path = os.path.join(self.config['epix_config']['path'], file_name)
-        else:
-            return
-        print(f'Saving epix instruction after macro clustering: {epix_path}')
-        df = pd.DataFrame(self.instructions)
-        df.to_csv(epix_path, index=False)
+        if save_epix:
+            if isinstance(save_epix, str):
+                # assume save epix as path to store
+                epix_path = os.path.join(self.config['epix_config']['save_epix'], file_name)
+            else:
+                # if save epix True store in normal path
+                epix_path = os.path.join(self.config['epix_config']['path'], file_name)
+            print(f'Saving epix instruction after macro clustering: {epix_path}')
+            df = pd.DataFrame(self.instructions)
+            df.to_csv(epix_path, index=False)
         self.simulate()
         return self.instructions
 
@@ -283,7 +282,7 @@ class StraxSimulator(strax.Plugin):
         fn = epix_config.get('file_name', '')
         if fn.endswith('.csv'):
             csv_file_path = os.path.join(epix_config['path'], epix_config['file_name'])
-            print('Loading epix instructions from csv-file from {csv_file_path}')
+            print(f'Loading epix instructions from csv-file from {csv_file_path}')
             epix_ins = pd.read_csv(csv_file_path)
             epix_ins = np.array(epix_ins.to_records(index=False))
         elif fn.endswith('.root'):
