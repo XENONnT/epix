@@ -271,11 +271,9 @@ class StraxSimulator(strax.Plugin):
         if isinstance(save_epix, str):
             # assume save epix as path to store
             epix_path = os.path.join(config['epix_config']['save_epix'], file_name)
-        elif save_epix:
+        else:
             # if save epix True store in normal path
             epix_path = os.path.join(config['epix_config']['path'], file_name)
-        else:
-            return
         print(f'Saving epix instruction: {epix_path}')
         df = pd.DataFrame(epix_ins)
         df.to_csv(epix_path, index=False)
@@ -284,8 +282,9 @@ class StraxSimulator(strax.Plugin):
         epix_config = deepcopy(self.config['epix_config'])
         fn = epix_config.get('file_name', '')
         if fn.endswith('.csv'):
-            print('Loading epix instructions from csv-file')
-            epix_ins = pd.read_csv(os.path.join(epix_config['path'], epix_config['file_name']))
+            csv_file_path = os.path.join(epix_config['path'], epix_config['file_name'])
+            print('Loading epix instructions from csv-file from {csv_file_path}')
+            epix_ins = pd.read_csv(csv_file_path)
             epix_ins = np.array(epix_ins.to_records(index=False))
         elif fn.endswith('.root'):
             print('Generating epix instructions from root-file')
@@ -300,7 +299,8 @@ class StraxSimulator(strax.Plugin):
         else:
             print('No valid file_name! must be .root (Geant4 file) or .csv (epix instructions)')
         save_epix = epix_config.get('save_epix', False)
-        self.save_epix_instruction(epix_ins, save_epix, self.config)
+        if save_epix:
+            self.save_epix_instruction(epix_ins, save_epix, self.config)
         return epix_ins
 
     def compute(self):
