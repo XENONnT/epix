@@ -285,7 +285,7 @@ class StraxSimulator(strax.Plugin):
         fn = epix_config.get('file_name', '')
         if fn.endswith('.csv'):
             print('Loading epix instructions from csv-file')
-            epix_ins = np.load(epix_config['file_name'])
+            epix_ins = np.load(os.path.join(epix_config['path'], epix_config['file_name']))
         elif fn.endswith('.root'):
             print('Generating epix instructions from root-file')
 
