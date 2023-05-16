@@ -46,13 +46,13 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
 
         for _t in _t_clusters:
             _cl = _find_cluster(_df_evt[_df_evt.time_cluster == _t], cluster_size_space=cluster_size_space)
-            df.loc[(df.time_cluster == _t)&(df.index.get_level_values(0)==evt), 'cluster_id'] = _cl + add_to_cluster            
+            df.loc[(df.time_cluster == _t) & (df.index.get_level_values(0) == evt), 'cluster_id'] = _cl + add_to_cluster
             add_to_cluster = max(_cl) + add_to_cluster + 1
 
     ci = df.loc[:, 'cluster_id'].values
     offsets = ak.num(interactions['x'])
     interactions['cluster_ids'] = reshape_awkward(ci, offsets)
-    
+
     return interactions
 
 
@@ -69,14 +69,14 @@ def simple_1d_clustering(data, scale):
     Returns:
         clusters_undo_sort (np.array): Cluster Labels
     """
-    
+
     idx_sort = np.argsort(data)
     idx_undo_sort = np.argsort(idx_sort)
 
     data_sorted = data[idx_sort]
 
     diff = data_sorted[1:] - data_sorted[:-1]
-    
+
     clusters = [0]
     c = 0
     for value in diff:
@@ -87,7 +87,7 @@ def simple_1d_clustering(data, scale):
             clusters.append(c)
 
     clusters_undo_sort = np.array(clusters)[idx_undo_sort]
-    
+
     return clusters_undo_sort
 
 
@@ -103,7 +103,7 @@ def _find_cluster(x, cluster_size_space):
         functon: to be used in groupby.apply.
     """
     db_cluster = DBSCAN(eps=cluster_size_space, min_samples=1)
-    xprime = x[['x', 'y', 'z']].values 
+    xprime = x[['x', 'y', 'z']].values
     return db_cluster.fit_predict(xprime)
 
 
@@ -184,6 +184,7 @@ def _cluster(x, y, z, ed, time, ci,
         z_mean = 0
         t_mean = 0
         ed_tot = 0
+        event_time_min = min(time[ei])
 
         current_ci = 0  # Current cluster id
         i_class = 0  # Index for classification (depends on users requirement)
@@ -209,7 +210,7 @@ def _cluster(x, y, z, ed, time, ci,
 
                 # Write result, simple but extensive with awkward...
                 _write_result(res, x_mean, y_mean, z_mean,
-                              ed_tot, t_mean, A, Z, nestid)
+                              ed_tot, t_mean, event_time_min, A, Z, nestid)
 
                 # Update cluster id and empty buffer
                 current_ci = ci[ei][ii]
@@ -227,7 +228,7 @@ def _cluster(x, y, z, ed, time, ci,
 
             # We have to gather information of current cluster:
             e = ed[ei][ii]
-            t = time[ei][ii]
+            t = time[ei][ii] - event_time_min
             x_mean += x[ei][ii] * e
             y_mean += y[ei][ii] * e
             z_mean += z[ei][ii] * e
@@ -251,8 +252,9 @@ def _cluster(x, y, z, ed, time, ci,
                                 parenttype[ei][i_class],
                                 creaproc[ei][i_class],
                                 edproc[ei][i_class])
+
         _write_result(res, x_mean, y_mean, z_mean,
-                      ed_tot, t_mean, A, Z, nestid)
+                      ed_tot, t_mean, event_time_min, A, Z, nestid)
 
         res.end_list()
 
@@ -266,10 +268,10 @@ classifier_dtype = [(('Interaction type', 'types'), np.dtype('<U30')),
                     (('Atomic number', 'Z'), np.int16),
                     (('Nest Id for qunata generation', 'nestid'), np.int16)]
 classifier = np.zeros(7, dtype=classifier_dtype)
-classifier['types'] = ['None', 'neutron', 'alpha', 'None','None', 'gamma', 'e-']
-classifier['parenttype'] = ['None', 'None', 'None', 'Kr83[9.405]','Kr83[41.557]', 'None', 'None']
-classifier['creaproc'] = ['None', 'None', 'None', 'None', 'None','None', 'None']
-classifier['edproc'] = ['ionIoni', 'hadElastic', 'None', 'None','None', 'None', 'None']
+classifier['types'] = ['None', 'neutron', 'alpha', 'None', 'None', 'gamma', 'e-']
+classifier['parenttype'] = ['None', 'None', 'None', 'Kr83[9.405]', 'Kr83[41.557]', 'None', 'None']
+classifier['creaproc'] = ['None', 'None', 'None', 'None', 'None', 'None', 'None']
+classifier['edproc'] = ['ionIoni', 'hadElastic', 'None', 'None', 'None', 'None', 'None']
 classifier['A'] = [0, 0, 4, infinity, infinity, 0, 0]
 classifier['Z'] = [0, 0, 2, 0, 0, 0, 0]
 classifier['nestid'] = [0, 0, 6, 11, 11, 7, 8]
@@ -294,7 +296,7 @@ def classify(types, parenttype, creaproc, edproc):
 
 @numba.njit
 def _write_result(res, x_mean, y_mean, z_mean,
-                  ed_tot, t_mean, A, Z, nestid):
+                  ed_tot, t_mean, event_time_min, A, Z, nestid):
     """
     Helper to write result into record array.
     """
@@ -306,7 +308,7 @@ def _write_result(res, x_mean, y_mean, z_mean,
     res.field('z')
     res.real(z_mean / ed_tot)
     res.field('t')
-    res.real(t_mean / ed_tot)
+    res.real((t_mean / ed_tot) + event_time_min)
     res.field('ed')
     res.real(ed_tot)
     res.field('nestid')
