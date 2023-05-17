@@ -7,7 +7,6 @@
 ==================
 * Specify not working numba in req. file (#62)
 * Install scikit-learn (#63)
->>>>>>> master
 
 0.3.2 (2022-08-15)
 ==================
