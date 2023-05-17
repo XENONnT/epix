@@ -110,11 +110,11 @@ class file_loader():
                              "creaproc", "edproc"]
 
         #Prepare cut for root and csv case
+        # r and z are transformed in the load_root
+        self.cut_string = '(ed > 0)'
         if self.outer_cylinder:
-            self.cut_string = (f'(r < {self.outer_cylinder["max_r"]})'
-                               f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')            
-        else:
-            self.cut_string = None
+            self.cut_string += (f' & (r < {self.outer_cylinder["max_r"]})'
+                                f' & ((z >= {self.outer_cylinder["min_z"]}) & (z < {self.outer_cylinder["max_z"]}))')
 
     def load_file(self):
         """ 
