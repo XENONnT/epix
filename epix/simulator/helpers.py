@@ -2,8 +2,64 @@ import wfsim
 from scipy.interpolate import interp1d
 import numpy as np
 import numba
+import numpy.lib.recfunctions as rfn
 
+DTYPE = dict(events_tpc=[('time', np.int64),
+                             ('endtime', np.int64),
+                             ('cs1', np.float),
+                             ('cs2', np.float),
+                             ('alt_cs2', np.float),
+                             ('drift_time', np.float),
+                             ('s1_area', np.float),
+                             ('s2_area', np.float),
+                             ('alt_s2_area', np.float),
+                             ('alt_s2_interaction_drift_time', np.float),
+                             ('s2_x', np.float),
+                             ('s2_y', np.float),
+                             ('alt_s2_x', np.float),
+                             ('alt_s2_y', np.float),
+                             ('x', np.float),
+                             ('alt_s2_x_fdc', np.float),
+                             ('y', np.float),
+                             ('alt_s2_y_fdc', np.float),
+                             ('r', np.float),
+                             ('alt_s2_r_fdc', np.float),
+                             ('z', np.float),
+                             ('z_dv_corr', np.float),
+                             ('alt_s2_z', np.float),
+                             ('alt_s2_z_dv_corr', np.float),
+                             ('r_naive', np.float),
+                             ('alt_s2_r_naive', np.float),
+                             ('z_naive', np.float),
+                             ('alt_s2_z_naive', np.float),
+                             ('r_field_distortion_correction', np.float),
+                             ('alt_s2_r_field_distortion_correction', np.float),
+                             ('z_field_distortion_correction', np.float32),
+                             ('alt_s2_z_field_distortion_correction', np.float32),
+                             ('alt_s2_theta', np.float32),
+                             ('theta', np.float32),
 
+                             # Truth values
+                             ('x_true', np.float),
+                             ('y_true', np.float),
+                             ('z_true', np.float),
+                             ('r_true', np.float),
+                             ('theta_true', np.float),
+                             ('alt_s2_x_true', np.float),
+                             ('alt_s2_y_true', np.float),
+                             ('alt_s2_z_true', np.float),
+                             ('alt_s2_r_true', np.float),
+                             ('alt_s2_theta_true', np.float),
+                             ('e_dep', np.float),
+                             ('alt_e_dep', np.float),
+                             ('x_pri', np.float),
+                             ('y_pri', np.float),
+                             ('z_pri', np.float),
+                             ('g4id', np.int)],
+             events_nveto=[('time', np.float),
+                               ('endtime', np.float),
+                               ('event_id', np.int),
+                               ('channel', np.int), ])
 # Numba and classes still are not a match made in heaven
 @numba.njit
 def _merge_these_clusters_nsort(amp1, r1, z1, amp2, r2, z2, conf):
@@ -44,45 +100,38 @@ def get_nn_prediction(inp, w0, w1, w2, w3, w4, w5, w6, w7, w8, w9):
     return y[0]
 
 
-def _merge_these_clusters_nt_res_jaron(amp1, r1, z1, amp2, r2, z2, conf):
-    dt_correction = 0.8988671508131871
-    width_correction = 0.854918851953897
-    fm = conf['field_map']
-    dm = conf['diffusion_map']
-    v1 = 0.1*fm([r1, z1], map_name='drift_speed_map')[0] # cm/us
-    #print(f'{v1 =}')
-    v2 = 0.1*fm([r2, z2], map_name='drift_speed_map')[0] # cm/us
-    #print(f'{v2 =}')
-    dt1 = -z1*dt_correction/v1+conf['dt_gate']/1000 # us
-    #print(f'{dt1 =}')
-    dt2 = -z2*dt_correction/v2+conf['dt_gate']/1000 # us
-    #print(f'{dt2 =}')
-    diff1 = 1e3*dm([r1,z1])[0] # cm2/us
-    #print(f'{diff1 =}')
-    diff2 = 1e3*dm([r2,z2])[0] # cm2/us
-    #print(f'{diff2 =}')
-    width1 = width_correction*1.348*np.sqrt(2*diff1*dt1/v1**2) # us
-    #print(f'{w1 =}')
-    width2 = width_correction*1.348*np.sqrt(2*diff2*dt2/v2**2) # us
-    #print(f'{w2 =}')
+def _merge_these_clusters_nt_res_mlp(inst1, inst2, config, resource):
+    v1 = Helpers.get_drift_velocity([inst1['z']],
+                                    np.array([[inst1['x']],[inst1['y']]]).T, config, resource)[0] * 1000 # cm/us
+    v2 = Helpers.get_drift_velocity([inst2['z']],
+                                    np.array([[inst2['x']],[inst2['y']]]).T, config, resource)[0] * 1000 # cm/us
+    dt1 = Helpers.get_drift_time(np.array([inst1['z']]),
+                                 np.array([[inst1['x']],[inst1['y']]]).T, config, resource)[0] / 1000 # us
+    dt2 = Helpers.get_drift_time(np.array([inst2['z']]),
+                                 np.array([[inst2['x']],[inst2['y']]]).T, config, resource)[0] / 1000 # us
+    diff1 = resource.diffusion_longitudinal_map([inst1['z']],
+                                                np.array([[inst1['x']], [inst1['y']]]).T)[0] * 1000 # cm2/us
+    diff2 = resource.diffusion_longitudinal_map([inst2['z']],
+                                                np.array([[inst2['x']], [inst2['y']]]).T)[0] * 1000 # cm2/us
+    survival1 = resource.field_dependencies_map([inst1['z']], np.array([[inst1['x']], [inst1['y']]]).T,
+                                                map_name='survival_probability_map')[0]
+    survival2 = resource.field_dependencies_map([inst2['z']], np.array([[inst2['x']], [inst2['y']]]).T,
+                                                map_name='survival_probability_map')[0]
+    width1 = 1.348*np.sqrt(2*diff1*dt1/v1**2) # us
+    width2 = 1.348*np.sqrt(2*diff2*dt2/v2**2) # us
     delta_t = (dt2-dt1) # us
-    #print(f'{delta_t =}')
     split_param = delta_t/(width1+width2)
-    #print(f'{split_param = }')
-    survival1 = conf['field_map']([r1,z1], map_name='survival_probability_map')[0]
-    survival2 = conf['field_map']([r2,z2], map_name='survival_probability_map')[0]
-    e_lifetime = conf['e_lifetime'] / 1000 # us
-    amp1_corr = int(conf['e_extraction_yield'] * survival1 * np.exp(-dt1/e_lifetime) * amp1)
-    amp2_corr = int(conf['e_extraction_yield'] * survival2 * np.exp(-dt2/e_lifetime) * amp2)
-    #print(f'{amp1_corr = }')
-    #print(f'{amp2_corr = }')
+
+    e_lifetime = config['electron_lifetime_liquid'] / 1000 # us
+    amp1_corr = int(config['electron_extraction_yield'] * survival1 * np.exp(-dt1/e_lifetime) * inst1['amp'])
+    amp2_corr = int(config['electron_extraction_yield'] * survival2 * np.exp(-dt2/e_lifetime) * inst2['amp'])
+
     lower = min(amp1_corr, amp2_corr)
     higher = max(amp1_corr, amp2_corr)
-    w0, w1, w2, w3, w4, w5, w6, w7, w8, w9 = conf['nn_weights']
+    w0, w1, w2, w3, w4, w5, w6, w7, w8, w9 = resource.nn_weights
     X = np.array((split_param, higher, lower), dtype=np.float32)
     y = get_nn_prediction(X, w0, w1, w2, w3, w4, w5, w6, w7, w8, w9)
-    #print(f'{y = }')
-    return y > np.random.random()
+    return y > 0.5
 
 
 class Helpers:
@@ -96,6 +145,10 @@ class Helpers:
             return to_func
 
         return do_assignment
+
+    @staticmethod
+    def get_dtype():
+        return DTYPE
 
     @staticmethod
     def average_spe_distribution(spe_shapes):
@@ -122,23 +175,13 @@ class Helpers:
         return spe_distribution
 
     @staticmethod
-    def macro_cluster_events(nn_weights, instructions, config):
+    def macro_cluster_events(instructions, config, resource):
         """Loops over all instructions, checks if it's an S2 and if there is another s2 within the same event
             within the macro cluster distance, if it is they are merged."""
 
         print(f"\n macro_cluster_events --> s2_clustering_algorithm == {config['s2_clustering_algorithm']} . . .")
-
-        merge_config = {}
-        if config['s2_clustering_algorithm'] == 'bdt':
-            _merge_clusters = _merge_these_clusters_nt_res_jaron
-            merge_config['dt_gate'] = config['drift_time_gate']
-            merge_config['e_lifetime'] = config['electron_lifetime_liquid']
-            merge_config['e_extraction_yield'] = config['electron_extraction_yield']
-            merge_config['field_map'] = wfsim.load_resource.make_map(config['field_dependencies_map'],
-                                                     fmt='json.gz', method='WeightedNearestNeighbors')
-            merge_config['diffusion_map'] = wfsim.load_resource.make_map(config['diffusion_longitudinal_map'],
-                                                      fmt='json.gz', method='WeightedNearestNeighbors')
-            merge_config['nn_weights'] = nn_weights
+        if config['s2_clustering_algorithm'] == 'mlp':
+            _merge_clusters = _merge_these_clusters_nt_res_mlp
         elif config['s2_clustering_algorithm'] == 'naive':
             _merge_clusters = _merge_these_clusters_nt_res_naive
         elif config['s2_clustering_algorithm'] == 'nsort':
@@ -148,31 +191,19 @@ class Helpers:
         for ix1, _ in enumerate(instructions):
             if instructions[ix1]['type'] != 2:
                 continue
-            #print(f"{ix1} is an S2 of event {instructions[ix1]['event_number']}. Other peaks in this event:")
-            #print(instructions[instructions['event_number'] == instructions[ix1]['event_number']])
-            for ix2 in range(1, len(instructions[ix1:])): # why was  + 1): ?
-                #print(ix1 + ix2, end=' ')
+            for ix2 in range(1, len(instructions[ix1:])):
                 if instructions[ix1]['event_number'] != instructions[ix1 + ix2]['event_number']:
-                    #print('belongs to another event.')
                     break
                 if instructions[ix1 + ix2]['type'] != 2:
-                    #print('isn\'t an S2')
                     continue
-                #print(f'is an S2 of the same event. Check merge...')
-                r1 = np.sqrt(instructions[ix1]['x'] ** 2 + instructions[ix1]['y'] ** 2)
-                r2 = np.sqrt(instructions[ix1 + ix2]['x'] ** 2 + instructions[ix1 + ix2]['y'] ** 2)
-                if _merge_clusters(instructions[ix1]['amp'], r1, instructions[ix1]['z'],
-                                   instructions[ix1 + ix2]['amp'], r2, instructions[ix1 + ix2]['z'],
-                                   merge_config):
-                    #print(f'I will merge {ix1} and {ix1+ix2}.')
+                if _merge_clusters(instructions[ix1], instructions[ix1 + ix2], config, resource):
                     amp1 = instructions[ix1]['amp']
                     amp2 = instructions[ix1 + ix2]['amp']
                     amp_total = int((instructions[ix1]['amp'] + instructions[ix1 + ix2]['amp']))
                     instructions[ix1 + ix2]['x'] = (instructions[ix1]['x'] * amp1 + instructions[ix1 + ix2]['x'] * amp2) / amp_total
-                    instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] * amp1+ instructions[ix1 + ix2]['y'] * amp2) / amp_total
+                    instructions[ix1 + ix2]['y'] = (instructions[ix1]['y'] * amp1 + instructions[ix1 + ix2]['y'] * amp2) / amp_total
                     instructions[ix1 + ix2]['z'] = (instructions[ix1]['z'] + instructions[ix1 + ix2]['z']) / 2
 
-                    # primary position is one
                     instructions[ix1 + ix2]['x_pri'] = instructions[ix1]['x_pri']
                     instructions[ix1 + ix2]['y_pri'] = instructions[ix1]['y_pri']
                     instructions[ix1 + ix2]['z_pri'] = instructions[ix1]['z_pri']
@@ -182,7 +213,6 @@ class Helpers:
                     instructions[ix1 + ix2]['e_dep'] = (instructions[ix1]['e_dep'] + instructions[ix1 + ix2]['e_dep'])
                     instructions[ix1]['e_dep'] = -1  # flag to throw this instruction away later
                     break
-                #print(f'I won\'t merge {ix1} and {ix1+ix2}.')
 
     @staticmethod
     def get_s1_area_with_spe(spe_distribution, num_photons):
@@ -220,6 +250,9 @@ class Helpers:
                                            z_int=z,
                                            config=config,
                                            resource=resource)
+    @staticmethod
+    def get_drift_velocity(z, xy, config, resource):
+        return wfsim.S2.get_avg_drift_velocity(z, xy, config, resource)
 
     @staticmethod
     def get_drift_time(z, xy, config, resource):

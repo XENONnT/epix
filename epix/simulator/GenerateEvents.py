@@ -69,16 +69,33 @@ class GenerateEvents:
             :params: resource, instance of wfsim Resource class
         """
         for alt_s2, alt, fdc in [('','', ''), ('alt_s2_', 'alt_', '_fdc')]:
+
             i[f'{alt_s2}r_field_distortion_correction'] = resource.fdc_map(np.array([i[f'{alt}s2_x'], i[f'{alt}s2_y'],
                                                                                      i[f'{alt_s2}z_naive']]).T)
-            i[f'{alt_s2}r{fdc}'] = i[f'{alt_s2}r_naive'] + i[f'{alt_s2}r_field_distortion_correction']
-            i[f'{alt_s2}x{fdc}'] = i[f'{alt_s2}r{fdc}']*np.cos(i[f'{alt_s2}theta_true'])
-            i[f'{alt_s2}y{fdc}'] = i[f'{alt_s2}r{fdc}']*np.sin(i[f'{alt_s2}theta_true'])
+            with np.errstate(invalid='ignore', divide='ignore'):
+                r_cor = i[f'{alt_s2}r_naive'] + i[f'{alt_s2}r_field_distortion_correction']
+                scale = np.divide(r_cor, i[f'{alt_s2}r_naive'], out=np.zeros_like(r_cor), where=i[f'{alt_s2}r_naive'] != 0)
+
+            #i[f'{alt_s2}r{fdc}'] = i[f'{alt_s2}r_naive'] + i[f'{alt_s2}r_field_distortion_correction']
+            #i[f'{alt_s2}x{fdc}'] = i[f'{alt_s2}r{fdc}']*np.cos(i[f'{alt_s2}theta_true'])
+            #i[f'{alt_s2}y{fdc}'] = i[f'{alt_s2}r{fdc}']*np.sin(i[f'{alt_s2}theta_true'])
+            i[f'{alt_s2}r{fdc}'] = r_cor
+            i[f'{alt_s2}x{fdc}'] = i[f'{alt}s2_x'] * scale
+            i[f'{alt_s2}y{fdc}'] = i[f'{alt}s2_y'] * scale
             i[f'{alt_s2}theta'] = np.arctan2(i[f'{alt_s2}y{fdc}'], i[f'{alt_s2}x{fdc}'])
+
 
             i[f'{alt_s2}z_dv_corr'] = resource.fd_comsol(np.array([i[f'{alt_s2}r_true'], i[f'{alt_s2}z_true']]).T,
                                                          map_name='z_distortion_map')
-            i[f'{alt_s2}z'] = i[f'{alt_s2}z_naive']  # Following straxen z = z_naive for now.
+            with np.errstate(invalid='ignore'):
+                z_cor = -(i[f'{alt_s2}z_naive'] ** 2 - i[f'{alt_s2}r_field_distortion_correction'] ** 2) ** 0.5
+                invalid = np.abs(i[f'{alt_s2}z_naive']) < np.abs(i[f'{alt_s2}r_field_distortion_correction'] )
+                # do not apply z correction above gate
+                invalid |= i[f'{alt_s2}z_naive'] >= 0
+            z_cor[invalid] = i[f'{alt_s2}z_naive'][invalid]
+            i[f'{alt_s2}z_field_distortion_correction'] = z_cor - i[f'{alt_s2}z_naive']
+            i[f'{alt_s2}z'] = i[f'{alt_s2}z_naive']  # Following straxen 2.0.6 z = z_naive for now.
+
 
 
 
@@ -168,7 +185,6 @@ class GenerateEvents:
 
             # S2(x,y) corrections use the observed S2 positions
             xy = np.vstack([i[f'{alt}s2_x'], i[f'{alt}s2_y']]).T
-            alt_s2_positions = np.vstack([i['alt_s2_x'], i['alt_s2_y']]).T
 
             # Why S2 does not need the same treatment of S1 ?
             i[f'{alt}cs2'] = (i[f'{alt}s2_area'] * lifetime_corr / resource.s2_correction_map(xy))
