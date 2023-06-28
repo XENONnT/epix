@@ -94,7 +94,7 @@ class GenerateEvents:
                 invalid |= i[f'{alt_s2}z_naive'] >= 0
             z_cor[invalid] = i[f'{alt_s2}z_naive'][invalid]
             i[f'{alt_s2}z_field_distortion_correction'] = z_cor - i[f'{alt_s2}z_naive']
-            i[f'{alt_s2}z'] = i[f'{alt_s2}z_naive']  # Following straxen 2.0.6 z = z_naive for now.
+            i[f'{alt_s2}z'] = i[f'{alt_s2}z_naive']
 
 
 
@@ -133,7 +133,7 @@ class GenerateEvents:
         """
         for alt_s2, alt in [('', ''), ('alt_s2_', 'alt_')]:
             xy_true = np.array([i[f'{alt_s2}x_true'], i[f'{alt_s2}y_true']]).T
-            xy = np.array([i[f'{alt_s2}x'], i[f'{alt_s2}y']]).T
+            xy = np.array([i[f'{alt}s2_x'], i[f'{alt}s2_y']]).T
             n_el = i[f'{alt}s2_area'].astype(np.int64)
             n_electron = Helpers.get_s2_charge_yield(n_electron = n_el,
                                                      xy = xy_true,

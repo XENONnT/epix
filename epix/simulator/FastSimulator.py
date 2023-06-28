@@ -1,20 +1,15 @@
-import pickle
 import time
 import numpy as np
 import pandas as pd
 import os
 from .GenerateEvents import GenerateEvents
-from .GenerateNveto import NVetoUtils
 from .helpers import Helpers
-import inspect
+
 # 2023-02-19: configuration_files:
 #   'nv_pmt_qe':'nveto_pmt_qe.json',
 #   'photon_area_distribution':'XENONnT_SR0_spe_distributions_20210713_no_noise_scaled.csv',
 #   's1_pattern_map': 'XENONnT_s1_xyz_patterns_LCE_MCvf051911_wires.pkl',
 #   's2_pattern_map': 'XENONnT_s2_xy_patterns_GXe_LCE_corrected_qes_MCv4.3.0_wires.pkl',
-#   's2_separation_bdt': 's2_separation_decision_tree_fast_sim.p'
-#   (FROM: /dali/lgrandi/jgrigat/s2_separation/s2_separation_decision_tree_fast_sim.p)
-
 
 def monitor_time(prev_time, task):
     t = time.time()

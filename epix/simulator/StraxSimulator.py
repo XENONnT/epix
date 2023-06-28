@@ -24,6 +24,9 @@ import warnings
     strax.Option('configuration_files', default=dict(), help='Files required for simulating'),
     strax.Option('fax_config', help='Fax configuration to load'),
     strax.Option('fax_config_overrides', help='Fax configuration to override', default=None),
+    strax.Option('fax_config_override_from_cmt', default=None, infer_type=False,
+                 help="Dictionary of fax parameter names (key) mapped to CMT config names (value) "
+                      "where the fax parameter values will be replaced by CMT"),
     strax.Option('xy_resolution', default=0, help='xy position resolution (cm)'),
     strax.Option('z_resolution', default=0, help='xy position resolution (cm)'),
     strax.Option('nv_spe_resolution', default=0.40, help='nVeto SPE resolution'),
@@ -63,6 +66,13 @@ class StraxSimulator(strax.Plugin):
         self.config.update(straxen.get_resource(self.config['fax_config'], fmt='json'))
         if overrides is not None:
             self.config.update(overrides)
+        if self.config['fax_config_override_from_cmt'] is not None:
+            for fax_field, cmt_option in self.config['fax_config_override_from_cmt'].items():
+                if fax_field in ['fdc_3d', 's1_lce_correction_map'] and self.config.get('default_reconstruction_algorithm', False):
+                    cmt_option = tuple(['suffix', self.config['default_reconstruction_algorithm'], *cmt_option])
+                cmt_value = straxen.get_correction_from_cmt(self.run_id, cmt_option)
+                self.config[fax_field] = cmt_value
+
         # TODO: this should not be needed here. Where is this info normally taken from?
         if 'gains' not in self.config.keys():
             self.config['gains'] = [1] * 494
