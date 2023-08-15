@@ -23,12 +23,12 @@ def awkwardify_df(df):
                   "PreStepEnergy": reshape_awkward(df["PreStepEnergy"].values, evt_offsets),
                   "PostStepEnergy": reshape_awkward(df["PostStepEnergy"].values, evt_offsets),
                   "type": reshape_awkward(np.array(df["type"], dtype=str), evt_offsets),
-                  "trackid": reshape_awkward(df["trackid"].values, evt_offsets),
+                  "trackid": reshape_awkward(np.array(df["trackid"].values, dtype=np.int), evt_offsets),
                   "parenttype": reshape_awkward(np.array(df["parenttype"], dtype=str), evt_offsets),
-                  "parentid": reshape_awkward(df["parentid"].values, evt_offsets),
+                  "parentid": reshape_awkward(np.array(df["parentid"].values, dtype=np.int), evt_offsets),
                   "creaproc": reshape_awkward(np.array(df["creaproc"], dtype=str), evt_offsets),
                   "edproc": reshape_awkward(np.array(df["edproc"], dtype=str), evt_offsets),
-                  "evtid": reshape_awkward(df[df_eventid_key].values, evt_offsets),
+                  "evtid": reshape_awkward(np.array(df[df_eventid_key].values, dtype=np.int), evt_offsets),
                   }
 
     if 'r' in df.keys():
