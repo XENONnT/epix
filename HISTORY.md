@@ -1,7 +1,12 @@
+0.3.4 (2023-03-28)
+==================
+* Fix calculation for cluster weighted average time (#65)
+* Add zenodo badge
+
 0.3.3 (2023-01-09)
 ==================
-* Specify not working numba in req. file by @JoranAngevaare in https://github.com/XENONnT/epix/pull/62
-* Install scikit-learn by @JoranAngevaare in https://github.com/XENONnT/epix/pull/63
+* Specify not working numba in req. file (#62)
+* Install scikit-learn (#63)
 
 0.3.2 (2022-08-15)
 ==================
