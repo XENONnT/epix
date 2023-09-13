@@ -43,7 +43,10 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         print("Running BREM clustering...")
         inter = epix.find_brem_cluster(inter)
     else:
-        print(f"Running default DBSCAN microclustering...")
+        if 'cluster_method' in args and args['cluster_method'] == 'dbscan':
+            print(f"Running default DBSCAN microclustering...")
+        else:
+            print(f"Clustering method is not recognized, using the default DBSCAN microclustering...")
         inter = epix.find_cluster(inter, args['micro_separation'] / 10, args['micro_separation_time'])
 
     if args['debug']:
@@ -144,7 +147,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
                 interaction=epix.awkward_to_flat_numpy(result['nestid']),
                 field=epix.awkward_to_flat_numpy(result['e_field']))
         else:
-            raise RuntimeError("Unknown yield model: ", args['yields'])
+            raise RuntimeError("Unknown yield model: ", args['yield'])
         result['photons'] = epix.reshape_awkward(photons, ak_num(result['ed']))
         result['electrons'] = epix.reshape_awkward(electrons, ak_num(result['ed']))
         result['excitons'] = epix.reshape_awkward(excitons, ak_num(result['ed']))

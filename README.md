@@ -39,7 +39,8 @@ The other keyword arguments are:
 | `--MicroSeparationTime`  | Clustering time (ns) | `10` |
 | `--TagClusterBy`  | decide if you tag the cluster (particle type, energy depositing process) according to first interaction in it (`time`) or most energetic (`energy`) | `energy` |
 | `--MaxDelay`  | Time after which we cut the rest of the event (ns) | `1e7` |
-| `--YieldModel` | Model for yield/quanta generationg (nest or bbf) | `nest` |
+| `--YieldModel` | Model for yield/quanta generation (nest / bbf / beta) | `nest` |
+| `--ClusterMethod` | Microclustering method (dbscan / betadecay / brem) | `dbscan` |
 | `--SourceRate`  | Event rate for event separation<br /> - `0` for no time shift (G4 time remains)<br /> - `-1` for clean time shift between events<br /> - `>0` (Hz) for random spacing | `0` |
 | `--CutNeutron` | Add if you want to filter only nuclear recoil events (maximum ER energy deposit 10 keV) | `false` |
 | `--JobNumber`  | Job number in full chain simulation. Offset is computed as `JobNumber * n_simulated_events/SourceRate`, where `n_simulated_events` is read from file. | `0` |
