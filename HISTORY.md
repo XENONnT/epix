@@ -1,3 +1,7 @@
+0.3.5 (2023-09-13)
+==================
+* Custom microclustering and beta-yields generator (#73)
+
 0.3.4 (2023-03-28)
 ==================
 * Fix calculation for cluster weighted average time (#65)
