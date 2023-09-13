@@ -2,17 +2,99 @@ import numpy as np
 import pandas as pd
 import numba
 import awkward as ak
-from .common import reshape_awkward
+from .common import reshape_awkward, awkwardify_df
 from sklearn.cluster import DBSCAN
+from .brem_cluster import BremClustering
+from .betadecay_cluster import BetaDecayClustering
+
+
+def find_brem_cluster(interactions):
+    df = ak.to_pandas(interactions)
+    df_clustered = pd.DataFrame(columns=interactions.fields)
+
+    if df.empty:
+        # TPC interaction is empty
+        return interactions
+
+    bremClustering = BremClustering()
+
+    for evt in df.index.get_level_values(0).unique():
+        gamma_df, e_df, ep_df = bremClustering.cluster(df.loc[evt], verbose=False)
+
+        dte = pd.DataFrame()
+        dte = pd.concat((dte, gamma_df), ignore_index=True)
+        dte = pd.concat((dte, e_df), ignore_index=True)
+        dte = pd.concat((dte, ep_df), ignore_index=True)
+
+        if len(dte) > 0:
+            dte['cluster_ids'] = np.arange(len(dte))
+            df_clustered = pd.concat((df_clustered, dte), ignore_index=True)
+
+    try:
+        df_clustered.ed = df_clustered.dE_corr
+        df_clustered.drop(['corr', 'dE', 'dE_corr'], axis=1, inplace=True)
+    except AttributeError:
+        pass
+
+    for c in ['trackid', 'parentid', 'evtid']:
+        df_clustered[c] = df_clustered[c].astype(int)
+
+    interactions = awkwardify_df(df_clustered)
+
+    if len(df_clustered)>0:
+        ci = df_clustered.loc[:, 'cluster_ids'].values
+        offsets = ak.num(interactions['x'])
+        interactions['cluster_ids'] = reshape_awkward(ci, offsets)
+
+    return interactions
+
+
+def find_betadecay_cluster(interactions, ):
+    """
+        Function which finds clusters within an event
+        using beta-decay clustering approach: . . .
+
+        Args:
+            x (pandas.DataFrame): Subentries of event must contain all fields
+                of interactions type returned by epix.file_loader
+
+        Returns:
+            awkward.array: Modified interactions array with applied beta-decay clustering and added cluster_ids.
+        """
+
+    df = ak.to_pandas(interactions)
+    df_clustered = pd.DataFrame(columns=interactions.fields)
+
+    if df.empty:
+        # TPC interaction is empty
+        return interactions
+
+    betadecayClustering = BetaDecayClustering()
+
+    for evt in df.index.get_level_values(0).unique():
+        dte = betadecayClustering.cluster(df.loc[evt])
+        if len(dte) > 0:
+            dte['cluster_ids'] = np.arange(len(dte))
+            df_clustered = pd.concat((df_clustered, dte), ignore_index=True)
+
+    interactions = awkwardify_df(df_clustered)
+
+    if len(df_clustered)>0:
+        ci = df_clustered.loc[:, 'cluster_ids'].values
+        offsets = ak.num(interactions['x'])
+        interactions['cluster_ids'] = reshape_awkward(ci, offsets)
+
+    return interactions
 
 
 def find_cluster(interactions, cluster_size_space, cluster_size_time):
     """
-    Function which finds cluster within a event.
+    Function which finds clusters within an event using temporal
+    and spatial DBSCAN clustering.
 
     Args:
         x (pandas.DataFrame): Subentries of event must contain the
-            fields, x,y,z,time
+            fields: x,y,z,ed,time
         cluster_size_space (float): Max spatial distance between two points to
             be inside a cluster [cm].
         cluster_size_time (float): Max time distance between two points to be 
@@ -209,8 +291,9 @@ def _cluster(x, y, z, ed, time, ci,
                                         edproc[ei][i_class])
 
                 # Write result, simple but extensive with awkward...
-                _write_result(res, x_mean, y_mean, z_mean,
-                              ed_tot, t_mean, event_time_min, A, Z, nestid)
+                if ed_tot > 1e-6:
+                    _write_result(res, x_mean, y_mean, z_mean,
+                                  ed_tot, t_mean, event_time_min, A, Z, nestid)
 
                 # Update cluster id and empty buffer
                 current_ci = ci[ei][ii]
@@ -252,9 +335,9 @@ def _cluster(x, y, z, ed, time, ci,
                                 parenttype[ei][i_class],
                                 creaproc[ei][i_class],
                                 edproc[ei][i_class])
-
-        _write_result(res, x_mean, y_mean, z_mean,
-                      ed_tot, t_mean, event_time_min, A, Z, nestid)
+        if ed_tot>1e-6:
+            _write_result(res, x_mean, y_mean, z_mean,
+                          ed_tot, t_mean, event_time_min, A, Z, nestid)
 
         res.end_list()
 
