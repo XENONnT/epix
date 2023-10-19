@@ -189,6 +189,9 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     if args['debug'] & (len(result) == 0):
         warnings.warn('No interactions left, return empty DataFrame.')
     instructions = epix.awkward_to_wfsim_row_style(result)
+    # Apply energy range selection for instructions if required
+    if (args['min_energy'] > 0.0) or (args['max_energy'] < float('inf')):
+        instructions = apply_energy_selection(instructions,[args['min_energy'],args['max_energy']])
     if args['source_rate'] != 0:
         # Only sort by time again if source rates were applied, otherwise
         # things are already sorted within the events and should stay this way.
@@ -213,6 +216,20 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     if return_wfsim_instructions:
         return instructions
 
+
+def apply_energy_selection(instr,e_range):
+    minE,maxE = e_range[0],e_range[1]
+    #merge all energy deposits in single G4 events
+    g4ids=instr['g4id']
+    eds=instr['ed']
+    tot_es=np.zeros_like(eds)
+    uids=np.unique(g4ids)
+    for i in uids:
+        indices=np.where(g4ids==i)
+        tot_e = np.sum(eds[indices])/2. #divide by 2 because edep for both S1 and S2 are summed up...
+        tot_es[indices]=tot_e
+    instr['tot_e'] = tot_es
+    return instr[(instr['tot_e']>=minE) & (instr['tot_e']<=maxE) ]
 
 def monitor_time(prev_time, task):
     t = time.time()
