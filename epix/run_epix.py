@@ -215,39 +215,6 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     if return_wfsim_instructions:
         return instructions
-
-def calc_tot_e_dep(df):
-    print("calculating tot edep...")
-    #merge all energy deposits in single G4 events\n",
-    g4id = df['g4id'].values
-    u, s = np.unique(g4id, return_index=True)
-    print("split with event_number...")
-    #types= np.split(df['type'].values,s[1:])
-    edeps= np.split(df['e_dep'].values,s[1:])
-    print("calculate tot_edep...")
-    tot_edep = np.asarray(list(map(lambda x:np.sum(x),edeps))) #sum up the e_deps
-    #max_edep = list(map(lambda x:np.max(x),edeps)) #get max e_deps
-    num_edep = np.asarray(list(map(lambda x:len(x),edeps)) #get number of e_deps
-    #return tot_edep, max_edep, num_edep
-    #return np.repeat(tot_edep,np.append((s[1:]-s[:-1]),len(df)-s[-1]))
-    return np.repeat(tot_edep,num_edep)
-
-
-def apply_energy_selection(instr,e_range):
-    minE,maxE = e_range[0],e_range[1]
-    #merge all energy deposits in single G4 events
-    instr['tot_e'] = calc_tot_e_dep(instr)/2. #devide by 2 (S1, S2)
-    #g4ids=instr['g4id']
-    #eds=instr['ed']
-    #tot_es=np.zeros_like(eds)
-    #uids=np.unique(g4ids)
-    #for i in uids:
-    #    indices=np.where(g4ids==i)
-    #    tot_e = np.sum(eds[indices])/2. #divide by 2 because edep for both S1 and S2 are summed up...
-    #    tot_es[indices]=tot_e
-    #instr['tot_e'] = tot_es
-    return instr[(instr['tot_e']>=minE) & (instr['tot_e']<=maxE) ]
-
 def monitor_time(prev_time, task):
     t = time.time()
     print(f'It took {(t - prev_time):.4f} sec to {task}')
