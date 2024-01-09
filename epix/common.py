@@ -187,10 +187,10 @@ def calc_tot_e_dep(df):
     :return: total energy deposit in each g4 event
     """
     #merge all energy deposits in single G4 events
-    g4id = df['g4id'].values
+    g4id = df['g4id']
     u, s = np.unique(g4id, return_index=True)
     #split with event_number
-    edeps= np.split(df['e_dep'].values,s[1:])
+    edeps= np.split(df['e_dep'],s[1:])
     #calculate tot_edep
     tot_edep = np.asarray(list(map(lambda x:np.sum(x),edeps))) #sum up the e_deps
     num_edep = np.asarray(list(map(lambda x:len(x),edeps))) #get number of e_deps

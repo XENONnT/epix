@@ -6,7 +6,7 @@ import pandas as pd
 import warnings
 import epix
 
-from .common import ak_num, calc_dt, apply_time_offset
+from .common import ak_num, calc_dt, apply_time_offset,apply_energy_selection
 
 
 def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
