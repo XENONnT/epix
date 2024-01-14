@@ -119,7 +119,7 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
     df["time_cluster"] = np.concatenate(groups.apply(lambda x: simple_1d_clustering(x.t.values, cluster_size_time)))
 
     # Splitting into individual events and time cluster and apply space clustering space:
-    df['cluster_id'] = np.zeros(len(df.index), dtype=np.int)
+    df['cluster_id'] = np.zeros(len(df.index), dtype=int)
 
     for evt in df.index.get_level_values(0).unique():
         _df_evt = df.loc[evt]
