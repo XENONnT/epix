@@ -106,7 +106,7 @@ def find_cluster(interactions, cluster_size_space, cluster_size_time):
     # TODO is there a better way to get the df?
     df = []
     for key in ['x', 'y', 'z', 'ed', 't']:
-        df.append(ak.to_pandas(interactions[key], anonymous=key))
+        df.append(ak.to_dataframe(interactions[key], anonymous=key))
     df = pd.concat(df, axis=1)
 
     if df.empty:
