@@ -185,20 +185,17 @@ class file_loader():
 
         # If user specified entry start/stop we have to update number of
         # events for source rate computation:
-        if self.kwargs['entry_start'] is not None:
+        if self.kwargs['entry_start'] is not None and self.cut_by_eventid:
             start = self.kwargs['entry_start']
         else:
             start = 0
-        if self.kwargs['entry_stop'] is not None:
+        if self.kwargs['entry_stop'] is not None and self.cut_by_eventid:
             stop = self.kwargs['entry_stop']
         else:
             stop = n_simulated_events
 
-        if self.cut_by_eventid:
-            # Start/stop refers to eventid so drop start drop from kwargs
-            # dict if specified, otherwise we cut again on rows.
-            self.kwargs.pop('entry_start', None)
-            self.kwargs.pop('entry_stop', None)
+        self.kwargs.pop('entry_start', None)
+        self.kwargs.pop('entry_stop', None)
 
         # Conversions and parameters to be computed:
         alias = {'x': 'xp/10',  # converting "geant4" mm to "straxen" cm
