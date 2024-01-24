@@ -1,3 +1,9 @@
+0.3.6 (2024-01-15)
+==================
+* Fix G4 event number selection with cut_by_eventid (#75)
+* `np.int` is deprecated (#78)
+* Fix epix to allow version bump (#77)
+
 0.3.5 (2023-09-13)
 ==================
 * Custom microclustering and beta-yields generator (#73)

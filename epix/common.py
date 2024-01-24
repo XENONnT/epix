@@ -23,12 +23,12 @@ def awkwardify_df(df):
                   "PreStepEnergy": reshape_awkward(df["PreStepEnergy"].values, evt_offsets),
                   "PostStepEnergy": reshape_awkward(df["PostStepEnergy"].values, evt_offsets),
                   "type": reshape_awkward(np.array(df["type"], dtype=str), evt_offsets),
-                  "trackid": reshape_awkward(np.array(df["trackid"].values, dtype=np.int), evt_offsets),
+                  "trackid": reshape_awkward(np.array(df["trackid"].values, dtype=int), evt_offsets),
                   "parenttype": reshape_awkward(np.array(df["parenttype"], dtype=str), evt_offsets),
-                  "parentid": reshape_awkward(np.array(df["parentid"].values, dtype=np.int), evt_offsets),
+                  "parentid": reshape_awkward(np.array(df["parentid"].values, dtype=int), evt_offsets),
                   "creaproc": reshape_awkward(np.array(df["creaproc"], dtype=str), evt_offsets),
                   "edproc": reshape_awkward(np.array(df["edproc"], dtype=str), evt_offsets),
-                  "evtid": reshape_awkward(np.array(df[df_eventid_key].values, dtype=np.int), evt_offsets),
+                  "evtid": reshape_awkward(np.array(df[df_eventid_key].values, dtype=int), evt_offsets),
                   }
 
     if 'r' in df.keys():
@@ -51,7 +51,7 @@ def reshape_awkward(array, offset):
         res: awkward1.ArrayBuilder object.
     """
     res = ak.ArrayBuilder()
-    if (array.dtype == np.int) or (array.dtype == np.float64) or (array.dtype == np.float32):
+    if (array.dtype == int) or (array.dtype == np.float64) or (array.dtype == np.float32):
         _reshape_awkward_number(array, offset, res)
     else:
         _reshape_awkward_string(array, offset, res)

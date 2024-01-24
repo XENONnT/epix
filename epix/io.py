@@ -29,7 +29,7 @@ def load_config(config_file_path):
     config.read(config_file_path)
     sections = config.sections()
     if not len(sections):
-        raise ValueError(f'Cannot load sections from config file "{config_file_path}".' 
+        raise ValueError(f'Cannot load sections from config file "{config_file_path}".'
                          'Have you specified a wrong file?')
     settings = {}
     for s in sections:
@@ -84,14 +84,14 @@ class file_loader():
     """
 
     def __init__(self,
-                directory,
-                file_name, 
-                arg_debug=False,
-                outer_cylinder=None,
-                kwargs={},
-                cut_by_eventid=False,
-                cut_nr_only=False,
-                ):
+                 directory,
+                 file_name,
+                 arg_debug=False,
+                 outer_cylinder=None,
+                 kwargs={},
+                 cut_by_eventid=False,
+                 cut_nr_only=False,
+                 ):
 
         self.directory = directory
         self.file_name = file_name
@@ -109,10 +109,10 @@ class file_loader():
                              "parenttype", "parentid",
                              "creaproc", "edproc", "PreStepEnergy", "PostStepEnergy"]
 
-        #Prepare cut for root and csv case
+        # Prepare cut for root and csv case
         if self.outer_cylinder:
             self.cut_string = (f'(r < {self.outer_cylinder["max_r"]})'
-                               f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')            
+                               f' & ((zp >= {self.outer_cylinder["min_z"] * 10}) & (zp < {self.outer_cylinder["max_z"] * 10}))')
         else:
             self.cut_string = None
 
@@ -146,10 +146,11 @@ class file_loader():
         interactions = interactions[m]
 
         if self.cut_nr_only:
-            m = ((interactions['type'] == "neutron")&(interactions['edproc'] == "hadElastic")) | (interactions['edproc'] == "ionIoni")
+            m = ((interactions['type'] == "neutron") & (interactions['edproc'] == "hadElastic")) | (
+                    interactions['edproc'] == "ionIoni")
             e_dep_er = ak.sum(interactions[~m]['ed'], axis=1)
             e_dep_nr = ak.sum(interactions[m]['ed'], axis=1)
-            interactions = interactions[(e_dep_er<10) & (e_dep_nr>0)]
+            interactions = interactions[(e_dep_er < 10) & (e_dep_nr > 0)]
 
         # Removing all events with no interactions:
         m = ak.num(interactions['ed']) > 0
@@ -173,9 +174,9 @@ class file_loader():
 
         if self.arg_debug:
             print(f'Total entries in input file = {ttree.num_entries}')
-            cutby_string='output file entry'
+            cutby_string = 'output file entry'
             if self.cut_by_eventid:
-                cutby_string='g4 eventid'
+                cutby_string = 'g4 eventid'
 
             if self.kwargs['entry_start'] is not None:
                 print(f'Starting to read from {cutby_string} {self.kwargs["entry_start"]}')
@@ -188,12 +189,10 @@ class file_loader():
             start = self.kwargs['entry_start']
         else:
             start = 0
-
         if self.kwargs['entry_stop'] is not None:
             stop = self.kwargs['entry_stop']
         else:
             stop = n_simulated_events
-        n_simulated_events = stop - start
 
         if self.cut_by_eventid:
             # Start/stop refers to eventid so drop start drop from kwargs
@@ -207,7 +206,7 @@ class file_loader():
                  'z': 'zp/10',
                  'r': 'sqrt(x**2 + y**2)',
                  't': 'time*10**9'
-                }
+                 }
 
         # Read in data, convert mm to cm and perform a first cut if specified:
         interactions = ttree.arrays(self.column_names,
@@ -219,15 +218,22 @@ class file_loader():
         interactions['evtid'] = eventids
 
         xyz_pri = ttree.arrays(['x_pri', 'y_pri', 'z_pri'],
-                              aliases={'x_pri': 'xp_pri/10',
-                                       'y_pri': 'yp_pri/10',
-                                       'z_pri': 'zp_pri/10'
-                                      },
-                              **self.kwargs)
+                               aliases={'x_pri': 'xp_pri/10',
+                                        'y_pri': 'yp_pri/10',
+                                        'z_pri': 'zp_pri/10'
+                                        },
+                               **self.kwargs)
 
         interactions['x_pri'] = ak.broadcast_arrays(xyz_pri['x_pri'], interactions['x'])[0]
         interactions['y_pri'] = ak.broadcast_arrays(xyz_pri['y_pri'], interactions['x'])[0]
         interactions['z_pri'] = ak.broadcast_arrays(xyz_pri['z_pri'], interactions['x'])[0]
+
+        if self.cut_by_eventid:
+            first_evtid = ak.min(interactions['evtid'])
+            start += first_evtid
+            stop += first_evtid
+
+        n_simulated_events = stop - start
 
         return interactions, n_simulated_events, start, stop
 
@@ -244,20 +250,20 @@ class file_loader():
         """
 
         print("Load instructions from a csv file!")
-        
-        instr_df =  pd.read_csv(self.file)
 
-        #unit conversion similar to root case
-        instr_df["x"] = instr_df["xp"]/10 
-        instr_df["y"] = instr_df["yp"]/10 
-        instr_df["z"] = instr_df["zp"]/10
-        instr_df["x_pri"] = instr_df["xp_pri"]/10
-        instr_df["y_pri"] = instr_df["yp_pri"]/10
-        instr_df["z_pri"] = instr_df["zp_pri"]/10
-        instr_df["r"] = np.sqrt(instr_df["x"]**2 + instr_df["y"]**2)
-        instr_df["t"] = instr_df["time"]*10**9
+        instr_df = pd.read_csv(self.file)
 
-        #Check if all needed columns are in place:
+        # unit conversion similar to root case
+        instr_df["x"] = instr_df["xp"] / 10
+        instr_df["y"] = instr_df["yp"] / 10
+        instr_df["z"] = instr_df["zp"] / 10
+        instr_df["x_pri"] = instr_df["xp_pri"] / 10
+        instr_df["y_pri"] = instr_df["yp_pri"] / 10
+        instr_df["z_pri"] = instr_df["zp_pri"] / 10
+        instr_df["r"] = np.sqrt(instr_df["x"] ** 2 + instr_df["y"] ** 2)
+        instr_df["t"] = instr_df["time"] * 10 ** 9
+
+        # Check if all needed columns are in place:
         if not set(self.column_names).issubset(instr_df.columns):
             warnings.warn("Not all needed columns provided!")
 
@@ -268,11 +274,11 @@ class file_loader():
 
         interactions = awkwardify_df(instr_df)
 
-        #Use always all events in the csv file
+        # Use always all events in the csv file
         start = 0
         stop = n_simulated_events
 
-        return interactions, n_simulated_events, start, stop 
+        return interactions, n_simulated_events, start, stop
 
     def _get_ttree(self):
         """
@@ -297,9 +303,10 @@ class file_loader():
                 if v == 'TTree':
                     ttrees.append(k)
             raise ValueError(f'Cannot find ttree object of "{file_name}".'
-                            'I tried to search in events and events/events.'
-                            f'Found a ttree in {ttrees}?')
+                             'I tried to search in events and events/events.'
+                             f'Found a ttree in {ttrees}?')
         return ttree, n_simulated_events
+
 
 # ----------------------
 # Outputing wfsim instructions:

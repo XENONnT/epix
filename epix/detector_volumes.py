@@ -183,20 +183,21 @@ def in_sensitive_volume(events, sensitive_volumes):
                                vol.volume_id,
                                vol.xe_density,
                                vol.create_S2,
-                               res)
+                               res)  
         if ind:
+            new_results = res.snapshot() # Convert ArrayBuilder into true ak.Array
             # Now we add the other results, but first test if 
             # volumes overlap. Only possible if we explicitly loop
             # over everything. This reduces performance but adds layer of
             # safety.
-            m = (result['vol_id'] > 0) & (res['vol_id'] == vol.volume_id)
+            m = (result['vol_id'] > 0) & (new_results['vol_id'] == vol.volume_id)
             if ak.any(m):
                 overlapping_id = result[m][0]
                 # Get volume name:
                 name = [vol.name for vol in sensitive_volumes if vol.volume_id == overlapping_id][0]
                 raise ValueError(f'The volume {vol.name} is overlapping with'
                                  f' volume {name}!')
-            new_results = res.snapshot()
+            
             for field in result.fields:
                 # Workaround since we cannot sum up records-arrays anymore
                 result[field] = result[field] + new_results[field]
