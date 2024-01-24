@@ -209,11 +209,7 @@ def apply_energy_selection(instr,e_range):
 
     #merge all energy deposits in a single G4 event
     instr['tot_e'] = calc_tot_e_dep(instr)/2. #devide by 2 (S1, S2)
-
     instr_aft_selection = instr[(instr['tot_e']>=minE) & (instr['tot_e']<=maxE) ]
-
-    if len(inter_aft_selection) == 0:
-            return np.empty(0, dtype=wfsim.instruction_dtype)
 
     return instr_aft_selection
 

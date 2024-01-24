@@ -357,3 +357,6 @@ def awkward_to_wfsim_row_style(interactions):
     # Remove entries with no quanta
     res = res[res['amp'] > 0]
     return res
+
+def empty_wfsim_instructions():
+    return np.empty(0, dtype=wfsim.instruction_dtype)
