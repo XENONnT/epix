@@ -192,6 +192,8 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     # Apply energy range selection for instructions if required
     if (args['min_energy'] > 0.0) or (args['max_energy'] < float('inf')):
         instructions = apply_energy_selection(instructions,[args['min_energy'],args['max_energy']])
+        if args['debug'] & (len(instructions) == 0):
+            warnings.warn('No interactions left after the energy selection, return empty DataFrame.')
     if args['source_rate'] != 0:
         # Only sort by time again if source rates were applied, otherwise
         # things are already sorted within the events and should stay this way.
