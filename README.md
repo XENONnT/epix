@@ -39,6 +39,8 @@ The other keyword arguments are:
 | `--MicroSeparationTime`  | Clustering time (ns) | `10` |
 | `--TagClusterBy`  | decide if you tag the cluster (particle type, energy depositing process) according to first interaction in it (`time`) or most energetic (`energy`) | `energy` |
 | `--MaxDelay`  | Time after which we cut the rest of the event (ns) | `1e7` |
+| `--MaxEnergy`  | Upper range for energy selection _in sensitive volume_ (keV) | `inf` |
+| `--MinEnergy`  | Lower range for energy selection _in sensitive volume_ (keV) | `-1`  |
 | `--YieldModel` | Model for yield/quanta generation (nest / bbf / beta) | `nest` |
 | `--ClusterMethod` | Microclustering method (dbscan / betadecay / brem) | `dbscan` |
 | `--SourceRate`  | Event rate for event separation<br /> - `0` for no time shift (G4 time remains)<br /> - `-1` for clean time shift between events<br /> - `>0` (Hz) for random spacing | `0` |
