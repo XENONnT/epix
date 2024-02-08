@@ -55,10 +55,10 @@ def pars_args():
                                                  'and BREMSSTRAHLUNG microclustering, [ dbscan | betadecay | brem ]')
     parser.add_argument('--MaxEnergy', dest='max_energy', type=float,
                         action='store', default=float('inf'), #keV
-                        help='Maximam energy to be stored [keV].')
+                        help='Maximum energy in sensitive volume to be stored [keV].')
     parser.add_argument('--MinEnergy', dest='min_energy', type=float,
                         action='store', default=-1, #keV
-                        help='Minimam energy to be stored [keV].')
+                        help='Minimum energy in sensitive volume to be stored [keV].')
     parser.add_argument('--JobNumber', dest='job_number', type=int,
                         action='store', default=0,
                         help='Job number in full chain simulation. Offset is computed as '
@@ -73,7 +73,6 @@ def pars_args():
                        help='If specifed additional information is printed to the console.')
 
     args = parser.parse_args(sys.argv[1:])
-    print(args)
     return args
 
 if __name__ == "__main__":

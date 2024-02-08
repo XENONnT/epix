@@ -6,7 +6,7 @@ import pandas as pd
 import warnings
 import epix
 
-from .common import ak_num, calc_dt, apply_time_offset,apply_energy_selection
+from .common import ak_num, calc_dt, apply_time_offset, apply_energy_selection
 
 
 def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
@@ -191,7 +191,7 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
     instructions = epix.awkward_to_wfsim_row_style(result)
     # Apply energy range selection for instructions if required
     if (args['min_energy'] > 0.0) or (args['max_energy'] < float('inf')):
-        instructions = apply_energy_selection(instructions,[args['min_energy'],args['max_energy']])
+        instructions = apply_energy_selection(instructions, [args['min_energy'], args['max_energy']])
         if len(instructions) == 0:
             instructions = epix.empty_wfsim_instructions()
             if args['debug']:
@@ -219,6 +219,8 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
 
     if return_wfsim_instructions:
         return instructions
+
+
 def monitor_time(prev_time, task):
     t = time.time()
     print(f'It took {(t - prev_time):.4f} sec to {task}')

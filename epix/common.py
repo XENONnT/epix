@@ -180,37 +180,34 @@ def apply_time_offset(result, dt):
         return result
     return result['t'][:, :] + dt
 
+
 def calc_tot_e_dep(df):
     """
-    Calculate the total energy deposit in the sensitive volume
+    Calculate total energy deposit in the sensitive volume
     :param df: dataframe
     :return: total energy deposit in each g4 event
     """
-    #merge all energy deposits in single G4 events
+    # Merge all energy deposits in single G4 events
     g4id = df['g4id']
     u, s = np.unique(g4id, return_index=True)
-    #split with event_number
-    edeps= np.split(df['e_dep'],s[1:])
-    #calculate tot_edep
-    tot_edep = np.asarray(list(map(lambda x:np.sum(x),edeps))) #sum up the e_deps
-    num_edep = np.asarray(list(map(lambda x:len(x),edeps))) #get number of e_deps
-    #max_edep = list(map(lambda x:np.max(x),edeps)) #get max e_deps
+    # Split with event_number
+    edeps= np.split(df['e_dep'], s[1:])
+    # Calculate tot_edep
+    tot_edep = np.asarray(list(map(lambda x:np.sum(x), edeps))) # Sum up the e_deps
+    num_edep = np.asarray(list(map(lambda x:len(x), edeps))) # Get number of e_deps
     return np.repeat(tot_edep,num_edep)
 
 
 def apply_energy_selection(instr,e_range):
     """
-    Apply the energy selection with total energy deposit in the sensitive volume
+    Apply energy selection with total energy deposit in the sensitive volume
     :param instr: dataframe
     :param e_range: (minimum E, maximum E)
     :return: dataframe after the energy selection
     """
-    minE,maxE = e_range[0],e_range[1]
-
-    #merge all energy deposits in a single G4 event
+    minE, maxE = e_range[0], e_range[1]
+    # Merge all energy deposits in a single G4 event
     instr['tot_e'] = calc_tot_e_dep(instr)/2. #devide by 2 (S1, S2)
-    instr_aft_selection = instr[(instr['tot_e']>=minE) & (instr['tot_e']<=maxE) ]
-
+    instr_aft_selection = instr[(instr['tot_e']>=minE) & (instr['tot_e']<=maxE)]
     return instr_aft_selection
-
 
