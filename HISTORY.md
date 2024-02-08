@@ -1,3 +1,8 @@
+0.3.7 (2024-02-08)
+==================
+* Selection based on total energy deposit in sensitive volume (#76)
+* Fix cut_by_eventid again (#80)
+
 0.3.6 (2024-01-15)
 ==================
 * Fix G4 event number selection with cut_by_eventid (#75)
