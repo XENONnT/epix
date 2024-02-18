@@ -190,8 +190,10 @@ def main(args, return_df=False, return_wfsim_instructions=False, strax=False):
         warnings.warn('No interactions left, return empty DataFrame.')
     instructions = epix.awkward_to_wfsim_row_style(result)
     # Apply energy range selection for instructions if required
-    if (args['min_energy'] > 0.0) or (args['max_energy'] < float('inf')):
-        instructions = apply_energy_selection(instructions, [args['min_energy'], args['max_energy']])
+    selected_min_energy = args.get('min_energy', -1)
+    selected_max_energy = args.get('max_energy', float('inf'))
+    if (selected_min_energy > 0.0) or (selected_max_energy < float('inf')):
+        instructions = apply_energy_selection(instructions, [selected_min_energy, selected_max_energy])
         if len(instructions) == 0:
             instructions = epix.empty_wfsim_instructions()
             if args['debug']:
