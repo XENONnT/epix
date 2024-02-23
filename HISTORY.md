@@ -1,3 +1,7 @@
+0.3.8 (2024-02-23)
+==================
+* Propagate defaults for energy range arguments (#82)
+
 0.3.7 (2024-02-08)
 ==================
 * Selection based on total energy deposit in sensitive volume (#76)
